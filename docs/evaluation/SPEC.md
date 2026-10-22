@@ -1,7 +1,7 @@
 # Evaluation SPEC
 
 状态：Active
-最后更新：2026-07-29
+最后更新：2026-10-21
 适用范围：Test、Case Replay、Agent Eval、Verifier、ReviewerCat Judge。
 
 本文是 XiaoBa-CLI `Evaluation` 模块的唯一架构真相源。
@@ -27,6 +27,7 @@ In scope:
 - `src/eval/reviewer-cat-judge.ts` 的共享语义 Judge。
 - Verifier hard checks、重复运行和事实聚合。
 - `src/testing/**` 与 `test/scripted-runtime/**` 的 Test 语义边界。
+- `eval/harbor/agent.py` 与 `src/eval/harbor-session.ts` 的外部 Harbor P0 适配。
 
 Out of scope:
 
@@ -43,8 +44,14 @@ Out of scope:
 
 Replay 默认使用 `read_only` policy，只向被测 Agent 暴露 `read_file`、`glob` 和 `grep`。Case 可以显式声明 `workspace_write`，但该模式只有在 Arena/Evolution 提供 enforced clean runtime 时才开放工作区文件与 Shell 工具；外部消息、Browser、GUI 和 Secretary 工具不属于 Replay 能力集。
 
+VibeLifeBench P0 是外部 Harbor Agent 适配，不经过内部 Case Replay。Harbor 拥有官方多阶段任务、setup/world mutation、容器生命周期、evidence collection 和 Verifier；官方 Result 是该 Benchmark 的唯一评分。宿主 Python 适配器持有一个 Node 进程，同一 `AgentSession` / `ConversationRunner` 跨步骤持续运行。ToolManager 只注册任务 MCP tools 和通过 Harbor `environment.exec` 执行的容器 Shell，文件操作也在容器 `/workspace` 进行；不暴露宿主 Shell、真实 App Connector、Role 或 Subagent。MCP 客户端使用官方任务容器已有的 Python SDK，不增加 npm 依赖。
+
 ```mermaid
 flowchart LR
+    Harbor["External Harbor stages / setup"] --> Adapter["XiaoBa Harbor adapter"]
+    Adapter --> Runtime["Existing AgentSession / ToolManager"]
+    Runtime --> Trace
+    Harbor --> Official["Official Verifier / Harbor Result"]
     Replay --> Execution["Shell / file tools / bounded workers"]
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Fixture["Scripted fixture"] --> Test["Scripted Runtime Test"]
@@ -61,10 +68,12 @@ flowchart LR
 
 ## Target Architecture
 
-目标只保留一个 Eval 执行与裁决链。Arena 和 Evolution 只调用它，不拥有自己的 Replay、Judge、Scorecard 或 Regression 实现。
+内部目标只保留一个 Eval 执行与裁决链。Arena 和 Evolution 只调用它，不拥有自己的 Replay、Judge、Scorecard 或 Regression 实现。外部 Harbor Benchmark 保持官方任务和评分，不转换为内部 Outcome 或增加第二套评分。
 
 ```mermaid
 flowchart LR
+    Harbor["External Harbor"] --> Runtime["Existing AgentSession"]
+    Harbor --> Official["Official task / Verifier / Result"]
     Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Sandbox --> Native["Seatbelt on macOS / Bubblewrap on Linux"]
     CaseSet["CaseSet"] --> Eval["Shared Evaluation"]
@@ -135,7 +144,7 @@ EvaluationResult 保存 Outcomes 和成功率、稳定性、安全、延迟、to
 - Historical Trace 可回归成 Case；正式 Replay 的输入仍是 Case。
 - Trace 来源可标记 user、UserCat 或 replay，但 schema 与后续处理相同。
 - Replay effect policy 属于 Case setup：缺省 `read_only`；`workspace_write` 必须由 enforced clean runtime 承载，否则 blocked。
-- Benchmark 只是长期维护的 CaseSet，不是另一套 runner 或 result。
+- 内部 Benchmark 是长期维护的 CaseSet；外部 Harbor 接入只提供 Agent adapter，runner/result 由 Harbor 官方实现拥有。
 - Gate 若存在，只把 EvaluationResult 映射成进程退出策略。
 
 ## Implementation Layout
@@ -172,6 +181,51 @@ output/eval/                       generated Eval evidence
 - Observability & Evidence 保存 fresh Trace 和 artifact refs。
 - Roles & Skills 提供 ReviewerCat、被测 Role/Skill 和 Evolution 调用方。
 - Arena 生成 Case 并调用本模块，不复制裁决链。
+
+## VibeLifeBench P0 command and evidence
+
+基于 Harbor `0.24.0`，参考任务为 VibeLifeBench commit
+`cd21b2cb5d18a81b0fcdb4a948889a2148f48958` 的
+`harbor/litigation/private_lending_33d`（22 个虚拟阶段、30 个 Harbor steps、5 个服务）。
+前置条件：Docker、Node >=22.12、已安装的 xiaobaOS 依赖、有效且可访问的模型配置
+`XIAOBA_LLM_PROVIDER / XIAOBA_LLM_API_BASE / XIAOBA_LLM_API_KEY / XIAOBA_LLM_MODEL`。
+沿用现有配置方式，不把凭据放在命令行参数或提交文件中。
+
+```bash
+uv tool install harbor==0.24.0
+npm run build
+PYTHONPATH="$PWD/eval/harbor" harbor run \
+  --path /workspace/VibeLifeBench/harbor/litigation/private_lending_33d \
+  --agent agent:XiaobaAgent --resume-trajectory --n-concurrent 1 \
+  --jobs-dir output/harbor --job-name p0-private-lending --yes
+```
+
+所有步骤复用同一 session key 与工作区。英文官方 instruction envelope 中
+`[time] User ... says:` 才作为 authentic user input；通知、提醒和未识别 envelope
+通过现有 EventDispatcher 和 `handleMessage({internal:true})` 输入，不具备用户授权语义。
+静默 mutation 只由 Harbor 的 setup 应用；适配器不读取 event.yaml、未来步骤、solution 或 rubrics。
+模拟时间以官方 instruction / 容器 world clock 为准；宿主 runtime 仍会注入真实时间，P0 未改写核心时钟。
+
+Harbor 输出在 `output/harbor/<job>/`，任务的唯一官方评分见 trial `result.json`、
+Verifier `reward.json/checks.json`。构建/运行异常不能把 job 聚合中的 mean=0 当作有效任务得分。
+XiaoBa 输出在 `<trial>/xiaoba/`：标准 `logs/sessions/harbor/**/traces.jsonl`、
+Event records、SessionStore、Memory、`responses.jsonl` 和 worker stderr。
+适配器用 Harbor 自带的 Trajectory schema 将实际工具调用/结果和最终回复写入
+`<trial>/agent/trajectory.json`，供官方 collector 读取；每步只输出本步片段，
+通知的 source 为 system，避免官方 last-user 窗口混入上一阶段。Harbor 负责归档各步 ATIF。
+Memory 使用现有文件合同，session 内 transcript 和压缩逻辑连续；worker EOF 触发既有清理与 Memory finalization。
+中断后自动恢复不在 P0 范围，丢失 worker 的 resume 明确报错。
+
+桥接工程验证（预写模型响应，只验证传输和连续性）：
+
+```bash
+npm run build
+tsx --test test/harbor-session.test.ts
+/workspace/harbor-venv/bin/python test/harbor-agent.test.py
+```
+
+Python 测试需要安装 `harbor==0.24.0` 的解释器；其生成 Trace 位于
+`output/test/harbor-bridge/`，不能用作真实 Benchmark 通过证据。
 
 
 ## Shared sandbox execution
