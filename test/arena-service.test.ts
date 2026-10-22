@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, test } from 'node:test';
-import { FindingCase } from '../src/arena/arena-workflow';
-import { runPreparedArena } from '../src/arena/arena-service';
+import { FindingCase } from '../src/eval/arena/arena-workflow';
+import { runPreparedArena } from '../src/eval/arena/arena-service';
 import { EvaluationResult } from '../src/eval/evaluation';
 
 describe('Arena shared service', () => {

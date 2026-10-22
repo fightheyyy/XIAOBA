@@ -1,10 +1,12 @@
 # Surface PLAN
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 Owner：Surface maintainers
 
 ## Current Status
+
+源码目录迁移完成（2026-10-23）：全部渠道与 CLI 已迁入 surfaces；Electron 入口已更新，编译后的 CLI、prompt、Dashboard/Pet 页面已在独立工作目录验收。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - CLI、Feishu、Weixin、Pet、Dashboard 和 Electron 进入共享 AgentSession。
 - CLI 使用 direct final reply；channel-backed surfaces 通过 `send_text` / `send_file` 交付。
@@ -78,9 +80,9 @@ flowchart LR
 ## Owners
 
 - Event / Connector integration：`src/events/**`、`src/connectors/**`
-- CLI：`src/commands/**`
-- Feishu / Weixin：`src/feishu/**`, `src/weixin/**`
-- Pet / Dashboard：`src/pet/**`, `src/dashboard/**`, `desktop/dashboard/**`
+- CLI：`src/surfaces/cli/commands/**`
+- Feishu / Weixin：`src/surfaces/feishu/**`, `src/surfaces/weixin/**`
+- Pet / Dashboard：`src/surfaces/pet/**`, `src/surfaces/dashboard/**`, `desktop/dashboard/**`
 - Electron / package assets：`desktop/electron/**`, `desktop/build-resources/**`
 
 ## Acceptance Criteria

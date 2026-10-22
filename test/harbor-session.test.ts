@@ -3,15 +3,15 @@ import * as assert from 'node:assert/strict';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { AgentSession } from '../src/core/agent-session';
-import { dispatchHarborInstruction } from '../src/eval/harbor-session';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { dispatchHarborInstruction } from '../src/eval/harbor/session';
 import { EventDispatcher } from '../src/events/dispatcher';
-import { SkillManager } from '../src/skills/skill-manager';
-import { ToolManager } from '../src/tools/tool-manager';
-import { Message } from '../src/types';
-import { ToolDefinition } from '../src/types/tool';
-import { Logger } from '../src/utils/logger';
-import { MemoryFinalizer } from '../src/utils/memory-finalizer';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { Message } from '../src/runtime/contracts';
+import { ToolDefinition } from '../src/runtime/contracts/tool';
+import { Logger } from '../src/runtime/observability/logger';
+import { MemoryFinalizer } from '../src/memory/memory-finalizer';
 
 test('Harbor stages retain session, tool facts and memory; notices never become authentic user input', async () => {
   const cwd = process.cwd();

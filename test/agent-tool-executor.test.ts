@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { AgentToolExecutor } from '../src/agents/agent-tool-executor';
-import { Tool, ToolCall, ToolExecutionContext } from '../src/types/tool';
+import { AgentToolExecutor } from '../src/runtime/harness/agents/agent-tool-executor';
+import { Tool, ToolCall, ToolExecutionContext } from '../src/runtime/contracts/tool';
 
 function createToolCall(name: string, args: string = '{}'): ToolCall {
   return {

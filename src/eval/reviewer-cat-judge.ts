@@ -143,9 +143,9 @@ async function runDefaultReviewerCatSession(input: {
     { SkillManager },
     { AIService },
   ] = await Promise.all([
-    import('../core/sub-agent-session'),
-    import('../skills/skill-manager'),
-    import('../utils/ai-service'),
+    import('../runtime/subagents/sub-agent-session'),
+    import('../capabilities/skills/skill-manager'),
+    import('../runtime/harness/models/ai-service'),
   ]);
   const skills = new SkillManager('reviewer-cat');
   await skills.loadSkills();

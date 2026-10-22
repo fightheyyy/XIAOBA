@@ -7,9 +7,9 @@ import {
   ArenaManager,
   DEFAULT_PACKAGED_BASE_SKILLS,
   fingerprintArenaDirectory,
-} from '../src/arena/arena-manager';
-import { SkillManager } from '../src/skills/skill-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+} from '../src/eval/arena/arena-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const originalCwd = process.cwd();
 const originalRole = process.env.XIAOBA_ROLE;

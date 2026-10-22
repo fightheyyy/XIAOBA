@@ -3,15 +3,15 @@ import * as assert from 'node:assert';
 import { createHash } from 'node:crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SkillManager } from '../src/skills/skill-manager';
-import { createBrowserCatTools } from '../src/roles/browser-cat';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { createBrowserCatTools } from '../src/capabilities/roles/browser-cat';
 import {
   AgentBrowserDriverStatus,
   AgentBrowserResponse,
   AgentBrowserRunOptions,
   AgentBrowserRunner,
-} from '../src/roles/browser-cat/agent-browser-runner';
-import { ToolManager } from '../src/tools/tool-manager';
+} from '../src/capabilities/roles/browser-cat/agent-browser-runner';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
 
 class RoleFakeRunner implements AgentBrowserRunner {
   async getStatus(): Promise<AgentBrowserDriverStatus> {

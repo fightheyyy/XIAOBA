@@ -1,8 +1,8 @@
 # Surfaces SPEC
 
 状态：Active
-最后更新：2026-10-08
-适用范围：XiaoBa 的用户入口层，包括 `src/commands`、`src/feishu`、`src/weixin`、`src/pet`、`src/dashboard`、`src/events`、`src/connectors` 和 `desktop`。
+最后更新：2026-10-23
+适用范围：XiaoBa 的用户入口层，包括 `src/surfaces/cli/commands`、`src/surfaces/feishu`、`src/surfaces/weixin`、`src/surfaces/pet`、`src/surfaces/dashboard`、`src/events`、`src/connectors` 和 `desktop`。
 
 本文件是顶层架构模块之一的入口层 spec，也是 Dashboard、Electron 和 packaging 资源的唯一架构文档。
 
@@ -21,9 +21,9 @@ Surfaces 把不同用户入口统一接到同一套 local-first agent harness。
 
 In scope:
 
-- CLI 命令入口：`src/commands/**`。
-- IM 平台入口：`src/feishu/**`、`src/weixin/**`。
-- Pet 和 Dashboard 入口：`src/pet/**`、`src/dashboard/**`、`desktop/dashboard/**`。
+- CLI 命令入口：`src/surfaces/cli/commands/**`。
+- IM 平台入口：`src/surfaces/feishu/**`、`src/surfaces/weixin/**`。
+- Pet 和 Dashboard 入口：`src/surfaces/pet/**`、`src/surfaces/dashboard/**`、`desktop/dashboard/**`。
 - Electron 桌面壳和桌面打包资源：`desktop/electron/**`、`desktop/build-resources/**`。
 - 入口级 session key、channel callbacks、文件上传下载、SSE、service control 和配置入口。
 - 集成边界：`src/events/**` 负责外部输入事件，`src/connectors/**` 负责 App 调用；它们是独立代码层，由本模块维护，不新增顶层文档模块。
@@ -36,6 +36,8 @@ Out of scope:
 - Unit、integration、deterministic smoke、Replay 和 Live Agent Eval 的语义，属于 [`../evaluation/SPEC.md`](../evaluation/SPEC.md)。
 
 ## Current Architecture
+
+入口实现已统一归位到 `src/surfaces/`：CLI 组装和 commands、Feishu、Weixin、Pet、Dashboard、Bridge 与 shared 交付适配。`src/index.ts` 只负责调用 CLI 启动入口并处理启动错误；Electron 加载 `dist/surfaces/dashboard/server`。静态前端与 prompt 通过安装目录定位，任务工作区仍拥有自己的 data/logs/memory。Surface 使用 `src/runtime/index.ts` 的会话入口与 `runtime/contracts`；事件接入与 Connector 继续是独立代码层。
 
 当前入口层已经收敛到共享 `AgentSession`，但各入口仍分别维护平台协议、文件语义和服务控制。CLI 的 `evolution sleep` 与 schedule 已进入轻量 Evolution control；manual `evolution promote` 已删除。Channel delivery 的 canonical prompt 集中在 `prompts/surface.md`。Pet/Dashboard 的 role-scoped session key 已绑定到对应 SkillManager / ToolManager，并在 Chat 与桌宠间共享历史和 SSE replay。Pet manifest 与共享 Canvas player 只支持程序化 `grok-cat-v1`；内置 `xiaoba` 使用一体化小恶魔猫轮廓、状态驱动眼睛和 role theme。Pet API 同时提供完整已安装 Role inventory；共享确定性分配器保留默认九色，并为自定义 Role 分配当前 inventory 内不重复的 body color，显式撞色也会重新分配，容量耗尽则 fail closed。Pet/Chat 使用动画播放，Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌使用同一 renderer、inventory 和 theme map 的静态首帧；旧 renderer、spritesheet API、内置旧宠物资产、像素猫 PNG 和静态角色头像映射均已删除。Dashboard 只展示、选择、安装或删除当前 Role/Skill package，不再维护 capability lifecycle。macOS Electron 只打包 GuiCat 的固定 Peekaboo driver。入口级文本、文件和 external receipt 由 deterministic Test 覆盖。
 
@@ -63,7 +65,7 @@ flowchart LR
     PetPlayer --> DashboardAvatars["Dashboard role avatars<br/>static first frame"]
     PetViews --> Adapters
     DashboardAvatars --> Adapters
-    CLI["CLI"] --> Adapters["Surface adapters<br/>commands / protocol / callbacks"]
+    CLI["CLI"] --> Adapters["src/surfaces<br/>commands / protocol / callbacks"]
     Channels["Feishu / Weixin / Pet / Dashboard / Electron"] --> Adapters
     Adapters -->|Feishu / Weixin / Pet| Event["Event admission<br/>persist / deduplicate / dispatch"]
     Event --> Store["FileEventStore<br/>atomic records / exclusive claim"]
@@ -82,6 +84,8 @@ flowchart LR
 ```
 
 ## Target Architecture
+
+源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 目标是让所有入口都显式实现同一套 surface contract：平台层只做输入解析、鉴权、文件处理和交付回调，agent loop、role/skill、tool、state/evidence 都由下游模块统一承担。
 
@@ -204,7 +208,7 @@ source 支持 `surface / connector / timer / runtime`，以便后续接入任务
 
 ## Shared daily Scheduler
 
-`src/events/scheduler.ts` owns daily time calculation, named Event admission, a private workspace schedule configuration and one cron installer. `src/commands/schedule.ts` registers the two consumers; this is a narrow daily trigger layer, not a general task system or another Agent loop.
+`src/events/scheduler.ts` owns daily time calculation, named Event admission, a private workspace schedule configuration and one cron installer. `src/surfaces/cli/commands/schedule.ts` registers the two consumers; this is a narrow daily trigger layer, not a general task system or another Agent loop.
 
 - `data/scheduler/jobs.json`: version 1 with `jobs: [{id: "memory" | "evolution", hour, minute, timezone}]`. New schedules default to 03:17 Asia/Shanghai. Jobs can have distinct times/timezones.
 - One workspace-marked `xiaoba-scheduler:<project-hash>` cron invokes `schedule tick` every minute. The tick checks each job's local date/time, catches up after its due time, and uses a stable job/day Event ID. A restart, repeated DST hour or time edit cannot re-run the same local daily slot. Previous failed/running/handled/pending records are not automatically retried.

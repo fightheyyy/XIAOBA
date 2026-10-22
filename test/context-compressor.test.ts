@@ -8,9 +8,9 @@ import {
   messagesToConversationText,
   parseCompactSummary,
   buildCompactSystemPrompt,
-} from '../src/core/context-compressor';
-import type { Message } from '../src/types';
-import type { AIService } from '../src/utils/ai-service';
+} from '../src/runtime/harness/context/context-compressor';
+import type { Message } from '../src/runtime/contracts';
+import type { AIService } from '../src/runtime/harness/models/ai-service';
 
 // ─── 测试辅助 ─────────────────────────────────────────────
 

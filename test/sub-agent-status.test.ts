@@ -3,13 +3,13 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { AgentSession } from '../src/core/agent-session';
-import { SubAgentSession } from '../src/core/sub-agent-session';
-import { SubAgentManager } from '../src/core/sub-agent-manager';
-import { ToolManager } from '../src/tools/tool-manager';
-import { ChatResponse, Message, Skill } from '../src/types';
-import { ToolDefinition } from '../src/types/tool';
-import { AnalyzeLogTool } from '../src/roles/inspector-cat/tools/analyze-log-tool';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { SubAgentSession } from '../src/runtime/subagents/sub-agent-session';
+import { SubAgentManager } from '../src/runtime/subagents/sub-agent-manager';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { ChatResponse, Message, Skill } from '../src/runtime/contracts';
+import { ToolDefinition } from '../src/runtime/contracts/tool';
+import { AnalyzeLogTool } from '../src/capabilities/roles/inspector-cat/tools/analyze-log-tool';
 
 const statusSkill: Skill = {
   metadata: {

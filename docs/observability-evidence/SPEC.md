@@ -1,7 +1,7 @@
 # Observability & Evidence SPEC
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 
 本文是顶层架构模块中的 **Observability & Evidence / 观测证据层** spec。它以本地 trace JSONL、durable state 和 artifact evidence 为事实源；当前实现可显式启用一个脱敏 OTLP trace 投影，但不会在本地 trace/log 写入前做清洗。
 
@@ -38,6 +38,8 @@ Out of scope:
 
 ## Current Architecture
 
+观测实现已归位到 `src/runtime/observability/`，包括 SessionTurnLogger、日志、指标、context debug 和 OTLP 投影；交付回执、Conversation Journal 和可见历史路径位于 `src/runtime/delivery/`；长期 Markdown 记忆、索引加载和维护位于 `src/memory/`。`harness/context` 只组装本次请求的上下文。运行产物仍写入既有 logs/data/memory/output 路径，schema 和 sessionKey 隔离不变。
+
 ```mermaid
 flowchart LR
     CredentialStore["Private Agent credential file"] --> NativeApps
@@ -49,16 +51,16 @@ flowchart LR
     ScheduledEvents --> EvolutionConsumer["Evolution workflow / supervised worker"]
     ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
     subgraph Runtime["Runtime：事实来源"]
-        Session["AgentSession"]
+        Session["AgentSession<br/>runtime/sessions"]
         Subagent["SubAgentSession"]
-        Runner["ConversationRunner"]
+        Runner["ConversationRunner<br/>runtime/harness/loop"]
         Tools["Tool calls/results"]
         Provider["Provider fallback/error"]
         Delivery["Surface delivery"]
     end
 
     subgraph Log["Durable evidence log"]
-        Logger["SessionTurnLogger"]
+        Logger["SessionTurnLogger<br/>runtime/observability"]
         JSONL["traces.jsonl"]
         Snapshots["context-snapshots<br/>compact-after JSONL"]
         RuntimeLog["runtime.log"]
@@ -107,10 +109,10 @@ flowchart LR
 
 Current implementation:
 
-- `src/utils/session-turn-logger.ts` owns durable trace evidence, writes `logs/sessions/<surface>/<date>/<session_id>/traces.jsonl` and human runtime text to sibling `runtime.log`, and invokes `src/observability/session-log-projector.ts` after trace append.
+- `src/runtime/observability/session-turn-logger.ts` owns durable trace evidence, writes `logs/sessions/<surface>/<date>/<session_id>/traces.jsonl` and human runtime text to sibling `runtime.log`, and invokes `src/runtime/observability/session-log-projector.ts` after trace append.
 - Context compression is first-class evidence: `context_compaction` runtime events are embedded in the next trace row, and successful compactions append a compact-after snapshot to sibling `context-snapshots/<session_id>.jsonl`; the event's `snapshot_ref` points at the matching snapshot line by `snapshot_id`.
-- `src/observability/session-log-projector.ts` projects trace、embedded runtime_event、provider_error、delivery evidence and token facts into local summary.
-- `src/observability/index.ts` owns local summary storage and local trace/span helpers；`src/observability/otel-trace-exporter.ts` bridges the same runtime span topology into an optional OTLP/HTTP protobuf exporter.
+- `src/runtime/observability/session-log-projector.ts` projects trace、embedded runtime_event、provider_error、delivery evidence and token facts into local summary.
+- `src/runtime/observability/index.ts` owns local summary storage and local trace/span helpers；`src/runtime/observability/otel-trace-exporter.ts` bridges the same runtime span topology into an optional OTLP/HTTP protobuf exporter.
 - Export is default-off and fail-open. The external attribute projection is allowlist-based for strings, keeps bounded scalar topology/status/count facts, and excludes prompt/tool/file previews plus free-form error messages.
 - CLI、Feishu、Weixin、Pet and Dashboard graceful shutdown paths flush the exporter；normal one-shot processes also flush it on `beforeExit`.
 - `AgentSession` records session lifecycle facts through `SessionTurnLogger`; its `ConversationRunner` is configured `mirror_only` so local summary does not double count runtime metrics.
@@ -118,7 +120,7 @@ Current implementation:
 - `GET /api/observability/summary` returns aggregate and local trace facts derived from local logs, with raw prompt/tool preview attributes removed and sensitive freeform values such as paths/tokens redacted at the Dashboard API boundary.
 - `GET /api/observability/review` returns readonly local observability state; it does not generate candidates, continuity reports, or benchmark source.
 - `test:check-scripted-runtime` guards deterministic Test fixture references; observability has no Test/Eval source acceptance path.
-- `src/roles/evolution-cat/evolution-observer.ts` reads terminal rows from all local session/subagent `traces.jsonl`, filters by row timestamp, excludes self-run/test/replay evidence, and atomically derives `output/evolution/sleep/<date>/digest.json` with stable trace refs. Runtime builds it once and hands it to InspectorCat as the first model stage; the digest is a bounded projection, not a new truth source or evaluation result.
+- `src/capabilities/roles/evolution-cat/evolution-observer.ts` reads terminal rows from all local session/subagent `traces.jsonl`, filters by row timestamp, excludes self-run/test/replay evidence, and atomically derives `output/evolution/sleep/<date>/digest.json` with stable trace refs. Runtime builds it once and hands it to InspectorCat as the first model stage; the digest is a bounded projection, not a new truth source or evaluation result.
 
 ## File-system memory
 
@@ -131,6 +133,8 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 和独占锁。当前以 sessionKey 为身份与记忆范围，不做跨入口同一人绑定；语义冲突判定与自动事件跟进仍是后续工作。
 
 ## Target Architecture
+
+源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 ```mermaid
 flowchart LR

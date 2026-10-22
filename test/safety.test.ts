@@ -1,7 +1,7 @@
 import { afterEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { isBashCommandAllowed } from '../src/utils/safety';
-import { ShellTool } from '../src/tools/bash-tool';
+import { isBashCommandAllowed } from '../src/runtime/sandbox/safety';
+import { ShellTool } from '../src/capabilities/tools/bash-tool';
 
 const ORIGINAL_OVERRIDE = process.env.XIAOBA_BASH_ALLOW_DANGEROUS;
 

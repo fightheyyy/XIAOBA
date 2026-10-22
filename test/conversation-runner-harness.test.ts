@@ -1,8 +1,8 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { ConversationRunner } from '../src/core/conversation-runner';
-import type { ChatResponse, Message } from '../src/types';
-import type { ToolCall, ToolDefinition, ToolExecutionContext, ToolExecutor, ToolResult, ToolSurface, ToolTranscriptMode } from '../src/types/tool';
+import { ConversationRunner } from '../src/runtime/harness/loop/conversation-runner';
+import type { ChatResponse, Message } from '../src/runtime/contracts';
+import type { ToolCall, ToolDefinition, ToolExecutionContext, ToolExecutor, ToolResult, ToolSurface, ToolTranscriptMode } from '../src/runtime/contracts/tool';
 
 function user(content: string): Message {
   return { role: 'user', content };

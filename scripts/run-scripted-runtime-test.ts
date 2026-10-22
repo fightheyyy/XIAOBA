@@ -4,7 +4,7 @@ import * as path from 'path';
 import {
   runScriptedRuntimeTestBenchmark,
   writeScriptedRuntimeTestBenchmarkResult,
-} from '../src/testing';
+} from '../src/eval/testing';
 
 interface CliOptions {
   outDir?: string;

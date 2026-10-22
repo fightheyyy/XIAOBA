@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, test } from 'node:test';
-import { createCaseReplayAdapter } from '../src/replay/case-replay';
+import { createCaseReplayAdapter } from '../src/eval/replay/case-replay';
 
 describe('Case Replay adapter', () => {
   test('executes Case input and returns only a fresh Trace reference', async () => {

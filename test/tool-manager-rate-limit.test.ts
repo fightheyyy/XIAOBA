@@ -3,8 +3,8 @@ import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { ToolManager } from '../src/tools/tool-manager';
-import { Tool, ToolCall } from '../src/types/tool';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { Tool, ToolCall } from '../src/runtime/contracts/tool';
 
 function createToolCall(name: string, args: Record<string, unknown> = {}): ToolCall {
   return {

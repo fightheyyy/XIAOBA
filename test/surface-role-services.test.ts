@@ -3,11 +3,11 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { FeishuBot } from '../src/feishu';
-import { WeixinBot } from '../src/weixin';
-import { SkillManager } from '../src/skills/skill-manager';
-import { ToolManager } from '../src/tools/tool-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+import { FeishuBot } from '../src/surfaces/feishu';
+import { WeixinBot } from '../src/surfaces/weixin';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const originalRole = process.env.XIAOBA_ROLE;
 const originalCurrentRole = process.env.CURRENT_ROLE;

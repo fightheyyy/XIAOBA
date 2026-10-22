@@ -5,10 +5,10 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
-import { createApiRouter } from '../src/dashboard/routes/api';
-import { ServiceManager } from '../src/dashboard/service-manager';
-import { Observability, resetObservabilityForTests } from '../src/observability';
-import { MessageSessionManager } from '../src/core/message-session-manager';
+import { createApiRouter } from '../src/surfaces/dashboard/routes/api';
+import { ServiceManager } from '../src/surfaces/dashboard/service-manager';
+import { Observability, resetObservabilityForTests } from '../src/runtime/observability';
+import { MessageSessionManager } from '../src/runtime/sessions/message-session-manager';
 
 const originalCwd = process.cwd();
 

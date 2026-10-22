@@ -7,7 +7,7 @@
     "xiaoba": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/clean-dist.mjs && tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "start:cli": "node dist/index.js",
@@ -118,8 +118,8 @@
     },
     "files": [
       "dist/**/*",
-      "!dist/roles/engineer-cat/tools/**/*",
-      "!dist/roles/engineer-cat/utils/**/*",
+      "!dist/capabilities/roles/engineer-cat/tools/**/*",
+      "!dist/capabilities/roles/engineer-cat/utils/**/*",
       "desktop/electron/**/*",
       "desktop/dashboard/**/*",
       "prompts/**/*",

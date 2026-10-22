@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { createRoleAwareToolManager } from '../src/bootstrap/tool-manager';
-import { ConversationRunner } from '../src/core/conversation-runner';
-import { AIService } from '../src/utils/ai-service';
-import { PromptManager } from '../src/utils/prompt-manager';
-import { ChatResponse, Message, TokenUsage } from '../src/types';
-import { StreamCallbacks } from '../src/providers/provider';
-import { ToolCall, ToolDefinition, ToolExecutionContext, ToolExecutor, ToolResult } from '../src/types/tool';
+import { createRoleAwareToolManager } from '../src/capabilities/tools/create-tool-manager';
+import { ConversationRunner } from '../src/runtime/harness/loop/conversation-runner';
+import { AIService } from '../src/runtime/harness/models/ai-service';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
+import { ChatResponse, Message, TokenUsage } from '../src/runtime/contracts';
+import { StreamCallbacks } from '../src/runtime/contracts/model';
+import { ToolCall, ToolDefinition, ToolExecutionContext, ToolExecutor, ToolResult } from '../src/runtime/contracts/tool';
 
 type Expectation =
   | { kind: 'tool'; tools: string[]; requireConfirmed?: boolean }

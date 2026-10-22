@@ -4,7 +4,7 @@ import {
   buildUserCatScenarioPrompt,
   parseUserCatScenario,
   proposeUserCatScenario,
-} from '../src/roles/user-cat/scenario';
+} from '../src/capabilities/roles/user-cat/scenario';
 
 describe('UserCat Scenario fallback', () => {
   test('creates one small Scenario in a fresh Session', async () => {

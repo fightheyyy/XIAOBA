@@ -4,15 +4,15 @@ import * as http from 'node:http';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { AIService } from '../src/utils/ai-service';
-import { OpenAIProvider } from '../src/providers/openai-provider';
-import { OllamaProvider } from '../src/providers/ollama-provider';
-import { AnthropicProvider } from '../src/providers/anthropic-provider';
-import { ConversationRunner } from '../src/core/conversation-runner';
-import { AgentSession } from '../src/core/agent-session';
-import { ToolManager } from '../src/tools/tool-manager';
-import { Logger } from '../src/utils/logger';
-import { isCancellation } from '../src/utils/cancellation';
+import { AIService } from '../src/runtime/harness/models/ai-service';
+import { OpenAIProvider } from '../src/runtime/harness/models/openai-provider';
+import { OllamaProvider } from '../src/runtime/harness/models/ollama-provider';
+import { AnthropicProvider } from '../src/runtime/harness/models/anthropic-provider';
+import { ConversationRunner } from '../src/runtime/harness/loop/conversation-runner';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { Logger } from '../src/runtime/observability/logger';
+import { isCancellation } from '../src/runtime/sessions/cancellation';
 
 for (const Provider of [OpenAIProvider, OllamaProvider, AnthropicProvider]) {
   for (const stream of [false, true]) test(`${Provider.name} physically cancels ${stream ? 'stream' : 'HTTP'} and closes connection`, async () => {

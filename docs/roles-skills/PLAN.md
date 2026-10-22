@@ -1,10 +1,12 @@
 # Roles & Skills PLAN
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 Owner：Policy maintainers
 
 ## Current Status
+
+源码目录迁移完成（2026-10-23）：Tools、Skills、Roles 实现已归入 capabilities；根目录声明资产保留原位，角色与工具回归沿用共享 Runtime。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Base 是唯一 user-facing Main Agent。
 - EvolutionCat 的 remember 已支持按 ID 替换与遗忘；写入权限仍 role-scoped，Runtime 提供有界文件记忆读取。
@@ -57,9 +59,9 @@ flowchart LR
 ## Owners
 
 - Role assets：`roles/**`
-- Runtime role adapters：`src/roles/**`
+- Runtime role adapters：`src/capabilities/roles/**`
 - Shared Reviewer Judge：`src/eval/reviewer-cat-judge.ts`
-- Skill runtime：`skills/**`, `src/skills/**`
+- Skill runtime：`skills/**`, `src/capabilities/skills/**`
 
 ## Acceptance Criteria
 

@@ -1,8 +1,8 @@
-import { runTraceReplay, renderTraceReplayReport } from '../src/replay/trace-replay-runner';
+import { runTraceReplay, renderTraceReplayReport } from '../src/eval/replay/trace-replay-runner';
 import {
   createReplayServices,
   ReplaySandboxMode,
-} from '../src/replay/replay-services';
+} from '../src/eval/replay/replay-services';
 
 interface CliOptions {
   trace?: string;

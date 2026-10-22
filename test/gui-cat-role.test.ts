@@ -4,17 +4,17 @@ import { createHash } from 'node:crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { createGuiCatTools } from '../src/roles/gui-cat/tools/gui-tools';
-import { DesktopLease } from '../src/roles/gui-cat/utils/desktop-lease';
+import { createGuiCatTools } from '../src/capabilities/roles/gui-cat/tools/gui-tools';
+import { DesktopLease } from '../src/capabilities/roles/gui-cat/utils/desktop-lease';
 import {
   PeekabooCommandResult,
   PeekabooDriverStatus,
   PeekabooRunner,
-} from '../src/roles/gui-cat/utils/peekaboo-runner';
-import { ToolManager } from '../src/tools/tool-manager';
-import { SkillManager } from '../src/skills/skill-manager';
-import { PromptManager } from '../src/utils/prompt-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+} from '../src/capabilities/roles/gui-cat/utils/peekaboo-runner';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const temporaryRoots: string[] = [];
 

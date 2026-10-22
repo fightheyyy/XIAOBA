@@ -18,11 +18,12 @@ This is a fixed set of 14 maintained files: one repository pair plus six module 
 
 Implementation packages belong to one of the six modules:
 
-- `desktop/` belongs to Surface.
-- `roles/`, `src/roles/`, `skills/`, and `src/skills/` belong to Roles & Skills.
-- `logs/`, `data/`, `memory/`, `output/`, and `src/observability/` belong to Observability & Evidence.
-- `eval/`, `eval/benchmarks/`, `src/eval/`, `src/replay/`, and engineering tests belong to Evaluation or the module they verify.
-- `arena/` and `src/arena/` belong to Arena.
+- `src/surfaces/`, `src/events/`, `src/connectors/`, and `desktop/` belong to Surface.
+- `src/runtime/` and `src/capabilities/tools/` belong to Agent Runtime; runtime evidence and delivery schemas remain owned by Observability & Evidence.
+- `roles/`, `src/capabilities/roles/`, `skills/`, and `src/capabilities/skills/` belong to Roles & Skills.
+- `logs/`, `data/`, `memory/`, `output/`, and `src/runtime/observability/`, `src/runtime/delivery/`, and `src/memory/` belong to Observability & Evidence.
+- `eval/`, `eval/benchmarks/`, `src/eval/`, `src/eval/replay/`, and engineering tests belong to Evaluation or the module they verify.
+- `arena/` and `src/eval/arena/` belong to Arena.
 
 Role prompts and `SKILL.md` files are runtime source assets, not architecture documentation. User-facing role and skill usage lives only in `roles/README.md` and `skills/README.md`.
 

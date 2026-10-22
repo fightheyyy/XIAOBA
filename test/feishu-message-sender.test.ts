@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { MessageSender } from '../src/feishu/message-sender';
+import { MessageSender } from '../src/surfaces/feishu/message-sender';
 
 class FakeFeishuClient {
   readonly calls: any[] = [];

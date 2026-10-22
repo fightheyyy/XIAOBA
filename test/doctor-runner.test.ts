@@ -1,9 +1,9 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { AgentBrowserDriverStatus } from '../src/roles/browser-cat/agent-browser-runner';
-import { PeekabooDriverStatus } from '../src/roles/gui-cat/utils/peekaboo-runner';
-import { DoctorRunnerDependencies, runDoctor } from '../src/doctor/doctor-runner';
-import { RoleConfig } from '../src/types/role';
+import { AgentBrowserDriverStatus } from '../src/capabilities/roles/browser-cat/agent-browser-runner';
+import { PeekabooDriverStatus } from '../src/capabilities/roles/gui-cat/utils/peekaboo-runner';
+import { DoctorRunnerDependencies, runDoctor } from '../src/surfaces/cli/doctor/doctor-runner';
+import { RoleConfig } from '../src/runtime/contracts/role';
 
 const roleConfigs: Record<string, RoleConfig> = {
   'browser-cat': { displayName: 'BrowserCat', promptFile: 'browser.md' },

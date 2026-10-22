@@ -6,12 +6,12 @@ import * as path from 'path';
 import { createHash } from 'crypto';
 import { Command } from 'commander';
 import { DailyEventScheduler, WorkspaceSchedule, DailySchedule, dailyCalendar, FileEventStore, EventDispatcher } from '../src/events';
-import { EvolutionSleepSchedule } from '../src/roles/evolution-cat/evolution-scheduler';
-import { MemoryMaintenanceSchedule } from '../src/utils/memory-scheduler';
-import { registerScheduleCommand } from '../src/commands/schedule';
-import { registerMemoryCommand } from '../src/commands/memory';
-import { ConversationJournal } from '../src/utils/conversation-journal';
-import { MemoryFinalizer } from '../src/utils/memory-finalizer';
+import { EvolutionSleepSchedule } from '../src/capabilities/roles/evolution-cat/evolution-scheduler';
+import { MemoryMaintenanceSchedule } from '../src/memory/memory-scheduler';
+import { registerScheduleCommand } from '../src/surfaces/cli/commands/schedule';
+import { registerMemoryCommand } from '../src/surfaces/cli/commands/memory';
+import { ConversationJournal } from '../src/runtime/delivery/conversation-journal';
+import { MemoryFinalizer } from '../src/memory/memory-finalizer';
 
 describe('Shared daily Scheduler and Event consumers', () => {
   let root: string;

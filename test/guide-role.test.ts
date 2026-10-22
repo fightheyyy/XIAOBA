@@ -3,10 +3,10 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { SkillManager } from '../src/skills/skill-manager';
-import { getRoleSpecificToolsForRole } from '../src/roles/runtime-role-registry';
-import { PromptManager } from '../src/utils/prompt-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { getRoleSpecificToolsForRole } from '../src/capabilities/roles/runtime-role-registry';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const describeGuideRole = fs.existsSync(path.join(process.cwd(), 'roles', 'guide', 'role.json'))
   ? describe

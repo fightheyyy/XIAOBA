@@ -3,8 +3,8 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ResearchAutoResearchRunTool } from '../src/roles/researcher-cat/tools/research-auto-run-tool';
-import { ResearchBoardReadTool, ResearchBoardUpdateTool } from '../src/roles/researcher-cat/tools/research-board-tools';
+import { ResearchAutoResearchRunTool } from '../src/capabilities/roles/researcher-cat/tools/research-auto-run-tool';
+import { ResearchBoardReadTool, ResearchBoardUpdateTool } from '../src/capabilities/roles/researcher-cat/tools/research-board-tools';
 
 describe('ResearcherCat Research Board tools', () => {
   let testRoot: string;

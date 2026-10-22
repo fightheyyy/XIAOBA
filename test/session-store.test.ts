@@ -3,8 +3,8 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import { SessionStore } from '../src/utils/session-store';
-import type { Message } from '../src/types';
+import { SessionStore } from '../src/runtime/sessions/session-store';
+import type { Message } from '../src/runtime/contracts';
 
 function system(content: string): Message {
   return { role: 'system', content };

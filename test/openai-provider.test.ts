@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { OpenAIProvider } from '../src/providers/openai-provider';
+import { OpenAIProvider } from '../src/runtime/harness/models/openai-provider';
 
 describe('OpenAIProvider endpoint normalization', () => {
   test('accepts an OpenAI-compatible /v1 base URL', () => {

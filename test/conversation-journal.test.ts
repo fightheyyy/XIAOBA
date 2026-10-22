@@ -12,7 +12,7 @@ import {
   createConversationTraceId,
   createTraceId,
   stableId,
-} from '../src/utils/conversation-journal';
+} from '../src/runtime/delivery/conversation-journal';
 
 describe('ConversationJournal', () => {
   const temporaryRoots: string[] = [];

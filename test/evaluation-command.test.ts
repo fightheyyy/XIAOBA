@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert';
 import { Command } from 'commander';
-import { registerEvalCommand } from '../src/commands/eval';
+import { registerEvalCommand } from '../src/surfaces/cli/commands/eval';
 
 test('registers one CaseSet-based Agent Eval command', () => {
   const program = new Command();

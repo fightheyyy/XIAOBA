@@ -3,15 +3,15 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { SkillExecutor } from '../src/skills/skill-executor';
-import { SkillParser } from '../src/skills/skill-parser';
+import { SkillExecutor } from '../src/capabilities/skills/skill-executor';
+import { SkillParser } from '../src/capabilities/skills/skill-parser';
 import {
   buildSkillActivationSignal,
   buildSkillSystemPrompt,
   parseSkillActivationSignal,
   upsertSkillSystemMessage,
-} from '../src/skills/skill-activation-protocol';
-import { Message, Skill } from '../src/types';
+} from '../src/capabilities/skills/skill-activation-protocol';
+import { Message, Skill } from '../src/runtime/contracts';
 
 function writeFile(filePath: string, content: string): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });

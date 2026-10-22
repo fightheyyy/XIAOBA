@@ -1,8 +1,8 @@
 import { afterEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import { Command } from 'commander';
-import { registerDoctorCommand } from '../src/commands/doctor';
-import { ReadinessReport } from '../src/doctor/types';
+import { registerDoctorCommand } from '../src/surfaces/cli/commands/doctor';
+import { ReadinessReport } from '../src/surfaces/cli/doctor/types';
 
 const originalExitCode = process.exitCode;
 

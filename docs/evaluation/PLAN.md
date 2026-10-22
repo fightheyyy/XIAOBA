@@ -1,18 +1,20 @@
 # Evaluation PLAN
 
 状态：Active
-最后更新：2026-10-21
+最后更新：2026-10-23
 Owner：Runtime / Evaluation maintainers
 
 ## Current Status
+
+源码目录迁移完成（2026-10-23）：Replay、Harbor 与工程验证支持已归位；Agent Eval 公共入口与 Scripted Runtime Test 仍分开。合同 smoke 与 Harbor 桥接通过；旧子 Agent Scripted 场景的基线失败记录在仓库 PLAN。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Test / Eval / Trace / Case / Replay 的语义边界已确定。
 - 轻量 `Case + Oracle → Replay → Trace → Verifier → ReviewerCat → Outcome` 核心已实现并测试。
 - Case Replay adapter 已能驱动当前 Pet/Agent Runtime，并且只返回 fresh Trace ref；生产默认通过隔离子进程执行。
 - ReviewerCat Judge adapter 使用独立只读 Session 和结构化输出。
 - Outcome 只保留 `pass | fail | blocked`；EvaluationResult 只保存事实。
-- BaseRuntime 预写响应已迁到 `test/scripted-runtime/**`、`src/testing/**` 和 `output/test/**`。
-- 旧 Scripted Runtime Test engine 已整体移入 `src/testing/**`；`src/eval/**` 只保留真实 Agent Eval。
+- BaseRuntime 预写响应已迁到 `test/scripted-runtime/**`、`src/eval/testing/**` 和 `output/test/**`。
+- Scripted Runtime Test engine 已隔离在 `src/eval/testing/**`；`src/eval/index.ts` 只导出真实 Agent Eval。
 - 真实 CaseSet CLI 已接入；Verifier registry 保持为 `trace_exists`、`no_failed_tools` 与 `read_only_tools` 三项。
 - 首个维护中的 `xiaoba-core-readonly-v1` 已建立，包含 Base、EngineerCat、ReviewerCat 三条真实 Agent Case。
 - Replay 默认只读；`workspace_write` 必须显式声明并由 enforced clean runtime 承载，外部 delivery / Browser / GUI / Secretary 工具不进入 Replay。
@@ -34,7 +36,7 @@ flowchart LR
 5. 将 Scripted Runtime Test 移出 Eval 公共语义：completed。
 6. 接入最小生产 Verifier registry：completed；后续按真实 Case 需求扩展。
 7. 提供真实 CaseSet CLI：completed。
-8. 将旧 Eval-named Test engine 文件移出 `src/eval`：completed。
+8. 将旧 Eval-named Test engine 与 Agent Eval 公共入口隔离：completed；物理位置为 `src/eval/testing`。
 9. 建立首个维护中的真实 CaseSet：completed。
 10. 建立 Replay effect isolation：completed for default read-only and SDK clean-runtime workspace-write; unsupported hosts fail closed。
 
@@ -43,14 +45,14 @@ flowchart LR
 - P0 仅补齐容器构建的代理 CA 信任和可用模型凭据后，重跑原样官方 `private_lending_33d`；不优化得分或扩展架构。
 - 只在真实 Case 需要时增加新的 hard Verifier，避免搬回旧巨型 verifier registry。
 - 用真实回归逐步扩充当前 CaseSet，不先造 benchmark taxonomy。
-- 只在实际维护相关代码时逐步收敛 `src/testing/**` 内部旧 `Eval*` 类型名，不单独发起机械改名。
+- 只在实际维护相关代码时逐步收敛 `src/eval/testing/**` 内部旧 `Eval*` 类型名，不单独发起机械改名。
 
 ## Owners
 
 - Shared Eval：`src/eval/evaluation.ts`
 - Reviewer Judge：`src/eval/reviewer-cat-judge.ts`
-- Replay：`src/replay/**`
-- Scripted Runtime Test：`src/testing/**`, `test/scripted-runtime/**`
+- Replay：`src/eval/replay/**`
+- Scripted Runtime Test：`src/eval/testing/**`, `test/scripted-runtime/**`
 
 ## Acceptance Criteria
 
@@ -67,7 +69,7 @@ flowchart LR
 
 - `workspace_write` uses the shared SDK on supported Linux/macOS hosts; missing isolation fails closed。
 - 当前维护 CaseSet 只有三条只读 Case，尚不代表广泛 Agent 能力。
-- 旧 Test engine 的内部类型仍带少量 `Eval*` 名称；它们已被限制在 `src/testing/**`，后续随实际修改逐步收敛。
+- 旧 Test engine 的内部类型仍带少量 `Eval*` 名称；它们已被限制在 `src/eval/testing/**`，后续随实际修改逐步收敛。
 
 ## Recent Verification
 

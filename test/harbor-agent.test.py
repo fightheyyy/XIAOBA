@@ -48,7 +48,7 @@ class HarborBridgeTest(unittest.IsolatedAsyncioTestCase):
             root = Path(directory)
             preload = root / "scripted-model.cjs"
             preload.write_text(
-                "const {AIService}=require(" + json.dumps(str(ROOT / "dist/utils/ai-service.js")) + ");\n"
+                "const {AIService}=require(" + json.dumps(str(ROOT / "dist/runtime/harness/models/ai-service.js")) + ");\n"
                 "let stages=0; AIService.prototype.chatStream=async function(messages) {\n"
                 "if(messages.at(-1).role==='tool') return {content:'done'};\n"
                 "const name=++stages===1?'execute_shell':'notion__write';\n"

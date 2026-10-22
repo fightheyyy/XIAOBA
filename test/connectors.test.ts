@@ -2,8 +2,8 @@ import { describe, test } from 'node:test';
 import * as assert from 'node:assert/strict';
 import { ConnectorRegistry } from '../src/connectors/connector';
 import { FeishuConnector, LarkCliExecFile } from '../src/connectors/feishu';
-import { FeishuCalendarAgendaTool } from '../src/roles/secretary-cat/tools/feishu-calendar-tools';
-import { DefaultLarkCliRunner } from '../src/roles/secretary-cat/utils/lark-cli-runner';
+import { FeishuCalendarAgendaTool } from '../src/capabilities/roles/secretary-cat/tools/feishu-calendar-tools';
+import { DefaultLarkCliRunner } from '../src/capabilities/roles/secretary-cat/utils/lark-cli-runner';
 
 describe('App Connector boundary', () => {
   test('discovers app capabilities without disclosing credentials and rejects duplicate identities', () => {

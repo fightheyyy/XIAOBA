@@ -4,7 +4,7 @@ import * as path from 'path';
 import {
   runScriptedRuntimeTestSuite,
   writeScriptedRuntimeTestResult,
-} from '../src/testing';
+} from '../src/eval/testing';
 
 interface CliOptions {
   suitePath: string;

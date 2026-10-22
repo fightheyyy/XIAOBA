@@ -6,16 +6,16 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
-import { AgentSession } from '../src/core/agent-session';
-import { ConversationRunner } from '../src/core/conversation-runner';
-import { SubAgentSession } from '../src/core/sub-agent-session';
-import { ToolManager } from '../src/tools/tool-manager';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { ConversationRunner } from '../src/runtime/harness/loop/conversation-runner';
+import { SubAgentSession } from '../src/runtime/subagents/sub-agent-session';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
 import {
   Observability,
   resetObservabilityForTests,
-} from '../src/observability';
-import type { ChatResponse, Message, Skill } from '../src/types';
-import type { ToolCall, ToolDefinition, ToolExecutionContext, ToolExecutor, ToolResult } from '../src/types/tool';
+} from '../src/runtime/observability';
+import type { ChatResponse, Message, Skill } from '../src/runtime/contracts';
+import type { ToolCall, ToolDefinition, ToolExecutionContext, ToolExecutor, ToolResult } from '../src/runtime/contracts/tool';
 
 describe('Local observability', () => {
   test('is disabled by default and omits prompt/tool args by default', () => {

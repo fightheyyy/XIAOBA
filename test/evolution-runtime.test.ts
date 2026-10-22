@@ -7,12 +7,12 @@ import {
   activateEvolutionCandidate,
   createEvolutionCandidateBuilder,
   runEvolutionSleep,
-} from '../src/roles/evolution-cat/evolution-runtime';
+} from '../src/capabilities/roles/evolution-cat/evolution-runtime';
 import {
   createCapabilityCandidate,
   fingerprintProductionTarget,
-} from '../src/roles/evolution-cat/candidate-package';
-import { runCandidatePackageTest } from '../src/testing/candidate-package-test';
+} from '../src/capabilities/roles/evolution-cat/candidate-package';
+import { runCandidatePackageTest } from '../src/eval/testing/candidate-package-test';
 
 describe('Evolution production adapters', () => {
   let root: string;

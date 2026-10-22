@@ -5,7 +5,7 @@ import * as path from 'path';
 import {
   assertScriptedRuntimeTestSet,
   loadScriptedRuntimeTestSet,
-} from '../src/testing';
+} from '../src/eval/testing';
 
 interface CliOptions {
   benchmarkPaths: string[];

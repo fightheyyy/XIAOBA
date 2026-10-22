@@ -1,10 +1,12 @@
 # Arena PLAN
 
 状态：Active
-最后更新：2026-07-29
+最后更新：2026-10-23
 Owner：Arena maintainers
 
 ## Current Status
+
+源码目录迁移完成（2026-10-23）：Arena 场景探索实现已迁入 eval/arena；计费审计通过 Runtime 注入接口注册，真实模型服务路径的调用计数、scope 限制与 reset 已用确定性测试验收。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Arena 的定位已收敛为“UserCat 模拟用户的 Agentic Eval”。
 - `Scenario → UserCat↔Subject → Trace → InspectorCat → Finding+Case → shared Eval` 已实现为轻量 workflow。
@@ -44,11 +46,11 @@ flowchart LR
 
 ## Owners
 
-- Workflow：`src/arena/arena-workflow.ts`
-- Scenario：`src/roles/user-cat/scenario.ts`
-- Inspection：`src/roles/inspector-cat/finding-case.ts`
-- Production composition：`src/arena/arena-service.ts`
-- Subject/runtime isolation：`src/arena/arena-manager.ts`, `src/arena/arena-runner.ts`
+- Workflow：`src/eval/arena/arena-workflow.ts`
+- Scenario：`src/capabilities/roles/user-cat/scenario.ts`
+- Inspection：`src/capabilities/roles/inspector-cat/finding-case.ts`
+- Production composition：`src/eval/arena/arena-service.ts`
+- Subject/runtime isolation：`src/eval/arena/arena-manager.ts`, `src/eval/arena/arena-runner.ts`
 
 ## Acceptance Criteria
 

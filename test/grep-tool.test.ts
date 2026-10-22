@@ -1,12 +1,12 @@
 import { describe, test, before, after, beforeEach } from 'node:test';
 import * as assert from 'node:assert';
-import { GrepTool } from '../src/tools/grep-tool';
-import { ToolExecutionContext } from '../src/types/tool';
+import { GrepTool } from '../src/capabilities/tools/grep-tool';
+import { ToolExecutionContext } from '../src/runtime/contracts/tool';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { execSync } from 'child_process';
-import { ToolExecutionOutput } from '../src/types/tool';
+import { ToolExecutionOutput } from '../src/runtime/contracts/tool';
 
 function toolOutputText(output: unknown): string {
   if (typeof output === 'string') return output;

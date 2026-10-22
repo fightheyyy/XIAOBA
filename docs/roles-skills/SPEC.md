@@ -1,7 +1,7 @@
 # Roles & Skills SPEC
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 适用范围：Base、八个默认 Role、Role-local Skills、共享 review roles 和 Evolution。
 
 本文是 XiaoBa-CLI `Roles & Skills` 模块的唯一架构真相源。
@@ -40,6 +40,8 @@ Out of scope:
 
 ## Current Architecture
 
+可执行能力实现已统一归位到 `src/capabilities/tools/`、`src/capabilities/skills/`、`src/capabilities/roles/`。Tools 拥有注册、可见性、确认和具体工具实现；Skills/ Roles 拥有加载、解析、策略及角色适配。根目录 `skills/` 和 `roles/` 继续保存声明式资产。角色与 Skill 的执行合同位于 `runtime/contracts`，所有角色继续复用唯一 runtime loop；不新增角色或生命周期系统。
+
 默认发行物包含八个 Role、零个 Base Skill。所有角色使用 AgentSession / ConversationRunner / ToolManager。
 
 EvolutionCat 保持 remember 的专属写入所有权，现支持按 record ID 替换与遗忘。所有角色执行时可读取 Runtime 提供的项目及可信父会话记忆索引，详情沿用已有文件工具；不新增 Base 记忆写工具。
@@ -76,7 +78,7 @@ flowchart LR
     Improve --> Runtime
     Improve -->|EvolutionCat| Remember["remember / replace / forget"]
     Remember --> Memory["Scoped Markdown records"]
-    Execute -->|SecretaryCat| Tools["Feishu tools / confirmation"]
+    Execute -->|SecretaryCat| Tools["capabilities/roles<br/>Feishu tools / confirmation"]
     Tools --> Connector["Shared Feishu Connector"]
     Execute -. "EngineerCat only" .-> CodexAdapter["codex_run"]
     CodexAdapter --> Codex["local Codex thread"]
@@ -87,6 +89,8 @@ flowchart LR
 ```
 
 ## Target Architecture
+
+源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 Role 只拥有策略与工件生成；控制 DAG 只编排已经存在的 Test、Eval 和激活动作。
 
@@ -164,7 +168,7 @@ roles/<role-name>/
 - `role.json` 声明 role identity、aliases、prompt、tool policy 和 confirmation gate。
 - `role.json` 的 `metadata.petId` 只选择 Surface 视觉资源，不授予权限或创建第二套 role runtime；多个 Role 可以共享同一个 pet。Base 与八个默认 Role 使用 `grok-cat-v1` 的固定 theme；用户安装或创建的 Role 不需要新增颜色字段，由 Surface 基于完整 inventory 在 Pet/Chat 与 Dashboard 头像中统一分配不重复颜色。
 - prompt 与 Skill 是运行时 source asset，不承载架构历史。
-- Native role tools 位于 `src/roles/**`，统一经过 ToolManager。
+- Native role tools 位于 `src/capabilities/roles/**`，统一经过 ToolManager。
 - Base 默认携带零个 Skill；独立 Skill 必须显式安装。
 - 发行目录不保存 capability lifecycle；移除 package 是唯一停用动作。
 
@@ -179,15 +183,15 @@ roles/<role-name>/
 ## Implementation Layout
 
 ```text
-roles/**                                   runtime role assets
-src/roles/**                               role adapters and tools
-src/roles/user-cat/scenario.ts             Scenario fallback
-src/roles/inspector-cat/finding-case.ts    shared Inspector adapter
-src/eval/reviewer-cat-judge.ts             shared Reviewer adapter
-src/roles/evolution-cat/evolution-workflow.ts
-src/roles/evolution-cat/source-candidate.ts
-src/testing/source-candidate-test.ts
-skills/**                                  explicit standalone Skills
+roles/**                                               runtime role assets
+src/capabilities/roles/**                              role adapters and tools
+src/capabilities/roles/user-cat/scenario.ts            Scenario fallback
+src/capabilities/roles/inspector-cat/finding-case.ts   shared Inspector adapter
+src/eval/reviewer-cat-judge.ts                         shared Reviewer adapter
+src/capabilities/roles/evolution-cat/evolution-workflow.ts
+src/capabilities/roles/evolution-cat/source-candidate.ts
+src/eval/testing/source-candidate-test.ts
+skills/**                                              explicit standalone Skills
 ```
 
 ## Interaction With Other Modules

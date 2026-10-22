@@ -3,10 +3,10 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { createSubAgentToolExecutor } from '../src/core/sub-agent-session';
-import { createSandboxPolicy } from '../src/sandbox/policy';
-import { sandboxExecutor } from '../src/sandbox/executor';
-import { ToolCall } from '../src/types/tool';
+import { createSubAgentToolExecutor } from '../src/runtime/subagents/sub-agent-session';
+import { createSandboxPolicy } from '../src/runtime/sandbox/policy';
+import { sandboxExecutor } from '../src/runtime/sandbox/executor';
+import { ToolCall } from '../src/runtime/contracts/tool';
 
 describe('SubAgent execution boundaries', () => {
   let root: string;

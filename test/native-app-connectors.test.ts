@@ -6,11 +6,11 @@ import * as path from 'node:path';
 import { Command } from 'commander';
 import { AgentConnectorService, AgentConnectorConfigStore, EnvironmentCredentials, GitHubConnector, NotionConnector, GmailConnector, ConnectorHttp, ConnectorError } from '../src/connectors';
 import type { ConnectorFetch, AgentCredentials } from '../src/connectors';
-import { createConnectorTools } from '../src/tools/connector-tools';
-import { ToolManager } from '../src/tools/tool-manager';
-import { AgentSession } from '../src/core/agent-session';
-import { registerConnectorCommand } from '../src/commands/connector';
-import { Logger } from '../src/utils/logger';
+import { createConnectorTools } from '../src/capabilities/tools/connector-tools';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { registerConnectorCommand } from '../src/surfaces/cli/commands/connector';
+import { Logger } from '../src/runtime/observability/logger';
 
 interface Call { url: URL; method: string; headers: Headers; body?: any; raw?: string; signal?: AbortSignal }
 const environment = { XIAOBA_GITHUB_TOKEN: 'github-private-token', XIAOBA_NOTION_TOKEN: 'notion-private-token', XIAOBA_GMAIL_CLIENT_ID: 'google-client', XIAOBA_GMAIL_CLIENT_SECRET: 'google-client-secret', XIAOBA_GMAIL_REFRESH_TOKEN: 'google-refresh-private' };

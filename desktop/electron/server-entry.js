@@ -10,7 +10,7 @@ process.env.DOTENV_CONFIG_PATH = envPath;
 process.env.DOTENV_CONFIG_OVERRIDE = 'true';
 require('dotenv').config({ path: envPath, quiet: true, override: true });
 
-const { startDashboard } = require('../../dist/dashboard/server');
+const { startDashboard } = require('../../dist/surfaces/dashboard/server');
 
 const port = parseInt(process.env.DASHBOARD_PORT || '3800', 10);
 

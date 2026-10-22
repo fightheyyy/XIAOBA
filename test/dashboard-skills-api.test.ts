@@ -5,10 +5,10 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
-import { createApiRouter } from '../src/dashboard/routes/api';
-import { ServiceManager } from '../src/dashboard/service-manager';
-import { MessageSessionManager } from '../src/core/message-session-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+import { createApiRouter } from '../src/surfaces/dashboard/routes/api';
+import { ServiceManager } from '../src/surfaces/dashboard/service-manager';
+import { MessageSessionManager } from '../src/runtime/sessions/message-session-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const originalCwd = process.cwd();
 const originalRole = process.env.XIAOBA_ROLE;

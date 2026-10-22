@@ -2,10 +2,10 @@ import { afterEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import * as fs from 'fs';
 import { randomUUID } from 'crypto';
-import { AgentSession } from '../src/core/agent-session';
-import { MemoryFinalizer } from '../src/utils/memory-finalizer';
-import { SessionStore } from '../src/utils/session-store';
-import type { Message } from '../src/types';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { MemoryFinalizer } from '../src/memory/memory-finalizer';
+import { SessionStore } from '../src/runtime/sessions/session-store';
+import type { Message } from '../src/runtime/contracts';
 
 function system(content: string): Message {
   return { role: 'system', content };
@@ -39,7 +39,7 @@ describe('MemoryFinalizer', () => {
       user('以后都用中文回复，回答尽量简洁。'),
       user('我习惯默认使用 pnpm。'),
       user('继续实现 TTL memory，刚才测试失败了。'),
-      assistant('已更新 /Users/guowei/XiaoBa-CLI/src/core/agent-session.ts，并会运行 npm test。'),
+      assistant('已更新 /Users/guowei/XiaoBa-CLI/src/runtime/sessions/agent-session.ts，并会运行 npm test。'),
     ];
 
     await session.cleanup({ finalizeMemory: true, finalizationReason: 'ttl_cleanup' });

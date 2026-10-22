@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Observability } from '../src/observability';
+import { Observability } from '../src/runtime/observability';
 import { APP_NODE_ENGINE, APP_VERSION } from '../src/version';
 
 const root = path.resolve(__dirname, '..');
