@@ -1,7 +1,7 @@
 # Evaluation PLAN
 
 状态：Active
-最后更新：2026-07-29
+最后更新：2026-10-21
 Owner：Runtime / Evaluation maintainers
 
 ## Current Status
@@ -17,6 +17,7 @@ Owner：Runtime / Evaluation maintainers
 - 首个维护中的 `xiaoba-core-readonly-v1` 已建立，包含 Base、EngineerCat、ReviewerCat 三条真实 Agent Case。
 - Replay 默认只读；`workspace_write` 必须显式声明并由 enforced clean runtime 承载，外部 delivery / Browser / GUI / Secretary 工具不进入 Replay。
 - Arena 默认命令与 nightly Evolution 已调用同一个 Evaluation core。
+- VibeLifeBench Harbor P0 adapter 已实现；真实官方任务验收 blocked，未获得有效评分。
 
 ```mermaid
 flowchart LR
@@ -39,6 +40,7 @@ flowchart LR
 
 ## Next Steps
 
+- P0 仅补齐容器构建的代理 CA 信任和可用模型凭据后，重跑原样官方 `private_lending_33d`；不优化得分或扩展架构。
 - 只在真实 Case 需要时增加新的 hard Verifier，避免搬回旧巨型 verifier registry。
 - 用真实回归逐步扩充当前 CaseSet，不先造 benchmark taxonomy。
 - 只在实际维护相关代码时逐步收敛 `src/testing/**` 内部旧 `Eval*` 类型名，不单独发起机械改名。
@@ -69,6 +71,8 @@ flowchart LR
 
 ## Recent Verification
 
+- 2026-10-21 VibeLifeBench P0：`npm run build` passed；Runtime/Event/Memory/ToolManager/Eval 相关回归 82/82 passed（含新增连续性与失败传播 2 项）；Python↔真实 Node worker↔Harbor environment Shell/MCP 桥接测试 1/1 passed。原样官方 collector 成功读取该工程测试 ATIF，识别 system 通知及实际桥接调用结果，未混入前步调用。上述预写模型响应均非 Agent 能力或官方得分证据；Trace 保留在 `output/test/harbor-bridge/`。
+- 真实命令、版本与输出合同见配套 SPEC。`output/harbor/p0-private-lending-final/` 保留最终代码的实际 Harbor Result 与异常日志；官方 world-controller Docker build 安装 `mcp==1.25.0` 时遇到代理 CA `CERTIFICATE_VERIFY_FAILED`，Agent/Verifier 尚未启动，未产生该 trial 的 XiaoBa Trace 或官方 reward。当前模型 API Key 未配置，亦阻塞后续真实推理。不能将 job 汇总 mean=0 当作得分。
 - `npm run build` passed。
 - 清理后 `npm test` passed 556/556 across 100 suites。
 - Scripted Runtime Test focused tests passed 45/45。
