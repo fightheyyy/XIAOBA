@@ -40,6 +40,8 @@ Out of scope:
 
 ## Current Architecture
 
+Skill 的本地商店索引资源归入 skills/registry.json；外部 CLI 依赖清单位于 docs/requirements.txt，Skill Hub 初始化材料位于 scripts/skill-hub-init/。这些文件不作为可执行 Skill 注册。
+
 可执行能力实现已统一归位到 `src/capabilities/tools/`、`src/capabilities/skills/`、`src/capabilities/roles/`。Tools 拥有注册、可见性、确认和具体工具实现；Skills/ Roles 拥有加载、解析、策略及角色适配。根目录 `skills/` 和 `roles/` 继续保存声明式资产。角色与 Skill 的执行合同位于 `runtime/contracts`，所有角色继续复用唯一 runtime loop；不新增角色或生命周期系统。
 
 默认发行物包含八个 Role、零个 Base Skill。所有角色使用 AgentSession / ConversationRunner / ToolManager。

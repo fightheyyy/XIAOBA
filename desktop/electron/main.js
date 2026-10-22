@@ -265,9 +265,9 @@ async function startServer() {
     }
   }
 
-  // 每次启动都更新 skill-registry.json（确保用户获得最新的本地索引）
-  const registryDest = path.join(userDataPath, 'skill-registry.json');
-  const registrySrc = path.join(appRoot, 'skill-registry.json');
+  // 每次启动都更新 skills/registry.json（确保用户获得最新的本地索引）
+  const registryDest = path.join(skillsPath, 'registry.json');
+  const registrySrc = path.join(bundledSkills, 'registry.json');
   if (fs.existsSync(registrySrc)) {
     fs.copyFileSync(registrySrc, registryDest);
   }

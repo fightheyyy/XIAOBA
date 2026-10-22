@@ -417,8 +417,8 @@ export class ArenaManager {
     }
 
     const registryFiles = [
-      path.join(roots.home_root, 'skill-registry.json'),
-      path.join(roots.workspace_root, 'skill-registry.json'),
+      path.join(roots.home_root, 'skills', 'registry.json'),
+      path.join(roots.workspace_root, 'skills', 'registry.json'),
     ];
     for (const registryFile of registryFiles) {
       writeJson(registryFile, []);
@@ -837,7 +837,7 @@ function writeSdkSandboxPolicy(input: {
   });
   const policy = createSandboxPolicy({
     cwd: input.roots.workspace_root, scratchRoot: path.join(input.runRoot, 'sandbox'),
-    readRoots: [input.runRoot, ...['dist', 'src', 'node_modules', 'prompts', 'roles', 'skills', 'package.json', 'skill-registry.json'].map(name => path.join(input.projectRoot, name))], writeRoots: [input.runRoot, ...input.sandbox.writable_roots],
+    readRoots: [input.runRoot, ...['dist', 'src', 'node_modules', 'prompts', 'roles', 'skills', 'package.json'].map(name => path.join(input.projectRoot, name))], writeRoots: [input.runRoot, ...input.sandbox.writable_roots],
     denyRead: [path.join(input.projectRoot, 'data'), path.join(input.projectRoot, 'memory'), path.join(input.projectRoot, 'logs')],
     denyWrite: [input.projectRoot + '/src', input.projectRoot + '/dist', input.projectRoot + '/roles', input.projectRoot + '/skills', input.projectRoot + '/data', input.projectRoot + '/memory'],
     allowedDomains: [...domains, 'api.openai.com', 'api.anthropic.com'], allowLocalBinding: true,

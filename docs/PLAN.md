@@ -8,6 +8,8 @@ Owner：XiaoBa maintainers
 
 ## Current Status
 
+根目录整理完成：英文说明、依赖清单、Skill Hub 初始化材料与技能索引资源已归入 docs/scripts/skills；打包、Dashboard、Arena、Source Candidate 与文档引用已更新，保留必要工程配置和已有运行数据。废弃且无 gitlink 的 .gitmodules 已移除。
+
 源码职责迁移完成（2026-10-23）：现有实现、内部引用、CLI/Electron/Harbor 入口及安装资源路径已按配套 SPEC 归位。模型服务通过注入接口接收 Arena 审计，构建先清理旧 dist，新增源码 memory 与运行数据 memory 的 Git 忽略规则已区分。下述验证支持本次迁移；仓库既有测试失败仍单独保留，不将整个项目标记为全绿。
 
 XiaoBa-CLI 已形成共享 Agent Runtime、一个 Base Main Agent 和八个默认 Role：
@@ -125,6 +127,8 @@ correction/forget/archive and incremental nightly maintenance; sessionKey remain
 - Browser/GUI/Secretary 外部 driver 和凭据可用性仍受环境约束。
 
 ## Recent Verification
+
+- 根目录整理（2026-10-23）：构建通过；Dashboard 技能目录、Arena manager、Source Candidate、版本链接、应用布局和 SkillManager 定向回归 36/36 passed（含新增 canonical/legacy catalog API 用例）。中英文 README 本地链接检查通过；Electron FileMatcher 确认打包包含 skills/registry.json、skills/README.md 和 prompts/surface.md；Electron 主入口语法与 git diff --check 通过。本轮未重跑整仓 gate 或原生 Electron 发行构建，之前记录的整仓限制继续保留。
 
 - PR #21 工程收尾（2026-10-23）：删除 `dist/` 后直接执行 `npm test`，已验证 `pretest → npm run build → tests` 顺序；Electron main.js 的实际加载表达式解析到迁移后的 Dashboard 模块。入口资源、Pet、Weixin 定向回归 22/22 passed；两份 Electron 入口语法检查和 `git diff --check` passed。`git ls-files dist release` 为空，编译与发行产物继续由 Git 忽略。
 - 本轮两次完整运行分别为 706/708 与 701/703：除既有 Evolution 后代 PID 断言外，Node 24.19 测试运行器先后在 Weixin/Pet 进程报告 `Unable to deserialize cloned data due to invalid or unsupported version`；受影响测试单独运行通过，包含入口资源的组合回归为 22/22。完整 gate 未标记全绿；本轮未改动 Harness 或这些渠道的实现。

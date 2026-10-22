@@ -681,8 +681,12 @@ let remoteRegistryCacheTime = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function loadRegistry(): any[] {
-  const registryPath = path.join(process.cwd(), 'skill-registry.json');
-  if (!fs.existsSync(registryPath)) return [];
+  const registryPath = [
+    path.join(process.cwd(), 'skills', 'registry.json'),
+    // Existing workspaces can keep their previous local catalog until upgraded.
+    path.join(process.cwd(), 'skill-registry.json'),
+  ].find(candidate => fs.existsSync(candidate));
+  if (!registryPath) return [];
   return JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
 }
 

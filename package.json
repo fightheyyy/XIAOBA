@@ -134,7 +134,7 @@
       "roles/secretary-cat/**/*",
       "roles/evolution-cat/**/*",
       "roles/README.md",
-      "skill-registry.json",
+      "skills/registry.json",
       ".env.example",
       "package.json"
     ],

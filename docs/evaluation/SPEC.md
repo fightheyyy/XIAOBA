@@ -38,6 +38,8 @@ Out of scope:
 
 ## Current Architecture
 
+Source Candidate 从既有 docs/scripts/skills 目录复制归位后的说明、依赖清单与索引资源，根文件清单不再包含已迁移资源和废弃 .gitmodules。
+
 `src/eval/` 是验证代码的物理归属：根目录保留 shared Agent Eval，`replay/` 驱动真实执行，`arena/` 做场景探索，`harbor/session.ts` 是外部 Harbor Node 桥接，`testing/` 明确隔离确定性工程验证与 Candidate Test 支持。`testing/` 不从 Agent Eval 公共入口导出，预写模型响应仍不属于 Agent 能力证据。根目录 `eval/` 保存 CaseSets 和外部评测适配资产；`test/` 保存工程测试和 scripted fixtures。
 
 轻量 Eval 核心已经实现。`runEvaluation` 默认每个 Case 运行三次；每次 Replay 都必须产生 fresh Trace，Verifier 硬失败直接形成 Outcome，硬检查通过后才由独立只读 ReviewerCat Session 做语义判断。状态只有 `pass | fail | blocked`。

@@ -23,15 +23,11 @@ const SOURCE_ROOT_FILES = [
   '.env.example',
   '.gitattributes',
   '.gitignore',
-  '.gitmodules',
   'AGENTS.md',
   'LICENSE',
-  'README.en.md',
   'README.md',
   'package-lock.json',
   'package.json',
-  'requirement.txt',
-  'skill-registry.json',
   'tsconfig.json',
 ];
 

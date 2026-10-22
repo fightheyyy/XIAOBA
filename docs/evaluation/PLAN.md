@@ -6,6 +6,8 @@ Owner：Runtime / Evaluation maintainers
 
 ## Current Status
 
+根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
+
 源码目录迁移完成（2026-10-23）：Replay、Harbor 与工程验证支持已归位；Agent Eval 公共入口与 Scripted Runtime Test 仍分开。合同 smoke 与 Harbor 桥接通过；旧子 Agent Scripted 场景的基线失败记录在仓库 PLAN。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Test / Eval / Trace / Case / Replay 的语义边界已确定。

@@ -6,6 +6,8 @@ Owner：Surface maintainers
 
 ## Current Status
 
+根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
+
 源码目录迁移完成（2026-10-23）：全部渠道与 CLI 已迁入 surfaces；Electron 主入口 main.js 与子进程 server-entry.js 均使用迁移后的 Dashboard 路径，资源测试从主入口实际声明的加载表达式定位模块；编译后的 CLI、prompt、Dashboard/Pet 页面已在独立工作目录验收。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - CLI、Feishu、Weixin、Pet、Dashboard 和 Electron 进入共享 AgentSession。

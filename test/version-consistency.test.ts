@@ -29,7 +29,7 @@ describe('release version consistency', () => {
     const expectedTag = `releases/tag/v${packageJson.version}`;
 
     assert.ok(readText('README.md').includes(expectedTag));
-    assert.ok(readText('README.en.md').includes(expectedTag));
+    assert.ok(readText('docs/README.en.md').includes(expectedTag));
     assert.ok(!/sidebar-brand-ver">v\d/.test(html));
     assert.ok(!/sidebar-watermark-version[^\n]*>v\d/.test(html));
     assert.ok(html.includes('id="sidebar-watermark-version">v-</span>'));
