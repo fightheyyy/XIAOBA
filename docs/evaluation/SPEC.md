@@ -172,7 +172,7 @@ Scripted Runtime Test engine 隔离在 `src/eval/testing/**`。其内部仍保�
 
 ## Commands
 
-- `npm test`：工程测试。
+- `npm test`：先通过 `pretest` 执行 `npm run build`，再运行工程测试，支持没有 `dist/` 的干净检出。直接使用 `tsx --test` 时须先构建；Source Candidate 在调用内部 `scripts/run-tests.mjs` 前已有独立构建步骤。
 - `npm run test:base-runtime`：预写模型动作的 Scripted Runtime Test。
 - `npm run test:check-scripted-runtime`：Test fixture preflight。
 - `npm run replay:trace`：历史 Trace 输入兼容入口；产生 fresh Trace。

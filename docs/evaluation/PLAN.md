@@ -9,6 +9,7 @@ Owner：Runtime / Evaluation maintainers
 源码目录迁移完成（2026-10-23）：Replay、Harbor 与工程验证支持已归位；Agent Eval 公共入口与 Scripted Runtime Test 仍分开。合同 smoke 与 Harbor 桥接通过；旧子 Agent Scripted 场景的基线失败记录在仓库 PLAN。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Test / Eval / Trace / Case / Replay 的语义边界已确定。
+- `npm test` 的 `pretest` 自动执行构建，支持无 dist 的干净检出；内部 Source Candidate 流程保持先独立构建、再直接调用 run-tests 的顺序。
 - 轻量 `Case + Oracle → Replay → Trace → Verifier → ReviewerCat → Outcome` 核心已实现并测试。
 - Case Replay adapter 已能驱动当前 Pet/Agent Runtime，并且只返回 fresh Trace ref；生产默认通过隔离子进程执行。
 - ReviewerCat Judge adapter 使用独立只读 Session 和结构化输出。

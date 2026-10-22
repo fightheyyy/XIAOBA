@@ -17,6 +17,7 @@
     "electron:build:win": "npm run build && electron-builder --win --publish never",
     "electron:build:linux": "npm run build && electron-builder --linux --publish never",
     "watch": "tsc --watch",
+    "pretest": "npm run build",
     "test": "node scripts/run-tests.mjs",
     "test:contract-smoke": "tsx scripts/run-contract-smoke.ts --out output/test/contract-smoke",
     "test:contract": "tsx scripts/run-test-suite.ts --suite test/contract-smoke/suites/contract-sentinel.json --out output/test/contract-sentinel",
