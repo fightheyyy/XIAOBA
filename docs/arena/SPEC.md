@@ -41,6 +41,8 @@ Out of scope:
 
 ## Current Architecture
 
+隔离 runtime 在 home 与 workspace 的 skills/registry.json 写入空索引，保持商店索引与生产工作区隔离；归位后的 skills 目录仍沿用原来的只读许可。
+
 Arena 实现已归位到 `src/eval/arena/`，仍通过 `src/eval/evaluation.ts` 和 `src/eval/replay/` 复用唯一评测链。`live-audit.ts` 在执行前注入 Runtime 的 ProviderAudit 接口，保留原有物理调用、token 与计费限制；Runtime 不反向导入 Arena。根目录 `arena/` 继续保存 subject snapshot 和运行资产。
 
 `xiaoba arena evaluate`、`xiaoba arena skill` 和 `xiaoba arena run execute/worker` 已统一调用轻量 Arena service。它支持用户给 Scenario，缺省时调用 UserCat；interaction adapter 只把标准 AgentSession Trace 交给 Inspector，不把 UserCat 自己的 package trace 当作另一种证据；存在 Case 时统一调用 shared Evaluation。

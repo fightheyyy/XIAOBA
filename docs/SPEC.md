@@ -61,6 +61,26 @@ Harness is the runtime.
 
 项目级 spec 的最外层图只表达当前已经存在的 durable module 和职责边界。细节放到对应模块 spec；顶层 Mermaid 节点优先使用模块名，避免把项目级地图画成实现细节图。
 
+仓库根目录按用途归位：
+
+```text
+xiaobaOS/
+├── src/           # 七个源码模块
+├── desktop/       # 桌面应用
+├── roles/         # Role 资源
+├── skills/        # Skill 资源与 registry.json
+├── prompts/       # Prompt 资源
+├── eval/          # Benchmark 数据与外部适配资产
+├── test/          # 工程测试
+├── docs/          # 技术文档、英文说明、外部依赖清单
+├── scripts/       # 开发构建脚本与 Skill Hub 初始化材料
+├── assets/        # 展示资源
+├── README.md
+└── package.json
+```
+
+根目录同时保留 package-lock.json、tsconfig.json、LICENSE、AGENTS.md 和 Git/环境配置。英文说明位于 `docs/README.en.md`，人工维护的外部 CLI 清单位于 `docs/requirements.txt`，Skill Hub 初始化材料位于 `scripts/skill-hub-init/`。dist/release/node_modules 及 logs/data/memory/output 是忽略的本地产物，不属于受版本控制的根目录布局。
+
 源码目录：
 
 ```text
@@ -98,6 +118,8 @@ flowchart LR
 ```
 
 ## Target Architecture
+
+仓库目录沿用 Current Architecture 中的用途分组；构建、打包与隔离候选副本使用归位后的资源路径，现有工作区的旧技能索引保留只读兼容。
 
 源码按执行职责组织：`src/runtime/` 收敛 harness、sessions、subagents、delivery、sandbox、observability 和 contracts；`src/events/` 拥有事件接入、定时和主动唤醒；`src/memory/` 拥有长期记忆；`src/surfaces/` 拥有 CLI、IM、Pet、Dashboard 和 Bridge；`src/connectors/` 拥有外部 App 访问；`src/capabilities/` 拥有 Tools、Skills 和 Roles；`src/eval/` 收敛 Replay、Arena、Harbor 和明确隔离的工程验证支持。根目录 `eval/`、`roles/`、`skills/` 仍保存资产。代码目录不新增文档模块，继续沿用固定 14 份 SPEC/PLAN。
 

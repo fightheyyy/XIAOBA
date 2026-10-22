@@ -14,7 +14,7 @@
   [![Node](https://img.shields.io/badge/CLI-Node.js%20%3E%3D22.12-green.svg)](package.json)
   [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-  [源码快速开始](#快速开始) · [Desktop v0.2.2 Preview](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) · [工作方式](#工作与进化) · [受控进化](#受控进化) · [English](README.en.md)
+  [源码快速开始](#快速开始) · [Desktop v0.2.2 Preview](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) · [工作方式](#工作与进化) · [受控进化](#受控进化) · [English](docs/README.en.md)
 
   <sub>v0.2.2 Preview 提供 macOS Apple Silicon（arm64）DMG 与 Windows x64 安装包，并包含程序化 XiaoBa 视觉系统、九个默认角色与轻量 Assurance & Evolution 主线。macOS 包采用 ad-hoc 签名且未 notarize，Windows 包未签名；桌面子服务仍需要系统 Node.js 18.19+。</sub>
 </div>
@@ -138,7 +138,7 @@ npm run dev -- chat -r engineer-cat -i
 npm run electron:dev
 ```
 
-BrowserCat、GuiCat 和 SecretaryCat 的外部 CLI / 平台依赖见 [`requirement.txt`](requirement.txt)；只在使用对应角色时安装和授权。
+BrowserCat、GuiCat 和 SecretaryCat 的外部 CLI / 平台依赖见 [`docs/requirements.txt`](docs/requirements.txt)；只在使用对应角色时安装和授权。
 
 ## 八个默认角色
 

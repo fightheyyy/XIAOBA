@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/readme-hero.gif" alt="XiaoBa's work loop and governed evolution loop: deliver work and review capability growth" width="100%">
+  <img src="../assets/readme-hero.gif" alt="XiaoBa's work loop and governed evolution loop: deliver work and review capability growth" width="100%">
 
   # XiaoBa-CLI
 
@@ -11,10 +11,10 @@
 
   [![Release](https://img.shields.io/github/v/release/fightheyyy/xiaobaOS?include_prereleases&label=release)](https://github.com/fightheyyy/xiaobaOS/releases)
   [![Desktop](https://img.shields.io/badge/desktop-macOS%20arm64%20%7C%20Windows%20x64-yellow.svg)](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2)
-  [![Node](https://img.shields.io/badge/CLI-Node.js%20%3E%3D18.19-green.svg)](package.json)
-  [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+  [![Node](https://img.shields.io/badge/CLI-Node.js%20%3E%3D18.19-green.svg)](../package.json)
+  [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
 
-  [Quick Start from Source](#quick-start) · [Desktop v0.2.2 Preview](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) · [How It Works](#work-and-evolution) · [Governed Evolution](#governed-evolution) · [简体中文](README.md)
+  [Quick Start from Source](#quick-start) · [Desktop v0.2.2 Preview](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) · [How It Works](#work-and-evolution) · [Governed Evolution](#governed-evolution) · [简体中文](../README.md)
 
   <sub>The v0.2.2 Preview provides a macOS Apple Silicon (arm64) DMG and a Windows x64 installer, including the procedural XiaoBa visual system, nine default agents, and the lightweight Assurance & Evolution path. The macOS build is ad-hoc signed and not notarized; the Windows build is unsigned. Desktop child services still require system Node.js 18.19+.</sub>
 </div>
@@ -97,7 +97,7 @@ Runtime state, traces, and artifact evidence stay local by default. Models can b
 ## Runtime Dashboard
 
 <p align="center">
-  <img src="assets/dashboard.png" alt="XiaoBa Runtime Dashboard with services, roles, skills, configuration, store, and Chat" width="100%">
+  <img src="../assets/dashboard.png" alt="XiaoBa Runtime Dashboard with services, roles, skills, configuration, store, and Chat" width="100%">
 </p>
 
 <p align="center"><sub>The Electron Dashboard brings runtime services, roles, skills, configuration, the store, and Chat into one entry point.</sub></p>
@@ -138,7 +138,7 @@ npm run dev -- chat -r engineer-cat -i
 npm run electron:dev
 ```
 
-See [`requirement.txt`](requirement.txt) for the external CLIs and platform dependencies used by BrowserCat, GuiCat, and SecretaryCat. Install and authorize them only when you need the corresponding Role.
+See [`requirements.txt`](requirements.txt) for the external CLIs and platform dependencies used by BrowserCat, GuiCat, and SecretaryCat. Install and authorize them only when you need the corresponding Role.
 
 ## Eight Default Roles
 
@@ -155,7 +155,7 @@ The Base Main Agent is the only user-facing conversation and dispatch layer. All
 | Improvement | EvolutionCat | Turns reusable patterns into candidate Skills / Roles; owns `remember` and publishing workflows |
 | Improvement | ReviewerCat | Formally replays one Replay Case in a clean session and returns a terminal decision |
 
-Browser, GUI, and Feishu drivers provide deterministic capabilities without starting a second Chat, Agent, or MCP loop. See the [Roles Guide](roles/README.md) and [Skills Guide](skills/README.md) for detailed usage.
+Browser, GUI, and Feishu drivers provide deterministic capabilities without starting a second Chat, Agent, or MCP loop. See the [Roles Guide](../roles/README.md) and [Skills Guide](../skills/README.md) for detailed usage.
 
 EngineerCat likewise does not wrap a second coding-agent runtime. Base owns its SubAgent lifecycle externally, while EngineerCat implements and verifies changes through a narrow coding / Skill tool boundary and the child-side `ask_parent` uplink.
 
@@ -164,7 +164,7 @@ EngineerCat likewise does not wrap a second coding-agent runtime. Base owns its 
 The nightly workflow starts with InspectorCat. It scans real session traces, preserves evidence, and routes findings to `evolution`, `repair`, `replay`, or `no_op`. Internal Roles participate by route; XiaoBa does not run a fixed eight-agent pipeline every night.
 
 <p align="center">
-  <img src="assets/self-evolution-dag.png" alt="XiaoBa Self-Evolution DAG: InspectorCat routes traces to evolution, repair, replay, or a no-op terminal" width="100%">
+  <img src="../assets/self-evolution-dag.png" alt="XiaoBa Self-Evolution DAG: InspectorCat routes traces to evolution, repair, replay, or a no-op terminal" width="100%">
 </p>
 
 | Route | Execution | Review terminal |
@@ -213,7 +213,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
 xiaoba chat
 ```
 
-The current claim boundary, recent results, and open risks live in the [Project PLAN](docs/PLAN.md). See the [Evaluation SPEC](docs/evaluation/SPEC.md) and [Arena SPEC](docs/arena/SPEC.md) for contract details.
+The current claim boundary, recent results, and open risks live in the [Project PLAN](PLAN.md). See the [Evaluation SPEC](evaluation/SPEC.md) and [Arena SPEC](arena/SPEC.md) for contract details.
 
 ## Current Boundaries
 
@@ -228,10 +228,10 @@ The current claim boundary, recent results, and open risks live in the [Project 
 
 ## Docs and Community
 
-- [Architecture](docs/SPEC.md) · [Status / Plan](docs/PLAN.md)
-- [Roles](roles/README.md) · [Skills](skills/README.md)
+- [Architecture](SPEC.md) · [Status / Plan](PLAN.md)
+- [Roles](../roles/README.md) · [Skills](../skills/README.md)
 - [Releases](https://github.com/fightheyyy/XiaoBa-CLI/releases) · [Discussions](https://github.com/fightheyyy/XiaoBa-CLI/discussions) · [Issues](https://github.com/fightheyyy/XiaoBa-CLI/issues)
 
 ## License
 
-[Apache-2.0](LICENSE)
+[Apache-2.0](../LICENSE)

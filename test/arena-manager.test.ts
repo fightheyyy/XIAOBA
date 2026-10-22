@@ -299,7 +299,7 @@ describe('ArenaManager', () => {
     assert.ok(DEFAULT_PACKAGED_BASE_SKILLS.every(skill => (
       fs.existsSync(path.join(runtime.roots.skills_root, skill, 'SKILL.md'))
     )));
-    assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(runtime.roots.workspace_root, 'skill-registry.json'), 'utf-8')), []);
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(runtime.roots.workspace_root, 'skills', 'registry.json'), 'utf-8')), []);
     assert.strictEqual(runtime.launch.cwd, runtime.roots.workspace_root);
     assert.strictEqual(runtime.launch.env.XIAOBA_PROJECT_ROOT, testRoot);
     assert.strictEqual(runtime.launch.env.XIAOBA_SKILLS_ROOT, runtime.roots.skills_root);

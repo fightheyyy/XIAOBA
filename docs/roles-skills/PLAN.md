@@ -6,6 +6,8 @@ Owner：Policy maintainers
 
 ## Current Status
 
+根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
+
 源码目录迁移完成（2026-10-23）：Tools、Skills、Roles 实现已归入 capabilities；根目录声明资产保留原位，角色与工具回归沿用共享 Runtime。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Base 是唯一 user-facing Main Agent。

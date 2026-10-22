@@ -6,6 +6,8 @@ Owner：Arena maintainers
 
 ## Current Status
 
+根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
+
 源码目录迁移完成（2026-10-23）：Arena 场景探索实现已迁入 eval/arena；计费审计通过 Runtime 注入接口注册，真实模型服务路径的调用计数、scope 限制与 reset 已用确定性测试验收。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - Arena 的定位已收敛为“UserCat 模拟用户的 Agentic Eval”。

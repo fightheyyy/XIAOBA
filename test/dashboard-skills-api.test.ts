@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, test } from 'node:test';
+import { afterEach, beforeEach, describe, mock, test } from 'node:test';
 import * as assert from 'node:assert';
 import express from 'express';
 import * as fs from 'fs';
 import * as http from 'http';
+import https from 'https';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import * as os from 'os';
 import * as path from 'path';
 import { createApiRouter } from '../src/surfaces/dashboard/routes/api';
@@ -90,6 +93,7 @@ describe('Dashboard installed capability API', () => {
 
   afterEach(async () => {
     await closeServer(server);
+    mock.restoreAll();
     server = null;
     await MessageSessionManager.getManager('pet')?.destroy();
     process.chdir(originalCwd);
@@ -100,6 +104,27 @@ describe('Dashboard installed capability API', () => {
     restoreEnvValue('CURRENT_ROLE', originalCurrentRole);
     restoreEnvValue('CURRENT_ROLE_DISPLAY_NAME', originalCurrentRoleDisplayName);
   });
+
+  for (const layout of ['canonical', 'legacy'] as const) {
+    test(`loads the ${layout} workspace catalog without mixing registry assets into installed Skills`, async () => {
+      const entry = { name: 'catalog-skill', description: 'Local catalog', repo: 'https://example.invalid/skill' };
+      const registryPath = layout === 'canonical'
+        ? path.join(testRoot, 'skills', 'registry.json')
+        : path.join(testRoot, 'skill-registry.json');
+      writeFile(registryPath, JSON.stringify([entry]));
+      if (layout === 'canonical') {
+        writeFile(path.join(testRoot, 'skill-registry.json'), JSON.stringify([{ ...entry, name: 'obsolete-entry' }]));
+      }
+      mock.method(https, 'get', (_url: unknown, _options: unknown, callback: (response: any) => void) => {
+        const response = Object.assign(new PassThrough(), { statusCode: 200 });
+        queueMicrotask(() => { callback(response); response.end('[]'); });
+        return Object.assign(new EventEmitter(), { destroy() {} });
+      });
+      const response = await fetch(`${baseUrl}/api/store?refresh=1`);
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), [{ ...entry, installed: false }]);
+    });
+  }
 
   test('lists every installed Skill without lifecycle fields', async () => {
     writeSkill(testRoot, 'legacy-candidate', 'candidate');

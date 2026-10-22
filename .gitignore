@@ -23,6 +23,7 @@ logs/
 files/
 turnLogs/
 /memory/
+/skill-registry.json
 runtime-pr/
 *.log
 .omc/
@@ -44,6 +45,7 @@ benchmarks/BioBench/
 # Generated or local skill content
 /skills/*
 !/skills/README.md
+!/skills/registry.json
 skills/_crafted/
 skills/_learned/
 skills/bio-skills/

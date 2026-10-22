@@ -54,12 +54,19 @@ describe('EngineerCat Source Candidate', () => {
   });
 
   test('copies a secret-free source base and creates an immutable code Candidate', () => {
+    write(root, 'docs/README.en.md', '# English guide\n');
+    write(root, 'docs/requirements.txt', 'Role dependencies\n');
+    write(root, 'skills/registry.json', '[]\n');
+    write(root, 'scripts/skill-hub-init/registry.json', '[]\n');
     const candidatesRoot = path.join(root, 'output', 'evolution', 'runs', 'one', 'candidates');
     const workspace = createSourceCandidateWorkspace({
       working_directory: root,
       candidates_root: candidatesRoot,
     });
     assert.equal(fs.existsSync(path.join(workspace.artifact_path, '.env')), false);
+    for (const relative of ['docs/README.en.md', 'docs/requirements.txt', 'skills/registry.json', 'scripts/skill-hub-init/registry.json']) {
+      assert.equal(fs.readFileSync(path.join(workspace.artifact_path, relative), 'utf8'), fs.readFileSync(path.join(root, relative), 'utf8'));
+    }
     write(workspace.artifact_path, 'src/value.ts', 'export const value = "new";\n');
 
     const candidate = createSourceCandidate({
