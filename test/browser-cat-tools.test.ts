@@ -20,14 +20,14 @@ import {
   parseAgentBrowserResponse,
   resolveAgentBrowserBinaryName,
   resolveXiaoBaApplicationRoot,
-} from '../src/roles/browser-cat/agent-browser-runner';
+} from '../src/capabilities/roles/browser-cat/agent-browser-runner';
 import {
   BrowserScreenshotTool,
   createBrowserCatTools,
   validateHttpUrl,
-} from '../src/roles/browser-cat/browser-tools';
-import { deriveBrowserSessionId } from '../src/roles/browser-cat/browser-session-store';
-import { Tool, ToolExecutionContext, ToolExecutionOutput } from '../src/types/tool';
+} from '../src/capabilities/roles/browser-cat/browser-tools';
+import { deriveBrowserSessionId } from '../src/capabilities/roles/browser-cat/browser-session-store';
+import { Tool, ToolExecutionContext, ToolExecutionOutput } from '../src/runtime/contracts/tool';
 
 class FakeRunner implements AgentBrowserRunner {
   readonly calls: Array<{ command: string[]; options: AgentBrowserRunOptions }> = [];
@@ -243,7 +243,7 @@ describe('agent-browser pinned runner', () => {
     const resolver = new DefaultAgentBrowserBinaryResolver(applicationRoot, 'darwin', 'arm64');
     assert.strictEqual(resolver.resolve(), binary);
     assert.strictEqual(
-      resolveXiaoBaApplicationRoot('/opt/xiaoba/dist/roles/browser-cat', {}),
+      resolveXiaoBaApplicationRoot('/opt/xiaoba/dist/capabilities/roles/browser-cat', {}),
       '/opt/xiaoba',
     );
     assert.strictEqual(

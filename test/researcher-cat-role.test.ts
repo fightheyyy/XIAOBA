@@ -2,9 +2,9 @@ import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PromptManager } from '../src/utils/prompt-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
-import { SkillManager } from '../src/skills/skill-manager';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
 
 const describeResearcherRole = fs.existsSync(path.join(process.cwd(), 'roles', 'researcher-cat', 'role.json'))
   ? describe

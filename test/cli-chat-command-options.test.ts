@@ -10,11 +10,11 @@ import {
   settleCliOneShotSubAgents,
   shouldRenderCliRuntimeLogs,
   shouldRestoreCliSession,
-} from '../src/commands/chat';
-import { SubAgentManager } from '../src/core/sub-agent-manager';
-import { ChatResponse, Message } from '../src/types';
-import { ToolDefinition } from '../src/types/tool';
-import { resetConversationJournalForTests } from '../src/utils/conversation-journal';
+} from '../src/surfaces/cli/commands/chat';
+import { SubAgentManager } from '../src/runtime/subagents/sub-agent-manager';
+import { ChatResponse, Message } from '../src/runtime/contracts';
+import { ToolDefinition } from '../src/runtime/contracts/tool';
+import { resetConversationJournalForTests } from '../src/runtime/delivery/conversation-journal';
 
 class ImmediateCliSubAgentAIService {
   async chatStream(_messages: Message[], _tools: ToolDefinition[]): Promise<ChatResponse> {

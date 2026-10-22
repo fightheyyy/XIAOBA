@@ -3,9 +3,9 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { PromptManager } from '../src/utils/prompt-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
-import { SkillManager } from '../src/skills/skill-manager';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
 
 const originalCwd = process.cwd();
 const originalRole = process.env.XIAOBA_ROLE;

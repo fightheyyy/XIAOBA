@@ -6,7 +6,7 @@ import * as path from 'node:path';
 import {
   findSessionTrace,
   runSubjectInteraction,
-} from '../src/arena/subject-interaction';
+} from '../src/eval/arena/subject-interaction';
 
 describe('Arena Subject interaction adapter', () => {
   test('returns the standard AgentSession Trace instead of the UserCat package trace', async () => {

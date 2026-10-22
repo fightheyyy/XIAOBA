@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { AnthropicProvider } from '../src/providers/anthropic-provider';
-import { Message } from '../src/types';
+import { AnthropicProvider } from '../src/runtime/harness/models/anthropic-provider';
+import { Message } from '../src/runtime/contracts';
 
 describe('AnthropicProvider - Tool Result Block Order Bug', () => {
   test('should place all tool_result blocks before image blocks', () => {

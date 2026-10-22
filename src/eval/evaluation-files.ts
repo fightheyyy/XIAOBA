@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { CaseReplaySetup } from '../replay/case-replay';
+import { CaseReplaySetup } from './replay/case-replay';
 import {
   AgentCase,
   CaseSet,

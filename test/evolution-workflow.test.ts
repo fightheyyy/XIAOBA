@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { FindingCase } from '../src/arena/arena-workflow';
+import { FindingCase } from '../src/eval/arena/arena-workflow';
 import { EvaluationResult } from '../src/eval/evaluation';
 import {
   Candidate,
   runEvolution,
-} from '../src/roles/evolution-cat/evolution-workflow';
+} from '../src/capabilities/roles/evolution-cat/evolution-workflow';
 
 const findingCase: FindingCase = {
   finding: {

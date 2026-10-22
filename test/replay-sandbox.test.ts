@@ -6,7 +6,7 @@ import { afterEach, describe, test } from 'node:test';
 import {
   assertReplaySandboxAvailable,
   createReplayServices,
-} from '../src/replay/replay-services';
+} from '../src/eval/replay/replay-services';
 
 const originalSandboxed = process.env.XIAOBA_ARENA_SANDBOXED;
 

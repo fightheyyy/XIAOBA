@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { FindingCase, runArena } from '../src/arena/arena-workflow';
+import { FindingCase, runArena } from '../src/eval/arena/arena-workflow';
 import { EvaluationResult } from '../src/eval/evaluation';
 
 const traceRef = 'logs/arena-session/traces.jsonl';

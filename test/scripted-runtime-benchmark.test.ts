@@ -8,7 +8,7 @@ import {
   loadScriptedRuntimeTestSet,
   runScriptedRuntimeTestBenchmark,
   writeScriptedRuntimeTestBenchmarkResult,
-} from '../src/testing';
+} from '../src/eval/testing';
 
 describe('Scripted Runtime Test set', () => {
   test('loads the BaseRuntime test groups', () => {

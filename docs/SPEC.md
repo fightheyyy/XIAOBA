@@ -1,7 +1,7 @@
 # XiaoBa-CLI SPEC
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 适用范围：`XiaoBa-CLI` 整体架构、agent harness 边界、核心状态机、运行证据和评测闭环。
 
 本文是 `XiaoBa-CLI` 的项目级架构真相源。项目只维护本文和六个模块 SPEC；角色、benchmark、desktop、test 和实验实现不再各自复制架构文档。
@@ -12,11 +12,11 @@ XiaoBa-CLI 的稳定文档结构是一个项目级大 SPEC 加六个顶层模块
 
 | 模块 | SPEC | PLAN | 覆盖范围 |
 | --- | --- | --- | --- |
-| Surface：入口层 | [`surface/SPEC.md`](surface/SPEC.md) | [`surface/PLAN.md`](surface/PLAN.md) | `src/commands`、`src/feishu`、`src/weixin`、`src/pet`、`src/dashboard`、`src/events`、`src/connectors`、`desktop` |
-| Agent Runtime：会话与工具编排层 | [`agent-runtime/SPEC.md`](agent-runtime/SPEC.md) | [`agent-runtime/PLAN.md`](agent-runtime/PLAN.md) | `src/core`、`src/providers`、`src/tools`、runtime 类型、session lifecycle 和 agent loop |
-| Roles & Skills：Base + 八角色策略层 | [`roles-skills/SPEC.md`](roles-skills/SPEC.md) | [`roles-skills/PLAN.md`](roles-skills/PLAN.md) | Base Main Agent、八个默认 Role Subagent、`roles`、`src/roles`、`skills`、`src/skills` |
-| Observability & Evidence：观测证据层 | [`observability-evidence/SPEC.md`](observability-evidence/SPEC.md) | [`observability-evidence/PLAN.md`](observability-evidence/PLAN.md) | `src/observability`、`logs`、`data`、`memory`、`output`、trace projection 和 artifact evidence |
-| Evaluation：Test 与 Agent Eval | [`evaluation/SPEC.md`](evaluation/SPEC.md) | [`evaluation/PLAN.md`](evaluation/PLAN.md) | `src/testing`、`test/scripted-runtime`、`src/replay`、`src/eval`、Case Replay、Verifier、ReviewerCat Judge |
+| Surface：入口层 | [`surface/SPEC.md`](surface/SPEC.md) | [`surface/PLAN.md`](surface/PLAN.md) | `src/surfaces/cli/commands`、`src/surfaces/feishu`、`src/surfaces/weixin`、`src/surfaces/pet`、`src/surfaces/dashboard`、`src/events`、`src/connectors`、`desktop` |
+| Agent Runtime：会话与工具编排层 | [`agent-runtime/SPEC.md`](agent-runtime/SPEC.md) | [`agent-runtime/PLAN.md`](agent-runtime/PLAN.md) | `src/runtime`、`src/capabilities/tools`、session lifecycle 和 agent loop |
+| Roles & Skills：Base + 八角色策略层 | [`roles-skills/SPEC.md`](roles-skills/SPEC.md) | [`roles-skills/PLAN.md`](roles-skills/PLAN.md) | Base Main Agent、八个默认 Role Subagent、`roles`、`src/capabilities/roles`、`skills`、`src/capabilities/skills` |
+| Observability & Evidence：观测证据层 | [`observability-evidence/SPEC.md`](observability-evidence/SPEC.md) | [`observability-evidence/PLAN.md`](observability-evidence/PLAN.md) | `src/runtime/observability`、`src/runtime/delivery`、`src/memory`、`logs`、`data`、`memory`、`output`、trace projection 和 artifact evidence |
+| Evaluation：Test 与 Agent Eval | [`evaluation/SPEC.md`](evaluation/SPEC.md) | [`evaluation/PLAN.md`](evaluation/PLAN.md) | `src/eval/testing`、`test/scripted-runtime`、`src/eval/replay`、`src/eval`、Case Replay、Verifier、ReviewerCat Judge |
 | Arena：Agentic Eval 工作流 | [`arena/SPEC.md`](arena/SPEC.md) | [`arena/PLAN.md`](arena/PLAN.md) | Scenario、UserCat、Subject Trace、InspectorCat Finding+Case 与 shared Eval |
 
 本地 JSONL 和 artifact evidence 是运行事实；Outcome 是一次 Case execution 的唯一裁决；EvaluationResult、ArenaResult 和 Report 都不能再创造第二份真相。Observability 允许显式启用脱敏、fail-open 的 OTLP trace 投影，但该投影不拥有 pass/fail。
@@ -61,67 +61,47 @@ Harness is the runtime.
 
 项目级 spec 的最外层图只表达当前已经存在的 durable module 和职责边界。细节放到对应模块 spec；顶层 Mermaid 节点优先使用模块名，避免把项目级地图画成实现细节图。
 
+源码目录：
+
+```text
+src/
+├── runtime/
+│   ├── harness/{loop,models,context,agents}/
+│   ├── sessions/
+│   ├── subagents/
+│   ├── delivery/
+│   ├── sandbox/
+│   ├── observability/
+│   └── contracts/
+├── events/
+├── memory/
+├── surfaces/{cli,feishu,weixin,pet,dashboard,bridge,shared}/
+├── connectors/
+├── capabilities/{tools,skills,roles}/
+├── eval/{replay,arena,harbor,testing}/
+└── index.ts
+```
+
+
 ```mermaid
 flowchart LR
-    Runtime --> Execution["Shell / file tools / bounded workers"]
-    Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
-    Runtime --> Connector["Agent-owned App Connectors"]
-    Connector --> Apps["Gmail / Notion / GitHub / Feishu"]
-    SessionTimer["Persisted session reminders / checks"] --> ScheduledEvents
-    ScheduledEvents --> SessionWake["Existing Surface / AgentSession"]
-    DailyScheduler["Shared Scheduler / one cron tick"] --> ScheduledEvents["Event Dispatcher"]
-    ScheduledEvents --> EvolutionConsumer["Evolution workflow / supervised worker"]
-    ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
-    subgraph Use["1) Use"]
-        direction TB
-        Surface["Surface<br/>CLI / IM / Pet / Dashboard"]
-    end
-    subgraph Run["2) Run"]
-        direction TB
-        Runtime["Agent Runtime<br/>session / model / tools"]
-        Policy["Roles & Skills<br/>Base + 8 Roles; zero default Base Skills"]
-        CodexAdapter["EngineerCat codex_run<br/>narrow external executor adapter"]
-        Codex["local Codex thread"]
-    end
-    subgraph Facts["3) Record"]
-        direction TB
-        Evidence["Observability & Evidence<br/>trace / artifact / memory"]
-        Otel["OTLP trace projection<br/>optional + redacted"]
-    end
-    subgraph Learn["4) Verify / improve"]
-        direction TB
-        Test["Test<br/>implementation correctness"]
-        Evaluation["Evaluation<br/>Case Replay + Judge"]
-        Improve["Evolution<br/>shared Test + Eval + atomic activation"]
-    end
-    subgraph Review["5) Explore"]
-        direction TB
-        Arena["Arena<br/>Scenario + clean runtime + shared Eval"]
-    end
-
-    Surface -->|Feishu / Weixin / Pet| Event["Event admission<br/>durable records / deduplication"]
-    Event --> Runtime
-    Surface -->|CLI / control paths| Runtime
-    Runtime --> AppTools["SecretaryCat tools"]
-    AppTools --> FeishuConnector["Feishu Connector"]
-    FeishuConnector --> Feishu["lark-cli / Feishu"]
-    Policy --> Runtime
-    Runtime --> CodexAdapter
-    CodexAdapter --> Codex
-    MemoryFiles["File memory<br/>bounded project / session indexes"] --> Runtime
-    Runtime --> Evidence
-    Evidence --> Otel
-    Runtime --> Test
-    Evidence --> Evaluation
-    Evidence --> Improve
-    Runtime --> Arena
-    Policy --> Arena
-    Evidence --> Arena
-    Test --> Improve
-    Evaluation --> Improve
+    Surface["surfaces<br/>CLI / IM / Pet / Dashboard / Bridge"] --> Events["events<br/>admission / schedules / wakeups"]
+    Events --> Runtime["runtime<br/>sessions / subagents / harness"]
+    Surface --> Runtime
+    Runtime --> Capabilities["capabilities<br/>Tools / Skills / Roles"]
+    Capabilities --> Connectors["connectors<br/>external app access"]
+    Runtime --> Memory["memory<br/>scoped Markdown indexes"]
+    Runtime --> Delivery["runtime/delivery<br/>receipts / visible journal"]
+    Runtime --> Evidence["runtime/observability<br/>Trace / metrics / OTLP"]
+    Evaluation["eval<br/>Replay / Arena / Harbor / Test support"] --> Runtime
+    Evaluation --> Evidence
 ```
 
 ## Target Architecture
+
+源码按执行职责组织：`src/runtime/` 收敛 harness、sessions、subagents、delivery、sandbox、observability 和 contracts；`src/events/` 拥有事件接入、定时和主动唤醒；`src/memory/` 拥有长期记忆；`src/surfaces/` 拥有 CLI、IM、Pet、Dashboard 和 Bridge；`src/connectors/` 拥有外部 App 访问；`src/capabilities/` 拥有 Tools、Skills 和 Roles；`src/eval/` 收敛 Replay、Arena、Harbor 和明确隔离的工程验证支持。根目录 `eval/`、`roles/`、`skills/` 仍保存资产。代码目录不新增文档模块，继续沿用固定 14 份 SPEC/PLAN。
+
+Runtime 的交付通过 `ChannelCallbacks`，工具执行通过 `ToolExecutor`；不引用具体 Surface 或 App Connector。Harness 内模型、循环和上下文分别组织；长期记忆不进入恢复 transcript。`src/index.ts` 只启动 CLI 组装入口。物理迁移保持命令、存储路径、权限、单一 Agent loop 和评测裁决语义。
 
 目标架构保留同一套本地优先 Runtime，把质量体系收敛为四条共享
 Evidence Primitive 的轻量工作流。`Assurance` 是这套关系的名称，不是新
@@ -130,40 +110,26 @@ Case 把问题变成可执行实验，Outcome 是一次真实执行的唯一裁�
 
 ```mermaid
 flowchart LR
-    Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
-    Sandbox --> Native["Seatbelt on macOS / Bubblewrap on Linux"]
-    SessionTimer["Persisted session reminders / checks"] --> ScheduledEvents
-    ScheduledEvents --> SessionWake["Existing Surface / AgentSession"]
-    DailyScheduler["Shared Scheduler / one cron tick"] --> ScheduledEvents["Event Dispatcher"]
-    ScheduledEvents --> EvolutionConsumer["Evolution workflow / supervised worker"]
-    ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
-    Surface["Surface<br/>user entry / delivery"] --> Event["Event<br/>shared trigger admission"]
-    Event --> Runtime["Agent Runtime<br/>one shared loop"]
-    Runtime --> Tools["Role tools"]
-    Tools --> Connector["Connector<br/>Agent-to-app access"]
-    Connector --> Apps["External apps"]
-    Apps --> Connector
-    Connector --> Event
-    Roles["Roles & Skills<br/>8 shared Roles"] --> Runtime
-    Runtime --> EngineerAdapter["EngineerCat Codex adapter<br/>optional external executor"]
-    EngineerAdapter --> Codex["local Codex thread"]
-    Runtime --> Trace["Trace<br/>shared runtime evidence"]
-    Runtime --> Conversation["Conversation Journal<br/>user-visible messages only"]
-    Conversation --> Catena["Catena conversation ingest<br/>optional + fail-open"]
-
-    Test["Test<br/>implementation correctness"] --> TestResult["TestResult"]
-    Case["Case + Oracle"] --> Eval["Eval<br/>Replay + Judge"]
+    Surface["surfaces"] --> Event["events<br/>shared trigger admission"]
+    Event --> Runtime["runtime<br/>one shared Agent loop"]
+    Surface --> Runtime
+    Capabilities["capabilities<br/>Tools / Skills / Roles"] --> Runtime
+    Capabilities --> Connector["connectors"]
+    Connector --> Apps["external apps"]
+    Apps --> Event
+    Runtime --> Memory["memory"]
+    Runtime --> Evidence["Trace / delivery evidence"]
+    Scenario["Scenario"] --> Arena["eval/arena"]
+    Arena --> Case["Case + Oracle"]
+    Case --> Eval["shared Eval / Replay / Judge"]
     Eval --> Outcome["Outcome<br/>pass / fail / blocked"]
-
-    Scenario["Scenario"] --> Arena["Arena<br/>UserCat + Inspector"]
-    Arena --> Case
-
-    Trace --> Evolution["Evolution<br/>async control DAG"]
+    Eval --> Runtime
+    Evidence --> Evolution["Evolution control"]
     Outcome --> Evolution
-    Evolution --> Candidate["Candidate<br/>code or capability"]
-    Candidate --> Test
+    Evolution --> Candidate["Candidate"]
+    Candidate --> Test["Test"]
     Candidate --> Eval
-    TestResult --> Activate["Activate on pass<br/>next Session only"]
+    Test --> Activate["activate on pass<br/>new Session / next process"]
     Outcome --> Activate
 ```
 
@@ -207,8 +173,8 @@ The canonical contracts and migration live in `docs/surface/SPEC.md`.
 | `roles/*` | 定义角色身份、职责、工具注入和验收边界 | 不复制 runtime loop |
 | `skills/*` | 定义领域流程和操作策略 | 不保存 runtime 状态；不绕过工具边界 |
 | `Arena` | 从 Scenario 开始，让 UserCat 与 Subject 产生普通 Trace，再由 InspectorCat 生成 Finding+Case 并调用 shared Eval | 不拥有 Replay、Judge、Scorecard、Regression 或 Candidate activation |
-| `test/*`, `src/testing/*` | 定义代码正确性、集成测试、contract smoke 和 Scripted Runtime Test | 不把预写模型响应当成 Agent 行为能力 |
-| `src/replay/*` | 执行 Case 或兼容历史 Trace 输入，驱动当前 Runtime 并产生 fresh Trace | 不输出 pass/fail；不做 Judge |
+| `test/*`, `src/eval/testing/*` | 定义代码正确性、集成测试、contract smoke 和 Scripted Runtime Test | 不把预写模型响应当成 Agent 行为能力 |
+| `src/eval/replay/*` | 执行 Case 或兼容历史 Trace 输入，驱动当前 Runtime 并产生 fresh Trace | 不输出 pass/fail；不做 Judge |
 | `src/eval/*` public API | 定义 Case、Oracle、Outcome、EvaluationResult 和 ReviewerCat Judge | 不保存第二套 overall verdict；不拥有 Arena 或 Evolution |
 
 ## Agent Loop 状态机

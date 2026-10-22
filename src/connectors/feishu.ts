@@ -1,6 +1,6 @@
 import { execFile } from 'child_process';
 import { Connector } from './connector';
-import { ToolExecutionContext } from '../types/tool';
+import { ToolExecutionContext } from '../runtime/contracts/tool';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BUFFER_BYTES = 1024 * 1024;

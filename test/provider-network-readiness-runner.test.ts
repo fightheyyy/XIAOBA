@@ -4,12 +4,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import type { ChatResponse, Message } from '../src/types';
-import type { ToolDefinition } from '../src/types/tool';
+import type { ChatResponse, Message } from '../src/runtime/contracts';
+import type { ToolDefinition } from '../src/runtime/contracts/tool';
 import {
   runProviderNetworkReadiness,
   writeProviderNetworkReadinessReport,
-} from '../src/testing/provider-network-readiness-runner';
+} from '../src/eval/testing/provider-network-readiness-runner';
 
 class FailingProviderService {
   async chatStream(_messages: Message[], _tools?: ToolDefinition[]): Promise<ChatResponse> {

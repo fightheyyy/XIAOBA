@@ -3,7 +3,7 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { resolvePetDesktopEntry } from '../src/pet/desktop-launcher';
+import { resolvePetDesktopEntry } from '../src/surfaces/pet/desktop-launcher';
 
 const originalCwd = process.cwd();
 const originalAppRoot = process.env.XIAOBA_APP_ROOT;

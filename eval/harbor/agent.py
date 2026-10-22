@@ -79,7 +79,7 @@ class XiaobaAgent(BaseAgent):
             child_env.pop(key, None)
         self.stderr = (self.evidence / "worker.stderr.log").open("ab")
         self.process = await asyncio.create_subprocess_exec(
-            "node", str(self.root / "dist/eval/harbor-session.js"),
+            "node", str(self.root / "dist/eval/harbor/session.js"),
             cwd=self.evidence, env=child_env, stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE, stderr=self.stderr, limit=16 * 1024 * 1024,
         )

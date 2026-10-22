@@ -1,8 +1,8 @@
 # Agent Runtime SPEC
 
 状态：Active
-最后更新：2026-10-08
-适用范围：XiaoBa 的核心 agent harness runtime，包括 `src/core`、`src/providers`、`src/tools`、`src/types/tool.ts` 和 runtime-facing harness docs。
+最后更新：2026-10-23
+适用范围：XiaoBa 的核心 agent harness runtime，包括 `src/runtime`、`src/runtime/harness/models`、`src/capabilities/tools`、`src/runtime/contracts/tool.ts` 和 runtime-facing harness docs。
 
 本文是顶层架构模块之一的 Agent Runtime spec。它定义 agent loop、provider transcript、tool boundary 和 session lifecycle；入口、角色策略、观测证据、评测和 Arena 分别由各自模块 spec 维护。
 
@@ -16,10 +16,10 @@ In scope:
 
 - `AgentSession` 生命周期、busy/interrupt、restore、context compression 和 memory cleanup。
 - `ConversationRunner` 的 model call -> tool calls -> tool results -> next model call 循环。
-- Provider adapters：`src/providers/**`。
-- Tool boundary：`src/tools/**`、tool layer、tool schema、参数解析、执行结果、错误码和 retryable 语义。
-- Sub-agent/session runtime：`src/core/sub-agent-*`。
-- Runtime 类型契约：`src/types/**` 中与 session/tool/provider 相关的类型。
+- Provider adapters：`src/runtime/harness/models/**`。
+- Tool boundary：`src/capabilities/tools/**`、tool layer、tool schema、参数解析、执行结果、错误码和 retryable 语义。
+- Sub-agent/session runtime：`src/runtime/subagents/sub-agent-*`。
+- Runtime 类型契约：`src/runtime/contracts/**` 中与 session/tool/provider 相关的类型。
 
 Out of scope:
 
@@ -30,7 +30,9 @@ Out of scope:
 
 ## Current Architecture
 
-当前 runtime 已经以 `AgentSession` 和 `ConversationRunner` 为主线，入口和角色最终都进入同一套 runner。`PromptManager` 负责读取 role/base prompts、展开 `{{include:...}}` prompt fragments，并通过 `prompts/surface.md` 向 `AgentSession` 提供共享 channel delivery prompt。ToolManager 支持 base / role / surface 三层过滤，并已增加 role 声明式 `skill_scoped` 可见性 resolver 与 confirmed tool gate；隔离 runtime 可以显式注入已经从 snapshot 解析的 `roleConfig`，从同一个 ToolManager 计算真实 registered/provider-visible tool 集，而不修改进程级 role 环境。confirmed gate 现在分成 provider-visible 的无否定显式确认检查和 execution-time payload binding 检查，确认类工具即使被硬调也必须让 tool args 与最近确认 turn 或上一条 assistant 提案形成可验证匹配。ConversationRunner 每次 provider request 前都会用当前 active skill 重新解析 provider-visible tools；channel surface 默认只有显式 `send_text` / `send_file` 会产生用户可见输出，final text 只写入 provider/session trace，不自动外发。`delivery_fallback_final_reply` 保留为显式 opt-in 策略，开启时才记录 synthetic `send_text` ToolResult、`delivery_evidence` 和可选 external receipt。Tool result 现在通过 `src/tools/tool-result.ts` 的 canonical builder/canonicalizer 统一收口，覆盖 ToolManager、AgentToolExecutor、SubAgent forbidden results 和 ConversationRunner retry/cancel/fallback delivery results，保证 status/error_code/retryable/duration evidence v1 不再由各 executor 分散拼装；live `ToolExecutionOutput` 也可显式声明 `status/error_code/blocked_reason/retryable/retry_budget`，ToolManager 和 AgentToolExecutor 会优先使用这些结构化字段，只有 legacy string output 才进入中文/英文前缀分类兼容路径。core tools 以及 ResearcherCat / InspectorCat / ReviewerCat / UserCat maintained role tools 已能产出显式 artifact evidence，AgentToolExecutor 也会保留 `Tool.getArtifactManifest()` 的 tool-owned evidence；EngineerCat 通过显式 allowlist 复用文件、搜索、Shell、Skill、子侧 `ask_parent` 及同一个 evidence contract，不继承 Base 的父侧 SubAgent 调度控制工具。structured outbound delivery evidence 已有 `delivery_evidence_contract` v1 hard verifier，覆盖 deterministic `send_text` / `send_file` 正负例、opt-in fallback final reply evidence 以及 production entrypoint Surface Runtime / Surface Runtime File replay；Surface Full deterministic gate 现在还固定 message/file/upload/download 的 external delivery receipt shape；`session-log-v2` provider transcript boundary 现在还有 schema semantic gate，拒绝把 raw messages/tool payload 放进 provider transcript ref；`src/observability` 维护本地 summary、local metric/span helpers 和 trace continuity，并能显式启用一个脱敏、fail-open 的 OTLP trace exporter；provider/durable/working trace 的严格分离仍在推进中。
+现有执行内核已归位到 `src/runtime/`：`harness/loop` 是唯一 ConversationRunner，`harness/models` 是模型适配，`harness/context` 是 prompt 与上下文压缩，`sessions` 和 `subagents` 管理生命周期，`delivery` 保存交付回执和可见会话日志，`sandbox` 管理执行隔离，`observability` 保存 Trace 与投影，`contracts` 保存消息、工具、模型和扩展接口。工具注册与具体实现位于 `src/capabilities/tools/`；长期记忆位于 `src/memory/`。`src/runtime/index.ts` 为 Surface 暴露会话入口。模型服务通过注入的 ProviderAudit 接口接受 Arena 计费审计，不导入 Eval 实现。
+
+当前 runtime 已经以 `AgentSession` 和 `ConversationRunner` 为主线，入口和角色最终都进入同一套 runner。`PromptManager` 负责读取 role/base prompts、展开 `{{include:...}}` prompt fragments，并通过 `prompts/surface.md` 向 `AgentSession` 提供共享 channel delivery prompt。ToolManager 支持 base / role / surface 三层过滤，并已增加 role 声明式 `skill_scoped` 可见性 resolver 与 confirmed tool gate；隔离 runtime 可以显式注入已经从 snapshot 解析的 `roleConfig`，从同一个 ToolManager 计算真实 registered/provider-visible tool 集，而不修改进程级 role 环境。confirmed gate 现在分成 provider-visible 的无否定显式确认检查和 execution-time payload binding 检查，确认类工具即使被硬调也必须让 tool args 与最近确认 turn 或上一条 assistant 提案形成可验证匹配。ConversationRunner 每次 provider request 前都会用当前 active skill 重新解析 provider-visible tools；channel surface 默认只有显式 `send_text` / `send_file` 会产生用户可见输出，final text 只写入 provider/session trace，不自动外发。`delivery_fallback_final_reply` 保留为显式 opt-in 策略，开启时才记录 synthetic `send_text` ToolResult、`delivery_evidence` 和可选 external receipt。Tool result 现在通过 `src/runtime/contracts/tool-result.ts` 的 canonical builder/canonicalizer 统一收口，覆盖 ToolManager、AgentToolExecutor、SubAgent forbidden results 和 ConversationRunner retry/cancel/fallback delivery results，保证 status/error_code/retryable/duration evidence v1 不再由各 executor 分散拼装；live `ToolExecutionOutput` 也可显式声明 `status/error_code/blocked_reason/retryable/retry_budget`，ToolManager 和 AgentToolExecutor 会优先使用这些结构化字段，只有 legacy string output 才进入中文/英文前缀分类兼容路径。core tools 以及 ResearcherCat / InspectorCat / ReviewerCat / UserCat maintained role tools 已能产出显式 artifact evidence，AgentToolExecutor 也会保留 `Tool.getArtifactManifest()` 的 tool-owned evidence；EngineerCat 通过显式 allowlist 复用文件、搜索、Shell、Skill、子侧 `ask_parent` 及同一个 evidence contract，不继承 Base 的父侧 SubAgent 调度控制工具。structured outbound delivery evidence 已有 `delivery_evidence_contract` v1 hard verifier，覆盖 deterministic `send_text` / `send_file` 正负例、opt-in fallback final reply evidence 以及 production entrypoint Surface Runtime / Surface Runtime File replay；Surface Full deterministic gate 现在还固定 message/file/upload/download 的 external delivery receipt shape；`session-log-v2` provider transcript boundary 现在还有 schema semantic gate，拒绝把 raw messages/tool payload 放进 provider transcript ref；`src/runtime/observability` 维护本地 summary、local metric/span helpers 和 trace continuity，并能显式启用一个脱敏、fail-open 的 OTLP trace exporter；provider/durable/working trace 的严格分离仍在推进中。
 
 Current addendum：EngineerCat 现在通过唯一 role-scoped `codex_run` 调用官方 `@openai/codex-sdk`。该窄适配器从可信 `ToolExecutionContext` 取得 cwd 和 AbortSignal，模型只能提供 task、只读/可写模式和可选 `thread_id`。它关闭 Codex web/network、已配置 MCP server、plugins、hooks 和 multi-agent，过滤传入子进程的环境，并把 usage、命令摘要、文件变更、artifact 和失败归一为标准 ToolResult。Arena clean runtime 和确定性 Source Candidate builder 都 fail closed，不会产生未计费的外部模型调用。XiaoBa 不维护 Codex job manager/supervisor，原生 coding tools 保留为小修改和降级路径。
 
@@ -75,15 +77,15 @@ flowchart LR
     end
 
     subgraph Runtime["Runtime"]
-        Session["AgentSession"]
+        Session["AgentSession<br/>runtime/sessions"]
         Subagent["SubAgentSession"]
         PromptManager["PromptManager<br/>prompts + includes"]
         Compressor["ContextCompressor"]
-        Runner["ConversationRunner"]
-        Provider["Provider adapters<br/>OpenAI / Anthropic / Ollama"]
+        Runner["ConversationRunner<br/>runtime/harness/loop"]
+        Provider["runtime/harness/models<br/>OpenAI / Anthropic / Ollama"]
         ToolManager["ToolManager<br/>base / role / surface visibility"]
         Visibility["ToolVisibilityResolver<br/>all / skill scoped + confirmed gate"]
-        Tools["src/tools"]
+        Tools["src/capabilities/tools"]
         Observability["Observability<br/>local summary + optional OTLP trace"]
         CompactEvidence["compact evidence<br/>event + after snapshot"]
         EvolutionControl["Evolution control<br/>shared Test + Eval"]
@@ -152,6 +154,8 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 
 ## Target Architecture
 
+源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
+
 目标是把 provider transcript、trace 和 durable session 分清楚，并把 tool result、delivery evidence、runtime failure 和 retry budget 升级为结构化事实。Provider adapter 必须作为可扩展边界存在：OpenAI-compatible、Anthropic Messages 和 Ollama native `/api/chat` 都要统一归一到 `ChatResponse` / `Message` / `ToolDefinition` 合同，而不是把 provider-specific transcript 泄漏到 runner。工具可见性必须支持 role 声明式策略：默认角色继续看到三层 ToolManager 过滤后的工具；显式配置的弱模型/窄动作角色可以通过 active skill 激活 scoped toolsets，并由 runtime 强制执行确认类工具 gate。
 
 ```mermaid
@@ -179,7 +183,7 @@ flowchart LR
         Subagent["SubAgentSession lifecycle"]
         Trace["trace"]
         Transcript["provider transcript"]
-        Runner["ConversationRunner"]
+        Runner["ConversationRunner<br/>runtime/harness/loop"]
         Tools["layered ToolManager"]
         Resolver["ToolVisibilityResolver<br/>role policy + active skill"]
         VisibleTools["provider-visible tool set"]
@@ -264,7 +268,7 @@ flowchart LR
 - `spawn_subagent` 是 role-aware / no-skill sub-agent dispatch boundary：`role_name` 和 `skill_name` 互斥，但允许二者都不传。只传 `skill_name` 时，子智能体继承父会话当前 role 并预激活该 role 可见 skill；只传 `role_name` 时，有效 role 会在启动前 canonicalize，并用于加载 role prompt、role-local skills 和 role-specific tools，子智能体再通过 `skill` 工具自行选择该 role 的 skill；二者都不传时，子智能体以无预设 skill、无 role dispatch 的后台会话直接按可见工具执行。
 - `ToolExecutionContext.subAgentServiceFactory` 是 deterministic eval / runtime harness 的服务注入点，用于给后台子智能体提供 scripted AIService / skill manager；production `spawn_subagent` 不依赖该字段，仍默认创建真实 runtime services。
 - `role_name=base/default/none` 表示明确清空 role，并进入 no-skill dispatch；它不再要求调用方提供 `skill_name`。子智能体内部仍隐藏主会话控制面和外发工具，例如 `spawn_subagent`、`check_subagent`、`stop_subagent`、`resume_subagent`、`send_text` 和 `send_file`。`skill` 工具只在有效 role-only dispatch 中开放，用于让目标 role 自选 skill；no-skill dispatch 不暴露 `skill` 工具。
-- `src/tools/tool-result.ts` 是 runtime ToolResult canonicalization boundary。ToolManager、AgentToolExecutor、SubAgent forbidden path 和 ConversationRunner retry/cancel path 必须通过 canonical builder/canonicalizer，保证 `status` 必填、`ok` 与 status 一致、non-success 必有 `error_code`、blocked 必有 `blocked_reason`，并且 success 结果不能携带顶层 execution `error_code`。
+- `src/runtime/contracts/tool-result.ts` 是 runtime ToolResult canonicalization boundary。ToolManager、AgentToolExecutor、SubAgent forbidden path 和 ConversationRunner retry/cancel path 必须通过 canonical builder/canonicalizer，保证 `status` 必填、`ok` 与 status 一致、non-success 必有 `error_code`、blocked 必有 `blocked_reason`，并且 success 结果不能携带顶层 execution `error_code`。
 - 配置 `allowedWriteRoot` 的 SubAgent 必须把显式文件写和 Shell 写都限制在该根目录；Shell 只有在原生写 sandbox 可用时才执行，否则 fail closed。可自行指定另一个 cwd 并产生写入的 role control tools 必须由调用 workflow 隐藏或增加同等 runtime 校验，不能只依赖 prompt。
 - `ToolExecutionOutput` 是工具实现返回结构化执行事实的 live 协议。新工具必须通过 `toolSuccess` / `toolFailure` / `toolBlocked` / `toolTimeout` 等共享 builder 返回 `status`、non-success `error_code`、可选 `blocked_reason` / `retryable` / retry budget facts；`toolContent` 只承载给模型看的 payload，不能作为执行状态的唯一来源。字符串前缀分类只保留给 legacy string output 和未迁移工具，并在代码中命名为 legacy path。
 - ToolManager 负责把工具执行结果归一为结构化 ToolResult；core file/search/shell/delivery tools 和 subagent/skill control tools 使用显式语义产出 status/error_code，file/delivery tools 还产出 artifact/delivery evidence 和可选 `external_delivery_receipts`；maintained role tools 可通过 `Tool.getArtifactManifest()` 产出 tool-owned `artifact_manifest`，旧 role-layer 输出才从明确的 JSON / `key=value` artifact 字段保守推断 `action=captured` 的 fallback manifest。
@@ -340,7 +344,7 @@ Write confirmation binds the complete nested operation/args to the most recent p
 
 ## Unified SandboxExecutor
 
-`src/sandbox` owns the pinned `@anthropic-ai/sandbox-runtime@0.0.79` SDK adapter, not another Agent loop or paid execution service. `policy.ts` builds trusted filesystem/network policies; `executor.ts` handles bounded output, timeout, AbortSignal and process-group cleanup; `worker.ts` owns exactly one SDK manager per invocation. SDK initialization errors return `SANDBOX_UNAVAILABLE`, never an unsandboxed fallback. Node >=22.12 is required; this adapter supports macOS and Linux, and explicitly blocks Windows pending validation.
+`src/runtime/sandbox` owns the pinned `@anthropic-ai/sandbox-runtime@0.0.79` SDK adapter, not another Agent loop or paid execution service. `policy.ts` builds trusted filesystem/network policies; `executor.ts` handles bounded output, timeout, AbortSignal and process-group cleanup; `worker.ts` owns exactly one SDK manager per invocation. SDK initialization errors return `SANDBOX_UNAVAILABLE`, never an unsandboxed fallback. Node >=22.12 is required; this adapter supports macOS and Linux, and explicitly blocks Windows pending validation.
 
 Ordinary Shell and ToolManager file tools share this boundary. File tools run their existing implementations in `file-worker.ts`; write preflight rejects traversal/symlink escapes, while OS isolation enforces actual I/O. Only runtime-owned `sandboxPolicy` can override defaults. System/runtime dependencies and current workspace are readable; private Agent data, .env/SSH/cloud credentials and unrelated session memory are excluded. The shared project memory index and current trusted parent/session directory are explicitly restored read-only. Connector service and remember/delivery tools remain trusted host capabilities with their existing role/context/confirmation checks.
 

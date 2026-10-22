@@ -4,7 +4,7 @@ import {
   buildInspectorCatPrompt,
   parseInspectorFindingCases,
   runInspectorCat,
-} from '../src/roles/inspector-cat/finding-case';
+} from '../src/capabilities/roles/inspector-cat/finding-case';
 
 const request = {
   trace_refs: ['logs/session-a/traces.jsonl'],

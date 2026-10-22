@@ -2,8 +2,8 @@ import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DEFAULT_BUNDLED_ROLES } from '../src/roles/role-manager';
-import { DEFAULT_BUNDLED_BASE_SKILLS } from '../src/skills/skill-manager';
+import { DEFAULT_BUNDLED_ROLES } from '../src/capabilities/roles/role-manager';
+import { DEFAULT_BUNDLED_BASE_SKILLS } from '../src/capabilities/skills/skill-manager';
 
 function getBuildFiles(): string[] {
   const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'));

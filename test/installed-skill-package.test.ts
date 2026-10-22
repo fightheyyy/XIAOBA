@@ -3,7 +3,7 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { SkillManager } from '../src/skills/skill-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
 
 function writeSkill(
   root: string,

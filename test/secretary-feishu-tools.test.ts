@@ -3,55 +3,55 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import path from 'path';
-import { ToolExecutionContext } from '../src/types/tool';
-import { FeishuAuthLoginCompleteTool, FeishuAuthLoginStartTool, FeishuAuthStatusTool } from '../src/roles/secretary-cat/tools/feishu-auth-tools';
+import { ToolExecutionContext } from '../src/runtime/contracts/tool';
+import { FeishuAuthLoginCompleteTool, FeishuAuthLoginStartTool, FeishuAuthStatusTool } from '../src/capabilities/roles/secretary-cat/tools/feishu-auth-tools';
 import {
   FeishuCalendarAgendaTool,
   FeishuCalendarCreateTool,
   FeishuCalendarDeleteTool,
-} from '../src/roles/secretary-cat/tools/feishu-calendar-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-calendar-tools';
 import {
   FeishuBaseRecordListTool,
   FeishuBaseRecordUpsertConfirmedTool,
   FeishuBaseTableListTool,
   FeishuSheetsAppendConfirmedTool,
   FeishuSheetsReadTool,
-} from '../src/roles/secretary-cat/tools/feishu-data-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-data-tools';
 import {
   FeishuDocsCreateConfirmedTool,
   FeishuDocsFetchTool,
   FeishuDocsSearchTool,
   FeishuDocsUpdateConfirmedTool,
-} from '../src/roles/secretary-cat/tools/feishu-doc-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-doc-tools';
 import {
   FeishuDriveDownloadTool,
   FeishuDriveImportConfirmedTool,
   FeishuDriveSearchTool,
   FeishuDriveUploadConfirmedTool,
-} from '../src/roles/secretary-cat/tools/feishu-drive-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-drive-tools';
 import {
   FeishuMailDraftCreateTool,
   FeishuMailDraftSendConfirmedTool,
   FeishuMailReadTool,
   FeishuMailTriageTool,
-} from '../src/roles/secretary-cat/tools/feishu-mail-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-mail-tools';
 import {
   FeishuContactSearchTool,
   FeishuMessageDraftTool,
   FeishuMessageSendConfirmedTool,
-} from '../src/roles/secretary-cat/tools/feishu-message-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-message-tools';
 import {
   FeishuMinutesDownloadTool,
   FeishuMinutesGetTool,
   FeishuMinutesNotesTool,
   FeishuMinutesSearchTool,
-} from '../src/roles/secretary-cat/tools/feishu-minutes-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-minutes-tools';
 import {
   FeishuTaskCreateConfirmedTool,
   FeishuTaskListTool,
   FeishuTaskStateConfirmedTool,
   FeishuTaskUpdateConfirmedTool,
-} from '../src/roles/secretary-cat/tools/feishu-task-tools';
+} from '../src/capabilities/roles/secretary-cat/tools/feishu-task-tools';
 import {
   DefaultLarkCliRunner,
   LarkCliExecFile,
@@ -59,7 +59,7 @@ import {
   LarkCliRunOptions,
   SecretaryToolError,
   redactSecrets,
-} from '../src/roles/secretary-cat/utils/lark-cli-runner';
+} from '../src/capabilities/roles/secretary-cat/utils/lark-cli-runner';
 
 class MockLarkCliRunner implements LarkCliRunner {
   readonly calls: Array<{ args: string[]; options?: LarkCliRunOptions }> = [];

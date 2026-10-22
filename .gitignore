@@ -22,7 +22,7 @@ data/
 logs/
 files/
 turnLogs/
-memory/
+/memory/
 runtime-pr/
 *.log
 .omc/

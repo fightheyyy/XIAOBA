@@ -1,12 +1,12 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { DEFAULT_BUNDLED_BASE_SKILLS, SkillManager } from '../src/skills/skill-manager';
-import { ToolManager } from '../src/tools/tool-manager';
-import { SubAgentManager } from '../src/core/sub-agent-manager';
-import { createSubAgentToolExecutor } from '../src/core/sub-agent-session';
-import { SpawnSubagentTool } from '../src/tools/spawn-subagent-tool';
-import { ChatResponse, Message, Skill } from '../src/types';
-import { ToolDefinition, ToolExecutionOutput } from '../src/types/tool';
+import { DEFAULT_BUNDLED_BASE_SKILLS, SkillManager } from '../src/capabilities/skills/skill-manager';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { SubAgentManager } from '../src/runtime/subagents/sub-agent-manager';
+import { createSubAgentToolExecutor } from '../src/runtime/subagents/sub-agent-session';
+import { SpawnSubagentTool } from '../src/capabilities/tools/spawn-subagent-tool';
+import { ChatResponse, Message, Skill } from '../src/runtime/contracts';
+import { ToolDefinition, ToolExecutionOutput } from '../src/runtime/contracts/tool';
 
 describe('SkillManager runtime base skills', () => {
   test('base runtime excludes OfficeCLI, sub-agent, and deleted fallback skill wrappers', async () => {

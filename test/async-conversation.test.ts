@@ -4,12 +4,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { MessageSessionManager } from '../src/core/message-session-manager';
-import { SubAgentManager } from '../src/core/sub-agent-manager';
-import { AgentSession } from '../src/core/agent-session';
-import { ToolManager } from '../src/tools/tool-manager';
-import { Logger } from '../src/utils/logger';
-import { cancellationError } from '../src/utils/cancellation';
+import { MessageSessionManager } from '../src/runtime/sessions/message-session-manager';
+import { SubAgentManager } from '../src/runtime/subagents/sub-agent-manager';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { Logger } from '../src/runtime/observability/logger';
+import { cancellationError } from '../src/runtime/sessions/cancellation';
 const skills={loadSkills:async()=>{},getAllSkills:()=>[],getUserInvocableSkills:()=>[],getSkill:()=>undefined,findAutoInvocableSkillByText:()=>undefined};
 const defer=<T=void>()=>{let resolve!:(value:T)=>void;let reject!:(error:any)=>void;const promise=new Promise<T>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 async function scoped(action:(root:string)=>Promise<void>){const root=fs.mkdtempSync(path.join(os.tmpdir(),'xiaoba-async-')),cwd=process.cwd();process.chdir(root);Logger.setSilentMode(true);try{await action(root);}finally{process.chdir(cwd);Logger.setSilentMode(false);fs.rmSync(root,{recursive:true,force:true});}}

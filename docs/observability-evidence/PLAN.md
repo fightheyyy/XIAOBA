@@ -1,10 +1,12 @@
 # Observability & Evidence PLAN
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 Owner：Runtime / evidence maintainers
 
 ## Current Status
+
+源码目录迁移完成（2026-10-23）：Trace、交付和长期记忆实现已分别归位到 runtime/observability、runtime/delivery 与 memory；既有持久化路径和 schema 保持原合同。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 
 - `traces.jsonl` is the faithful local runtime fact source.
 - `session-log-projector` derives local summary and trace timeline from session logs.
@@ -69,10 +71,10 @@ flowchart LR
 
 ## Owners
 
-- Session evidence writer：`src/utils/session-turn-logger.ts`
-- Projection/local summary：`src/observability/**`
+- Session evidence writer：`src/runtime/observability/session-turn-logger.ts`
+- Projection/local summary：`src/runtime/observability/**`
 - Durable roots：`logs/**`, `data/**`, `memory/**`, `output/**`
-- Runtime evidence producers：`src/core/**`, `src/tools/**`, `src/roles/**`
+- Runtime evidence producers：`src/runtime/**`, `src/capabilities/tools/**`, `src/capabilities/roles/**`
 
 ## Acceptance Criteria
 

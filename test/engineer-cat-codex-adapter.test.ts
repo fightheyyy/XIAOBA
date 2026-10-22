@@ -10,8 +10,8 @@ import {
   CodexExecutorResult,
   discoverConfiguredMcpServers,
   OfficialCodexSdkAdapter,
-} from '../src/roles/engineer-cat/codex-sdk-adapter';
-import { EngineerCodexRunTool } from '../src/roles/engineer-cat/codex-run-tool';
+} from '../src/capabilities/roles/engineer-cat/codex-sdk-adapter';
+import { EngineerCodexRunTool } from '../src/capabilities/roles/engineer-cat/codex-run-tool';
 
 const temporaryRoots: string[] = [];
 

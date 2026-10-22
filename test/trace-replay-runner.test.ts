@@ -3,12 +3,12 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { createRoleAwareToolManager } from '../src/bootstrap/tool-manager';
-import type { AgentServices } from '../src/core/agent-session';
-import { runTraceReplay } from '../src/replay/trace-replay-runner';
-import { SkillManager } from '../src/skills/skill-manager';
-import type { ChatResponse, Message } from '../src/types';
-import type { ToolDefinition } from '../src/types/tool';
+import { createRoleAwareToolManager } from '../src/capabilities/tools/create-tool-manager';
+import type { AgentServices } from '../src/runtime/sessions/agent-session';
+import { runTraceReplay } from '../src/eval/replay/trace-replay-runner';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import type { ChatResponse, Message } from '../src/runtime/contracts';
+import type { ToolDefinition } from '../src/runtime/contracts/tool';
 
 const originalCwd = process.cwd();
 const originalAppRoot = process.env.XIAOBA_APP_ROOT;

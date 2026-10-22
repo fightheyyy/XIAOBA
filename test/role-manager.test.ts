@@ -3,8 +3,8 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { RoleManager } from '../src/roles/role-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+import { RoleManager } from '../src/capabilities/roles/role-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const originalCwd = process.cwd();
 const originalRole = process.env.XIAOBA_ROLE;

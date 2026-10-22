@@ -3,10 +3,10 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ContextDebugLogger } from '../src/utils/context-debug-logger';
-import { Logger } from '../src/utils/logger';
-import { SessionTurnLogger } from '../src/utils/session-turn-logger';
-import { Observability, resetObservabilityForTests } from '../src/observability';
+import { ContextDebugLogger } from '../src/runtime/observability/context-debug-logger';
+import { Logger } from '../src/runtime/observability/logger';
+import { SessionTurnLogger } from '../src/runtime/observability/session-turn-logger';
+import { Observability, resetObservabilityForTests } from '../src/runtime/observability';
 
 const originalContextDebug = process.env.CONTEXT_DEBUG;
 

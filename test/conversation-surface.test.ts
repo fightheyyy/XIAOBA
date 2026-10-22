@@ -3,12 +3,12 @@ import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { resetConversationJournalForTests } from '../src/utils/conversation-journal';
+import { resetConversationJournalForTests } from '../src/runtime/delivery/conversation-journal';
 import {
   journalVisibleChannel,
   recordVisibleAssistant,
   recordVisibleInbound,
-} from '../src/utils/conversation-surface';
+} from '../src/surfaces/shared/conversation-surface';
 
 describe('conversation surface visibility boundary', () => {
   const roots: string[] = [];

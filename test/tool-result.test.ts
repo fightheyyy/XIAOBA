@@ -6,7 +6,7 @@ import {
   toolBlocked,
   toolFailure,
   toolSuccess,
-} from '../src/tools/tool-result';
+} from '../src/runtime/contracts/tool-result';
 
 describe('canonical ToolResult', () => {
   test('normalizes success status and strips execution error fields', () => {

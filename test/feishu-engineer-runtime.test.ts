@@ -4,14 +4,14 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { MessageSessionManager } from '../src/core/message-session-manager';
-import { createRoleAwareToolManager } from '../src/bootstrap/tool-manager';
-import { buildFeishuVisibleInboundContent, FeishuBot } from '../src/feishu';
-import { RoleResolver } from '../src/utils/role-resolver';
-import { Message, ChatResponse } from '../src/types';
-import { ToolDefinition } from '../src/types/tool';
-import { Skill } from '../src/types/skill';
-import { resetConversationJournalForTests } from '../src/utils/conversation-journal';
+import { MessageSessionManager } from '../src/runtime/sessions/message-session-manager';
+import { createRoleAwareToolManager } from '../src/capabilities/tools/create-tool-manager';
+import { buildFeishuVisibleInboundContent, FeishuBot } from '../src/surfaces/feishu';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
+import { Message, ChatResponse } from '../src/runtime/contracts';
+import { ToolDefinition } from '../src/runtime/contracts/tool';
+import { Skill } from '../src/runtime/contracts/skill';
+import { resetConversationJournalForTests } from '../src/runtime/delivery/conversation-journal';
 
 const originalRole = process.env.XIAOBA_ROLE;
 const originalCurrentRole = process.env.CURRENT_ROLE;
@@ -177,7 +177,7 @@ describe('Feishu Engineer runtime', () => {
 
   test('Feishu Engineer sessions use allowlisted coding tools directly', async () => {
     RoleResolver.activateRole('engineer-cat');
-    const feishuSource = fs.readFileSync(path.join(process.cwd(), 'src', 'feishu', 'index.ts'), 'utf-8');
+    const feishuSource = fs.readFileSync(path.join(process.cwd(), 'src', 'surfaces', 'feishu', 'index.ts'), 'utf-8');
     assert.match(feishuSource, /createRoleAwareToolManager\(process\.cwd\(\), \{\}, roleName\)/);
 
     const toolManager = createRoleAwareToolManager();

@@ -1,7 +1,7 @@
 # Evaluation SPEC
 
 状态：Active
-最后更新：2026-10-21
+最后更新：2026-10-23
 适用范围：Test、Case Replay、Agent Eval、Verifier、ReviewerCat Judge。
 
 本文是 XiaoBa-CLI `Evaluation` 模块的唯一架构真相源。
@@ -23,11 +23,11 @@
 In scope:
 
 - `src/eval/evaluation.ts` 的 Case、Oracle、Outcome 和 EvaluationResult。
-- `src/replay/case-replay.ts` 的真实 Runtime Replay adapter。
+- `src/eval/replay/case-replay.ts` 的真实 Runtime Replay adapter。
 - `src/eval/reviewer-cat-judge.ts` 的共享语义 Judge。
 - Verifier hard checks、重复运行和事实聚合。
-- `src/testing/**` 与 `test/scripted-runtime/**` 的 Test 语义边界。
-- `eval/harbor/agent.py` 与 `src/eval/harbor-session.ts` 的外部 Harbor P0 适配。
+- `src/eval/testing/**` 与 `test/scripted-runtime/**` 的 Test 语义边界。
+- `eval/harbor/agent.py` 与 `src/eval/harbor/session.ts` 的外部 Harbor P0 适配。
 
 Out of scope:
 
@@ -38,9 +38,11 @@ Out of scope:
 
 ## Current Architecture
 
+`src/eval/` 是验证代码的物理归属：根目录保留 shared Agent Eval，`replay/` 驱动真实执行，`arena/` 做场景探索，`harbor/session.ts` 是外部 Harbor Node 桥接，`testing/` 明确隔离确定性工程验证与 Candidate Test 支持。`testing/` 不从 Agent Eval 公共入口导出，预写模型响应仍不属于 Agent 能力证据。根目录 `eval/` 保存 CaseSets 和外部评测适配资产；`test/` 保存工程测试和 scripted fixtures。
+
 轻量 Eval 核心已经实现。`runEvaluation` 默认每个 Case 运行三次；每次 Replay 都必须产生 fresh Trace，Verifier 硬失败直接形成 Outcome，硬检查通过后才由独立只读 ReviewerCat Session 做语义判断。状态只有 `pass | fail | blocked`。
 
-旧的预写响应 runner 仍作为内部兼容实现存在，但公共入口已迁到 `src/testing`，命令和产物统一使用 Scripted Runtime Test 语义。`xiaoba eval run --case-set <file>` 已直接组合真实 Case Replay、最小 hard Verifier registry 和 ReviewerCat Judge；当前 registry 只内置 `trace_exists`、`no_failed_tools` 与 `read_only_tools`。首个维护中的 `eval/case-sets/xiaoba-core-readonly.json` 包含三条不预写模型响应的真实 Agent Case。
+旧的预写响应 runner 仍作为内部兼容实现存在，但公共入口已迁到 `src/eval/testing`，命令和产物统一使用 Scripted Runtime Test 语义。`xiaoba eval run --case-set <file>` 已直接组合真实 Case Replay、最小 hard Verifier registry 和 ReviewerCat Judge；当前 registry 只内置 `trace_exists`、`no_failed_tools` 与 `read_only_tools`。首个维护中的 `eval/case-sets/xiaoba-core-readonly.json` 包含三条不预写模型响应的真实 Agent Case。
 
 Replay 默认使用 `read_only` policy，只向被测 Agent 暴露 `read_file`、`glob` 和 `grep`。Case 可以显式声明 `workspace_write`，但该模式只有在 Arena/Evolution 提供 enforced clean runtime 时才开放工作区文件与 Shell 工具；外部消息、Browser、GUI 和 Secretary 工具不属于 Replay 能力集。
 
@@ -57,7 +59,7 @@ flowchart LR
     Fixture["Scripted fixture"] --> Test["Scripted Runtime Test"]
     Test --> TestResult["test-result.json"]
 
-    Case["Case + Oracle"] --> Replay["Case Replay"]
+    Case["Case + Oracle"] --> Replay["Case Replay<br/>eval/replay"]
     Replay --> Trace["fresh Trace"]
     Trace --> Verifier["Verifier hard checks"]
     Verifier -->|pass| Reviewer["ReviewerCat Judge"]
@@ -67,6 +69,8 @@ flowchart LR
 ```
 
 ## Target Architecture
+
+源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 内部目标只保留一个 Eval 执行与裁决链。Arena 和 Evolution 只调用它，不拥有自己的 Replay、Judge、Scorecard 或 Regression 实现。外部 Harbor Benchmark 保持官方任务和评分，不转换为内部 Outcome 或增加第二套评分。
 
@@ -85,7 +89,7 @@ flowchart LR
     Judge --> Outcome
     Outcome --> Result["EvaluationResult"]
 
-    Arena["Arena"] --> Eval
+    Arena["Arena<br/>eval/arena"] --> Eval
     Evolution["Evolution"] --> Eval
     Result --> Report["Report view"]
     Result --> Policy["Optional exit policy"]
@@ -150,25 +154,25 @@ EvaluationResult 保存 Outcomes 和成功率、稳定性、安全、延迟、to
 ## Implementation Layout
 
 ```text
-src/eval/evaluation.ts             shared Eval contracts and orchestration
-src/eval/evaluation-files.ts       CaseSet input and canonical result output
-src/eval/verifier-registry.ts      minimal hard verifier registry
-src/eval/reviewer-cat-judge.ts     ReviewerCat semantic Judge adapter
-src/replay/case-replay.ts          Case -> real Runtime -> fresh Trace
-src/replay/replay-services.ts      Replay-visible tools and effect policy
-src/commands/eval.ts               real CaseSet Eval CLI
-eval/case-sets/                     maintained real Agent CaseSets
-src/testing/                       deterministic Test facade and implementation
-test/scripted-runtime/             scripted Runtime fixtures
-output/test/                       generated Test evidence
-output/eval/                       generated Eval evidence
+src/eval/evaluation.ts               shared Eval contracts and orchestration
+src/eval/evaluation-files.ts         CaseSet input and canonical result output
+src/eval/verifier-registry.ts        minimal hard verifier registry
+src/eval/reviewer-cat-judge.ts       ReviewerCat semantic Judge adapter
+src/eval/replay/case-replay.ts       Case -> real Runtime -> fresh Trace
+src/eval/replay/replay-services.ts   Replay-visible tools and effect policy
+src/surfaces/cli/commands/eval.ts    real CaseSet Eval CLI
+eval/case-sets/                      maintained real Agent CaseSets
+src/eval/testing/                    deterministic Test facade and implementation
+test/scripted-runtime/               scripted Runtime fixtures
+output/test/                         generated Test evidence
+output/eval/                         generated Eval evidence
 ```
 
-旧 Scripted Runtime Test engine 已物理迁入 `src/testing/**`。其内部仍保留少量 `Eval*` 兼容类型名，但不再位于 `src/eval`、不从 Eval 公共 API 导出，也不写入默认 `output/eval/**`。
+Scripted Runtime Test engine 隔离在 `src/eval/testing/**`。其内部仍保留少量 `Eval*` 兼容类型名，不从 `src/eval/index.ts` 的 Agent Eval 公共 API 导出，也不写入默认 `output/eval/**`。
 
 ## Commands
 
-- `npm test`：工程测试。
+- `npm test`：先通过 `pretest` 执行 `npm run build`，再运行工程测试，支持没有 `dist/` 的干净检出。直接使用 `tsx --test` 时须先构建；Source Candidate 在调用内部 `scripts/run-tests.mjs` 前已有独立构建步骤。
 - `npm run test:base-runtime`：预写模型动作的 Scripted Runtime Test。
 - `npm run test:check-scripted-runtime`：Test fixture preflight。
 - `npm run replay:trace`：历史 Trace 输入兼容入口；产生 fresh Trace。

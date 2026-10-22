@@ -1,9 +1,9 @@
 import { after, beforeEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import * as fs from 'fs';
-import { createRoleAwareToolManager } from '../src/bootstrap/tool-manager';
-import { SkillManager } from '../src/skills/skill-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+import { createRoleAwareToolManager } from '../src/capabilities/tools/create-tool-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const originalCwd = process.cwd();
 const originalRole = process.env.XIAOBA_ROLE;

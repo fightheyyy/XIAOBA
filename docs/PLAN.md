@@ -1,12 +1,14 @@
 # XiaoBa-CLI PLAN
 
 状态：Active
-最后更新：2026-10-08
+最后更新：2026-10-23
 Owner：XiaoBa maintainers
 
 本文只维护仓库级当前状态和收敛顺序。模块细节进入六份模块 PLAN。
 
 ## Current Status
+
+源码职责迁移完成（2026-10-23）：现有实现、内部引用、CLI/Electron/Harbor 入口及安装资源路径已按配套 SPEC 归位。模型服务通过注入接口接收 Arena 审计，构建先清理旧 dist，新增源码 memory 与运行数据 memory 的 Git 忽略规则已区分。下述验证支持本次迁移；仓库既有测试失败仍单独保留，不将整个项目标记为全绿。
 
 XiaoBa-CLI 已形成共享 Agent Runtime、一个 Base Main Agent 和八个默认 Role：
 
@@ -71,6 +73,7 @@ flowchart LR
 | M11 Browser/GUI/Secretary readiness | Partial | typed adapters 可用，外部依赖与授权仍不完整 |
 | M12 EngineerCat Codex adapter | Completed | 官方 SDK 收敛为一个 role-scoped Tool，保留原生 coding fallback，不恢复 job manager/supervisor |
 | M13 Shared sandbox execution | Completed | XiaoBa-owned process/file isolation uses Anthropic SDK; Linux verified, macOS packaging pending, Windows blocked |
+| M14 Source layout migration | Completed | runtime / events / memory / surfaces / connectors / capabilities / eval 归位，入口与依赖检查通过；既有 gate 失败见下文 |
 
 ## Integration migration
 
@@ -89,15 +92,16 @@ correction/forget/archive and incremental nightly maintenance; sessionKey remain
 3. 内部 `Eval*` 兼容名只随相关维护逐步收敛。
 4. 在 Windows / Linux Electron 发行构建中验证 SDK 的 optional native binary；macOS arm64 已完成打包态验证。
 5. 不增加新的 schema、report、role 或 workflow subsystem。
+6. 后续 Harness 插件化（Runtime owner，未开始）：定义稳定的 `HarnessAdapter` 接口，解耦平台 Session 与具体 Agent Loop，为未来接入 Pi 等第三方 Harness 做准备。本阶段不实现；第三方 Harness 接入及与原生 Harness 的对比另行评估，不作为 PR #21 的合并条件。
 
 ## Owners
 
-- Surface：`src/commands/**`, `src/feishu/**`, `src/weixin/**`, `src/pet/**`, `src/dashboard/**`, `src/events/**`, `src/connectors/**`, `desktop/**`
-- Agent Runtime：`src/core/**`, `src/providers/**`, `src/tools/**`, `src/types/**`
-- Roles & Skills：`roles/**`, `src/roles/**`, `skills/**`, `src/skills/**`
-- Observability & Evidence：`src/observability/**`, `logs/**`, `data/**`, `memory/**`, `output/**`
-- Evaluation：`src/testing/**`, `test/**`, `src/replay/**`, `src/eval/**`
-- Arena：`src/arena/**`, `src/commands/arena.ts`, `arena/**`
+- Surface：`src/surfaces/**`, `src/events/**`, `src/connectors/**`, `desktop/**`
+- Agent Runtime：`src/runtime/**`, `src/capabilities/tools/**`；持久化 evidence schema 的所有权见下一项。
+- Roles & Skills：`roles/**`, `src/capabilities/roles/**`, `skills/**`, `src/capabilities/skills/**`
+- Observability & Evidence：`src/runtime/observability/**`, `src/runtime/delivery/**`, `src/memory/**`, `logs/**`, `data/**`, `memory/**`, `output/**`
+- Evaluation：`src/eval/testing/**`, `test/**`, `src/eval/replay/**`, `src/eval/**`
+- Arena：`src/eval/arena/**`, `src/surfaces/cli/commands/arena.ts`, `arena/**`
 
 ## Acceptance Criteria
 
@@ -121,6 +125,13 @@ correction/forget/archive and incremental nightly maintenance; sessionKey remain
 - Browser/GUI/Secretary 外部 driver 和凭据可用性仍受环境约束。
 
 ## Recent Verification
+
+- PR #21 工程收尾（2026-10-23）：删除 `dist/` 后直接执行 `npm test`，已验证 `pretest → npm run build → tests` 顺序；Electron main.js 的实际加载表达式解析到迁移后的 Dashboard 模块。入口资源、Pet、Weixin 定向回归 22/22 passed；两份 Electron 入口语法检查和 `git diff --check` passed。`git ls-files dist release` 为空，编译与发行产物继续由 Git 忽略。
+- 本轮两次完整运行分别为 706/708 与 701/703：除既有 Evolution 后代 PID 断言外，Node 24.19 测试运行器先后在 Weixin/Pet 进程报告 `Unable to deserialize cloned data due to invalid or unsupported version`；受影响测试单独运行通过，包含入口资源的组合回归为 22/22。完整 gate 未标记全绿；本轮未改动 Harness 或这些渠道的实现。
+
+- 2026-10-23 源码职责迁移首轮验收：`npm run build` passed；完整 `npm test` 为 706/707（114 suites，zero skips）。重构前同环境基线为 702/703，唯一失败均为 `EvolutionCat nightly sleep / worker timeout keeps the group SIGKILL grace after the leader exits` 的后代 PID 断言。新增 4 项测试覆盖模块依赖、编译后的独立工作目录资源加载和共享模型服务的注入审计。
+- 目录、资源、审计 focused tests 7/7 passed；Python Harbor 0.24.0 ↔ 真实 Node worker 的 scripted Shell/MCP 桥接 1/1 passed；Electron server-entry 与 clean-dist 脚本语法检查、旧路径残留检查和 `git diff --check` passed。此处未重新验收原生 Electron 发行包或真实模型评分。
+- 干净工作目录的 Contract smoke 23/23 passed，证据在 `output/test/refactor-contract-clean/`。重复使用工作区的旧 smoke 会命中持久化 Feishu Event 去重；未修改生产去重行为。Scripted Runtime manifest 检查通过（1 manifest / 11 cases），BaseRuntime Scripted 测试 10/11；剩余 `base-runtime.im-subagent-goal` 场景在原提交的隔离 worktree 也失败，未在目录迁移中改写该场景或降低校验。证据在 `output/test/refactor-runtime-clean/`。
 
 - 2026-10-08: `npm run build` passed; Event-focused integration passed 59/59 and
   file-memory-focused integration passed 33/33; repository regression passed 591/592.

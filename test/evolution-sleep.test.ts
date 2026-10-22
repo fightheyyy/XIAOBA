@@ -7,16 +7,16 @@ import { Command } from 'commander';
 import {
   registerEvolutionCommand,
   runSupervisedProcess,
-} from '../src/commands/evolution';
+} from '../src/surfaces/cli/commands/evolution';
 import {
   buildEvolutionDigest,
   normalizeEvolutionDate,
   previousLocalDate,
-} from '../src/roles/evolution-cat/evolution-observer';
+} from '../src/capabilities/roles/evolution-cat/evolution-observer';
 import {
   CrontabAdapter,
   EvolutionSleepSchedule,
-} from '../src/roles/evolution-cat/evolution-scheduler';
+} from '../src/capabilities/roles/evolution-cat/evolution-scheduler';
 
 describe('EvolutionCat nightly sleep', () => {
   let testRoot: string;

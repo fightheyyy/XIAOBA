@@ -3,9 +3,9 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { AgentSession } from '../src/core/agent-session';
-import { ChatResponse, Message, Skill } from '../src/types';
-import { ToolDefinition, ToolExecutor, ToolCall, ToolResult } from '../src/types/tool';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { ChatResponse, Message, Skill } from '../src/runtime/contracts';
+import { ToolDefinition, ToolExecutor, ToolCall, ToolResult } from '../src/runtime/contracts/tool';
 
 class RecordingAIService {
   requests: Array<{ messages: Message[]; tools: ToolDefinition[] }> = [];

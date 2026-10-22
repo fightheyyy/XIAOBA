@@ -3,7 +3,7 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { AnalyzeLogTool } from '../src/roles/inspector-cat/tools/analyze-log-tool';
+import { AnalyzeLogTool } from '../src/capabilities/roles/inspector-cat/tools/analyze-log-tool';
 
 describe('AnalyzeLogTool runtime logs', () => {
   let testRoot: string;

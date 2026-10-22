@@ -1,7 +1,7 @@
 import { after, beforeEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { PromptManager } from '../src/utils/prompt-manager';
-import { RoleResolver } from '../src/utils/role-resolver';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
+import { RoleResolver } from '../src/capabilities/roles/role-resolver';
 
 const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
 const originalPlatformEnv = process.env.CURRENT_PLATFORM;

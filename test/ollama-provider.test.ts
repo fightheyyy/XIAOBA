@@ -2,10 +2,10 @@ import { afterEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
 import express from 'express';
 import * as http from 'http';
-import { OllamaProvider } from '../src/providers/ollama-provider';
-import { AIService } from '../src/utils/ai-service';
-import { ConfigManager } from '../src/utils/config';
-import { ToolDefinition } from '../src/types/tool';
+import { OllamaProvider } from '../src/runtime/harness/models/ollama-provider';
+import { AIService } from '../src/runtime/harness/models/ai-service';
+import { ConfigManager } from '../src/runtime/config';
+import { ToolDefinition } from '../src/runtime/contracts/tool';
 
 async function listen(app: express.Express): Promise<{ server: http.Server; baseUrl: string }> {
   const server = app.listen(0, '127.0.0.1');

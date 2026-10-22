@@ -1,7 +1,7 @@
 # Arena SPEC
 
 状态：Active
-最后更新：2026-07-29
+最后更新：2026-10-23
 适用范围：UserCat 模拟用户的 Agentic Eval 工作流。
 
 本文是 XiaoBa-CLI `Arena` 模块的唯一架构真相源。Arena 是整条工作流的名字，不是图中的一个裁决节点。
@@ -41,6 +41,8 @@ Out of scope:
 
 ## Current Architecture
 
+Arena 实现已归位到 `src/eval/arena/`，仍通过 `src/eval/evaluation.ts` 和 `src/eval/replay/` 复用唯一评测链。`live-audit.ts` 在执行前注入 Runtime 的 ProviderAudit 接口，保留原有物理调用、token 与计费限制；Runtime 不反向导入 Arena。根目录 `arena/` 继续保存 subject snapshot 和运行资产。
+
 `xiaoba arena evaluate`、`xiaoba arena skill` 和 `xiaoba arena run execute/worker` 已统一调用轻量 Arena service。它支持用户给 Scenario，缺省时调用 UserCat；interaction adapter 只把标准 AgentSession Trace 交给 Inspector，不把 UserCat 自己的 package trace 当作另一种证据；存在 Case 时统一调用 shared Evaluation。
 
 imported subject 仍通过 snapshot 和 clean runtime 隔离执行，但 clean runtime 只负责准备环境、启动 worker 和取回 `ArenaResult`。旧 scorecard worker、run index、promotion、patch regression 与专用 Reviewer replay Tool 已删除。
@@ -59,6 +61,8 @@ flowchart LR
 ```
 
 ## Target Architecture
+
+源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 默认 Arena 命令直接调用轻量工作流。现有 subject snapshot 和 clean runtime 可作为 adapter 继续复用，但不能再形成第二套结果体系。
 
@@ -132,17 +136,17 @@ decision 规则：
 ## Implementation Layout
 
 ```text
-src/arena/arena-workflow.ts          lightweight workflow contracts
-src/arena/arena-service.ts           production composition + ArenaResult persistence
-src/arena/subject-interaction.ts     UserCat/Subject -> standard Trace
-src/roles/user-cat/scenario.ts       Scenario fallback
-src/roles/inspector-cat/finding-case.ts
-src/eval/evaluation.ts               shared Eval
-src/arena/arena-manager.ts           subject snapshot + clean-runtime adapter
-src/arena/arena-runner.ts            clean-runtime process/sandbox executor
-src/commands/arena.ts                one lightweight Arena command family
-arena/subjects/                      isolated subject snapshots
-arena/runs/                          generated run evidence
+src/eval/arena/arena-workflow.ts              lightweight workflow contracts
+src/eval/arena/arena-service.ts               production composition + ArenaResult persistence
+src/eval/arena/subject-interaction.ts         UserCat/Subject -> standard Trace
+src/capabilities/roles/user-cat/scenario.ts   Scenario fallback
+src/capabilities/roles/inspector-cat/finding-case.ts
+src/eval/evaluation.ts                        shared Eval
+src/eval/arena/arena-manager.ts               subject snapshot + clean-runtime adapter
+src/eval/arena/arena-runner.ts                clean-runtime process/sandbox executor
+src/surfaces/cli/commands/arena.ts            one lightweight Arena command family
+arena/subjects/                               isolated subject snapshots
+arena/runs/                                   generated run evidence
 ```
 
 ## Interaction With Other Modules

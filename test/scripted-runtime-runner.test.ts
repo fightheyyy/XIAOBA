@@ -8,7 +8,7 @@ import {
   loadScriptedRuntimeTestSuite,
   runScriptedRuntimeTestSuite,
   writeScriptedRuntimeTestResult,
-} from '../src/testing';
+} from '../src/eval/testing';
 
 describe('scripted runtime test runner', () => {
   test('runs the contract sentinel test set and writes result artifacts', async () => {

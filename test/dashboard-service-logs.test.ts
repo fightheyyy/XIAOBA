@@ -3,8 +3,8 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ServiceManager } from '../src/dashboard/service-manager';
-import { Logger } from '../src/utils/logger';
+import { ServiceManager } from '../src/surfaces/dashboard/service-manager';
+import { Logger } from '../src/runtime/observability/logger';
 
 const originalCwd = process.cwd();
 

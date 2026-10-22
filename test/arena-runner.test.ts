@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { ArenaManager } from '../src/arena/arena-manager';
-import { executeArenaRun } from '../src/arena/arena-runner';
+import { ArenaManager } from '../src/eval/arena/arena-manager';
+import { executeArenaRun } from '../src/eval/arena/arena-runner';
 
 describe('Arena clean-runtime executor', () => {
   let root: string;

@@ -1,4 +1,4 @@
-import type { NormalizedSurfaceEvent } from '../types/surface-event';
+import type { NormalizedSurfaceEvent } from '../runtime/contracts/surface-event';
 import { createAgentEvent, AgentEvent } from './event';
 
 /** Persist only message content and routing, never raw platform metadata. */

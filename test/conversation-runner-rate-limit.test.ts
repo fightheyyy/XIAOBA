@@ -1,7 +1,7 @@
 import { afterEach, describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { ConversationRunner } from '../src/core/conversation-runner';
-import { ToolCall, ToolExecutionContext, ToolExecutor, ToolResult } from '../src/types/tool';
+import { ConversationRunner } from '../src/runtime/harness/loop/conversation-runner';
+import { ToolCall, ToolExecutionContext, ToolExecutor, ToolResult } from '../src/runtime/contracts/tool';
 
 class StubToolExecutor implements ToolExecutor {
   private index = 0;

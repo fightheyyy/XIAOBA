@@ -1,5 +1,5 @@
-import { sandboxExecutor } from '../src/sandbox/executor';
-import { createSandboxPolicy } from '../src/sandbox/policy';
+import { sandboxExecutor } from '../src/runtime/sandbox/executor';
+import { createSandboxPolicy } from '../src/runtime/sandbox/policy';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -11,8 +11,8 @@ import {
   createSourceCandidateWorkspace,
   fingerprintSourceVersion,
   validateSourceCandidate,
-} from '../src/roles/evolution-cat/source-candidate';
-import { runSourceCandidateTest } from '../src/testing/source-candidate-test';
+} from '../src/capabilities/roles/evolution-cat/source-candidate';
+import { runSourceCandidateTest } from '../src/eval/testing/source-candidate-test';
 
 describe('EngineerCat Source Candidate', () => {
   let root: string;

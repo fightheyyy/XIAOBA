@@ -3,10 +3,10 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { createRoleAwareToolManager } from '../src/bootstrap/tool-manager';
-import { DEFAULT_BUNDLED_ROLES } from '../src/roles/role-manager';
-import { SkillManager } from '../src/skills/skill-manager';
-import { MemoryFinalizer } from '../src/utils/memory-finalizer';
+import { createRoleAwareToolManager } from '../src/capabilities/tools/create-tool-manager';
+import { DEFAULT_BUNDLED_ROLES } from '../src/capabilities/roles/role-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { MemoryFinalizer } from '../src/memory/memory-finalizer';
 
 describe('EvolutionCat role', () => {
   let testRoot: string;

@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Command } from 'commander';
-import { registerArenaCommand } from '../src/commands/arena';
+import { registerArenaCommand } from '../src/surfaces/cli/commands/arena';
 
 const originalCwd = process.cwd();
 

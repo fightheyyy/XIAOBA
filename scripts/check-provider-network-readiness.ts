@@ -4,8 +4,8 @@ import * as path from 'path';
 import {
   runProviderNetworkReadiness,
   writeProviderNetworkReadinessReport,
-} from '../src/testing/provider-network-readiness-runner';
-import type { ChatConfig } from '../src/types';
+} from '../src/eval/testing/provider-network-readiness-runner';
+import type { ChatConfig } from '../src/runtime/contracts';
 
 interface CliOptions {
   outDir: string;

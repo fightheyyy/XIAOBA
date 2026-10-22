@@ -73,7 +73,7 @@ roles/<role-name>/
 - 发行目录中的 Role package 都可被 Runtime 发现；Role Candidate 只存在于一次 Evolution run 的隔离目录。
 - `prompts/**`：运行时角色指令，不是用户文档。
 - `skills/**/SKILL.md`：角色工作方法，不拥有独立 Agent loop。
-- 原生角色工具位于 `src/roles/**`，必须经过共享 ToolManager。
+- 原生角色工具位于 `src/capabilities/roles/**`，必须经过共享 ToolManager。
 
 非默认角色通过显式安装或本地资产进入，不自动加入 GitHub 默认跟踪和 Electron 默认包。
 

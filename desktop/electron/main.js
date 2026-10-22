@@ -296,7 +296,7 @@ async function startServer() {
   }
 
   // ConfigManager reloads the same .env while the Dashboard module is imported.
-  const { startDashboard } = require(path.join(appRoot, 'dist', 'dashboard', 'server'));
+  const { startDashboard } = require(path.join(appRoot, 'dist', 'surfaces', 'dashboard', 'server'));
   process.env.XIAOBA_NODE_EXE = getNodeExePath();
   await startDashboard(DASHBOARD_PORT, undefined, { onNavigate: openDashboardPage });
 }

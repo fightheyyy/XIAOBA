@@ -7,7 +7,7 @@ import {
   writeScriptedRuntimeTestResult,
   type TestDecision,
   type ScriptedRuntimeTestResult,
-} from '../src/testing';
+} from '../src/eval/testing';
 
 interface CliOptions {
   outDir?: string;

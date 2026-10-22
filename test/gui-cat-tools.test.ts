@@ -3,16 +3,16 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { createGuiCatTools } from '../src/roles/gui-cat/tools/gui-tools';
-import { DesktopLease, hashOwner } from '../src/roles/gui-cat/utils/desktop-lease';
+import { createGuiCatTools } from '../src/capabilities/roles/gui-cat/tools/gui-tools';
+import { DesktopLease, hashOwner } from '../src/capabilities/roles/gui-cat/utils/desktop-lease';
 import {
   DefaultPeekabooRunner,
   PeekabooCommandResult,
   PeekabooDriverStatus,
   PeekabooRunner,
   PeekabooRunnerError,
-} from '../src/roles/gui-cat/utils/peekaboo-runner';
-import { Tool, ToolExecutionContext, ToolExecutionOutput } from '../src/types/tool';
+} from '../src/capabilities/roles/gui-cat/utils/peekaboo-runner';
+import { Tool, ToolExecutionContext, ToolExecutionOutput } from '../src/runtime/contracts/tool';
 
 const PNG_1X1 = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',

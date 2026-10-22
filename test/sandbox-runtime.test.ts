@@ -4,10 +4,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as http from 'http';
-import { createSandboxPolicy, shellQuote } from '../src/sandbox/policy';
-import { sandboxExecutor } from '../src/sandbox/executor';
-import { ToolManager } from '../src/tools/tool-manager';
-import { MemoryFinalizer } from '../src/utils/memory-finalizer';
+import { createSandboxPolicy, shellQuote } from '../src/runtime/sandbox/policy';
+import { sandboxExecutor } from '../src/runtime/sandbox/executor';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { MemoryFinalizer } from '../src/memory/memory-finalizer';
 
 describe('Anthropic SDK execution boundary', () => {
   let root: string, workspace: string, available: boolean;
@@ -112,7 +112,7 @@ describe('Anthropic SDK execution boundary', () => {
       const app = path.resolve(__dirname, '..');
       for (const [file, name] of [['openai', 'OpenAIProvider'], ['anthropic', 'AnthropicProvider'], ['ollama', 'OllamaProvider']]) {
         const config = { apiUrl: `http://127.0.0.1:${(server.address() as any).port}`, apiKey: 'mock-key', model: 'mock' };
-        const code = `const {${name}}=require(${JSON.stringify(path.join(app, 'dist/providers', `${file}-provider.js`))});new ${name}(${JSON.stringify(config)}).chat([{role:'user',content:'test'}]).then(r=>process.stdout.write(r.content)).catch(e=>{console.error(e.message);process.exitCode=1;});`;
+        const code = `const {${name}}=require(${JSON.stringify(path.join(app, 'dist/runtime/harness/models', `${file}-provider.js`))});new ${name}(${JSON.stringify(config)}).chat([{role:'user',content:'test'}]).then(r=>process.stdout.write(r.content)).catch(e=>{console.error(e.message);process.exitCode=1;});`;
         const result = await sandboxExecutor.execute({ policy: policy(`provider-${file}`, { allowedDomains: ['127.0.0.1'], readRoots: [path.join(app, 'dist'), path.join(app, 'node_modules'), path.join(app, 'package.json')] }),
           command: [process.execPath, '-e', code].map(shellQuote).join(' '), timeoutMs: 15_000 });
         assert.equal(result.status, 0, `${name}: ${result.stderr}`); assert.equal(result.stdout, 'provider-marker');

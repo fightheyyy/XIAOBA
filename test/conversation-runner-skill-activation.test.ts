@@ -1,8 +1,8 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { ConversationRunner } from '../src/core/conversation-runner';
-import { Message, ChatResponse } from '../src/types';
-import { ToolCall, ToolDefinition, ToolExecutor, ToolResult } from '../src/types/tool';
+import { ConversationRunner } from '../src/runtime/harness/loop/conversation-runner';
+import { Message, ChatResponse } from '../src/runtime/contracts';
+import { ToolCall, ToolDefinition, ToolExecutor, ToolResult } from '../src/runtime/contracts/tool';
 
 class ScriptedAIService {
   requests: Array<{ messages: Message[]; tools: ToolDefinition[] }> = [];

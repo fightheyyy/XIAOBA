@@ -1,8 +1,8 @@
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert';
-import { createRoleAwareToolManager } from '../src/bootstrap/tool-manager';
-import { SkillManager } from '../src/skills/skill-manager';
-import { PromptManager } from '../src/utils/prompt-manager';
+import { createRoleAwareToolManager } from '../src/capabilities/tools/create-tool-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
 
 describe('Base computer-role routing', () => {
   test('Base ships with zero default skills', async () => {

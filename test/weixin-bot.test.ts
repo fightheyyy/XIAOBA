@@ -3,9 +3,9 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { WeixinBot } from '../src/weixin';
-import type { HandleMessageResult } from '../src/core/agent-session';
-import { resetConversationJournalForTests } from '../src/utils/conversation-journal';
+import { WeixinBot } from '../src/surfaces/weixin';
+import type { HandleMessageResult } from '../src/runtime/sessions/agent-session';
+import { resetConversationJournalForTests } from '../src/runtime/delivery/conversation-journal';
 
 class FakeWeixinSender {
   texts: Array<{ to: string; text: string; contextToken?: string }> = [];

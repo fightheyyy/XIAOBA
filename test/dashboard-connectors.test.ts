@@ -7,10 +7,10 @@ import { request as nodeRequest, Server } from 'node:http';
 import express from 'express';
 import { createHash } from 'node:crypto';
 import { AgentConnectorService, ConnectorFetch } from '../src/connectors';
-import { createApiRouter } from '../src/dashboard/routes/api';
-import { MessageSessionManager } from '../src/core/message-session-manager';
-import { ServiceManager } from '../src/dashboard/service-manager';
-import { GmailDashboardOAuth } from '../src/dashboard/connector-oauth';
+import { createApiRouter } from '../src/surfaces/dashboard/routes/api';
+import { MessageSessionManager } from '../src/runtime/sessions/message-session-manager';
+import { ServiceManager } from '../src/surfaces/dashboard/service-manager';
+import { GmailDashboardOAuth } from '../src/surfaces/dashboard/connector-oauth';
 
 const fixture = { XIAOBA_GITHUB_TOKEN: 'environment-github-private', XIAOBA_GMAIL_CLIENT_ID: 'client-id', XIAOBA_GMAIL_CLIENT_SECRET: 'client-secret' };
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });

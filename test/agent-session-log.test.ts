@@ -3,13 +3,13 @@ import * as assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { AgentSession, ERROR_MESSAGE } from '../src/core/agent-session';
-import { ContextCompressor } from '../src/core/context-compressor';
-import { ToolManager } from '../src/tools/tool-manager';
-import { Logger } from '../src/utils/logger';
-import { ChatResponse, Message } from '../src/types';
-import { ToolDefinition } from '../src/types/tool';
-import { runScriptedRuntimeTestSuite } from '../src/testing';
+import { AgentSession, ERROR_MESSAGE } from '../src/runtime/sessions/agent-session';
+import { ContextCompressor } from '../src/runtime/harness/context/context-compressor';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { Logger } from '../src/runtime/observability/logger';
+import { ChatResponse, Message } from '../src/runtime/contracts';
+import { ToolDefinition } from '../src/runtime/contracts/tool';
+import { runScriptedRuntimeTestSuite } from '../src/eval/testing';
 
 class ScriptedAIService {
   constructor(private readonly response: ChatResponse) {}

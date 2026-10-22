@@ -11,10 +11,50 @@ import {
   configureArenaLiveAudit,
   resetArenaLiveAuditForTests,
   runArenaAuditedProviderCall,
-} from '../src/arena/live-audit';
+} from '../src/eval/arena/live-audit';
 import { APP_VERSION } from '../src/version';
+import { AIService } from '../src/runtime/harness/models/ai-service';
+import { providerAuditEnabled } from '../src/runtime/harness/models/provider-audit';
 
 afterEach(() => resetArenaLiveAuditForTests());
+
+test('the shared model service preserves injected Arena accounting, scope limits and reset', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'xiaoba-model-audit-'));
+  try {
+    configureArenaLiveAudit({ projectRoot: root, runId: 'model-service-audit', environment: {
+      XIAOBA_ARENA_LIVE_MODE: 'barena',
+      XIAOBA_LLM_PROVIDER: 'openai',
+      XIAOBA_LLM_MODEL: 'fixture-model',
+      XIAOBA_LLM_MAX_TOKENS: '1000',
+      XIAOBA_ARENA_MAX_INPUT_TOKENS: '10000',
+      XIAOBA_ARENA_MAX_PROVIDER_CALLS: '10',
+      XIAOBA_ARENA_CREDENTIAL_ENV: 'FIXTURE_KEY',
+      XIAOBA_ARENA_API_BASE_ENV: 'FIXTURE_BASE',
+      FIXTURE_KEY: 'test-key',
+      FIXTURE_BASE: 'https://provider.invalid/v1',
+    } });
+    const service = new AIService({}, { arenaComponent: 'target' });
+    let physicalCalls = 0;
+    (service as any).providerChain[0].provider.chat = async () => {
+      physicalCalls += 1;
+      return { content: 'ok', usage: { promptTokens: 4, completionTokens: 2, totalTokens: 6 } };
+    };
+    await service.withArenaAuditScope('one-turn', async () => {
+      for (let index = 0; index < 4; index += 1) {
+        assert.equal((await service.chat([{ role: 'user', content: 'hello' }])).content, 'ok');
+      }
+      await assert.rejects(service.chat([{ role: 'user', content: 'fifth call' }]), /call limit exceeded/);
+    });
+    assert.equal(physicalCalls, 4);
+    const records = fs.readFileSync(arenaLiveAuditEvidencePath()!, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(records.length, 4);
+    assert.ok(records.every(record => record.component === 'target' && record.configured_max_retries === 0));
+    resetArenaLiveAuditForTests();
+    assert.equal(providerAuditEnabled(), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test('Arena live contract is credential-free and declares enforced composite call bounds', () => {
   const contract = arenaLiveRuntimeContract();

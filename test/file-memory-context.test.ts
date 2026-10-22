@@ -4,13 +4,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import { AgentSession } from '../src/core/agent-session';
-import { ToolManager } from '../src/tools/tool-manager';
-import { SkillManager } from '../src/skills/skill-manager';
-import { MemoryFinalizer } from '../src/utils/memory-finalizer';
-import { buildFileMemoryContext, FILE_MEMORY_PREFIX } from '../src/utils/file-memory-context';
-import { SessionStore } from '../src/utils/session-store';
-import type { Message } from '../src/types';
+import { AgentSession } from '../src/runtime/sessions/agent-session';
+import { ToolManager } from '../src/capabilities/tools/tool-manager';
+import { SkillManager } from '../src/capabilities/skills/skill-manager';
+import { MemoryFinalizer } from '../src/memory/memory-finalizer';
+import { buildFileMemoryContext, FILE_MEMORY_PREFIX } from '../src/memory/file-memory-context';
+import { SessionStore } from '../src/runtime/sessions/session-store';
+import type { Message } from '../src/runtime/contracts';
 
 describe('File-system memory', () => {
   let root: string;
