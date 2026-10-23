@@ -1,121 +1,136 @@
 <div align="center">
-  <img src="assets/readme-hero.gif" alt="XiaoBa 的工作闭环与受控进化闭环：完成工作，也让能力改进可验收" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/xiaoba-logo-dark.png">
+    <img src="assets/xiaoba-logo.png" alt="XiaoBa" width="180" height="180">
+  </picture>
 
-  # xiaobaOS
+# XiaoBa
 
-  **会交付、可复盘、能受控进化的 IM-native AI 同事 Runtime。**
+**有记忆、会跟进、能做事的开源 Personal Agent。**
 
-  把任务发进 CLI、IM 或桌面端。Base 负责沟通与派工，专业 Role 接管执行，再把文件、消息和可检查证据交付回来；真实 Trace 可以回归成 Case，候选能力复用 Test + Eval 验收。
+持续和它对话，让它记住你的偏好，接手任务，并按约定提醒和跟进。通过 CLI、飞书、微信或桌面使用，结果、文件和提醒回到发起工作的对话中。
 
-  <em>像同事一样完成工作，像软件一样验收进化。</em>
+[![Release](https://img.shields.io/github/v/release/fightheyyy/XIAOBA?include_prereleases&label=preview&color=61746d)](https://github.com/fightheyyy/XIAOBA/releases) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.12-61746d)](package.json) [![License](https://img.shields.io/badge/License-Apache%202.0-61746d)](LICENSE)
 
-  [![Release](https://img.shields.io/github/v/release/fightheyyy/xiaobaOS?include_prereleases&label=release)](https://github.com/fightheyyy/xiaobaOS/releases)
-  [![Desktop](https://img.shields.io/badge/desktop-macOS%20arm64%20%7C%20Windows%20x64-yellow.svg)](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2)
-  [![Node](https://img.shields.io/badge/CLI-Node.js%20%3E%3D22.12-green.svg)](package.json)
-  [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[角色协作](#一只小猫一支团队) · [Connector](#应用连接connector) · [受控进化](#受控进化) · [快速开始](#快速开始) · [English](docs/README.en.md)
 
-  [源码快速开始](#快速开始) · [Desktop v0.2.2 Preview](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) · [工作方式](#工作与进化) · [受控进化](#受控进化) · [English](docs/README.en.md)
-
-  <sub>v0.2.2 Preview 提供 macOS Apple Silicon（arm64）DMG 与 Windows x64 安装包，并包含程序化 XiaoBa 视觉系统、九个默认角色与轻量 Assurance & Evolution 主线。macOS 包采用 ad-hoc 签名且未 notarize，Windows 包未签名；桌面子服务仍需要系统 Node.js 18.19+。</sub>
 </div>
 
----
+## 你的 Personal Agent
 
-## 工作与进化
+**记住上下文和偏好。** 会话可以恢复，稳定偏好可保存为本地 Markdown，并在后续请求中读取；记忆文件可以查看和修改。
 
-XiaoBa 把用户可见的工作闭环和系统内部的改进闭环接在同一套 Agent Runtime 上，但不把“自进化”变成无边界的自动改写。
+**按约定回来跟进。** 设置稍后提醒或定时检查，让 XiaoBa 在原对话里提醒你、检查进展并返回结果。
+
+**接手实际工作。** 代码、浏览器、macOS 桌面与飞书工具由专业角色执行，XiaoBa 负责沟通和派工，把结果与文件带回来。猫形的眼神和动作会随运行状态变化。
+
+**由你选择模型和能力。** 会话、记忆与运行证据默认保存在本地；可接入 OpenAI-compatible、Anthropic 或本地 Ollama。外部模型仍会按配置接收请求内容。角色依赖和独立 Skill 按需安装，见 [Roles](roles/README.md) 与 [Skills](skills/README.md)。
+
+### 可以交给它的工作
+
+| 你想做的事 | 怎么完成 | 你会拿到什么 |
+| --- | --- | --- |
+| 修改代码、修复问题、跑构建 | 修改文件并运行验证 | 代码改动、验证结果与生成的文件 |
+| 浏览网页、收集资料、核验页面 | 操作浏览器并检查页面 | 整理后的结果、来源与页面证据 |
+| 操作 macOS 桌面应用 | 通过桌面 Driver 执行操作 | 操作结果与界面证据 |
+| 处理飞书消息、日历、任务与文档 | 调用已授权的飞书 CLI | 飞书侧结果、文件与交付回执 |
+
+## 一只小猫，一支团队
+
+![Base Main Agent 与八个专业角色，使用同一猫形和各自的角色配色](assets/readme-roles.png)
+
+你只需和 XiaoBa 对话，它会按任务调动专业角色。**Base** 负责沟通、派工与结果汇总；八个专业 Role 复用同一套 XiaoBa Agent loop，分别承担执行、评测和改进。
+
+| 角色 | 分工 |
+| --- | --- |
+| **EngineerCat** | 代码实现与修复；可通过 `codex_run` 调用官方 Codex SDK |
+| **BrowserCat** | 浏览器操作与页面验证 |
+| **GuiCat** | macOS 桌面 GUI 操作 |
+| **SecretaryCat** | 通过官方 `lark-cli` 执行飞书工作流；`FeishuCat` 是别名 |
+| **UserCat** | 在 Arena 中模拟用户、探索场景 |
+| **InspectorCat** | 从 Trace 中提取有证据的问题和可执行 Case |
+| **ReviewerCat** | 在硬检查之后，根据 Case 和证据做语义判断 |
+| **EvolutionCat** | 维护长期记忆，改进 Role / Skill / Memory |
+
+前四个角色负责执行任务，后四个参与内部评测与改进；它们不会在每次任务中全部顺序执行。角色权限、工具与安装方法见 [Roles Guide](roles/README.md)。
+
+## 应用连接：Connector
+
+连接应用后，XiaoBa 可以读取获授权的信息，并通过工具完成操作。当前原生 Connector 使用 Gmail、Notion 和 GitHub 的官方 API。
+
+| 应用 | 已实现的能力 |
+| --- | --- |
+| **Gmail** | 搜索邮件、读取正文与线程、管理标签、创建草稿与发送邮件 |
+| **Notion** | 搜索和读取已分享页面、查询数据源、创建或更新页面、追加区块 |
+| **GitHub** | 读取仓库、Issue、PR、文件与 Actions 状态；创建或更新 Issue、发表评论、从已有分支创建 PR |
+
+在 Dashboard 的「应用连接」中配置 GitHub / Notion Token 或 Gmail OAuth。连接由 Base 主会话使用；发送邮件、创建内容等写入操作先展示参数提案，确认后执行。凭据通过本地配置管理，不需要发进聊天。
+
+飞书工作流由 SecretaryCat 通过官方 `lark-cli` 接入，继续使用独立的 CLI 登录。配置与权限说明见 [应用连接指南](roles/README.md#agent-自有应用连接)。
+
+## 受控进化
+
+真实使用中的问题可以转成可重放的 Case，再生成候选改动。候选能力先经过测试与评测，通过后才激活；失败或 blocked 保留当前版本。
 
 ```mermaid
 flowchart LR
-    subgraph SurfaceLayer["1) Surface"]
-        direction TB
-        Surface["CLI · Feishu · Weixin<br/>Desktop · Pet"]
-    end
-
-    subgraph MainAgent["2) Main Agent"]
-        direction TB
-        Base["Base Main Agent<br/>沟通 · 判断 · 调度"]
-    end
-
-    subgraph FunctionalRoles["3) 功能型 Role Subagents"]
-        direction TB
-        Engineer["EngineerCat<br/>代码实现与修复"]
-        Browser["BrowserCat<br/>浏览器接管"]
-        Gui["GuiCat<br/>桌面 GUI 接管"]
-        Secretary["SecretaryCat<br/>飞书工作流"]
-    end
-
-    subgraph Evidence["4) Trace & Evidence"]
-        direction TB
-        Trace["模型 · 工具 · 失败<br/>Artifact · Delivery"]
-    end
-
-    subgraph ImprovementRoles["5) 持续改进 Roles"]
-        direction TB
-        User["UserCat<br/>模拟真实用户"]
-        Inspector["InspectorCat<br/>Finding + Case"]
-        Reviewer["ReviewerCat<br/>共享 Agentic Judge"]
-        Evolution["EvolutionCat<br/>记忆 · Skill · Role 演进"]
-    end
-
-    Surface --> Base
-    Base --> Engineer
-    Base --> Browser
-    Base --> Gui
-    Base --> Secretary
-    Engineer --> Trace
-    Browser --> Trace
-    Gui --> Trace
-    Secretary --> Trace
-    Trace --> Inspector
-    Trace --> Evolution
-    User --> Trace
-    Inspector --> Reviewer
+    Input["Trace / Case"] --> Candidate["候选改动"]
+    Candidate --> Test["Test 工程测试"]
+    Test -->|pass| Eval["Eval 行为评测"]
+    Eval -->|pass| Activate["新 Session / 下一进程生效"]
+    Test -->|fail / blocked| Keep["保留当前版本"]
+    Eval -->|fail / blocked| Keep
 ```
 
-这张图表达责任拓扑，不表示四个改进 Role 每次都会顺序执行。
+- **交付可查。** Trace 记录模型调用、工具结果、文件、交付与失败；用户可见的聊天另存为 Conversation Journal。
+- **结果可重放。** Replay 用 Case 驱动当前 Agent，Verifier 做硬检查，ReviewerCat 做语义判断；一次执行只有一个 `pass / fail / blocked` 结果。
+- **改进先验收。** Evolution 从 Trace / Case 生成 Candidate，复用 Test + Eval；通过后，能力更新在新 Session 生效，代码更新在下一进程生效。失败或 blocked 保持当前版本。
 
-| 工作闭环 | 进化闭环 |
-| --- | --- |
-| 消息 → Base 派工 → 专业 Role 接管 → 工具执行 → 文件 / 消息交付 | Trace / Case → Candidate → shared Test + Eval → capability 新 Session / code 下一进程激活 |
+Arena 负责从 Scenario 出发探索问题，再把 Case 交给共享 Eval。具体合同和当前进度见 [Evaluation](docs/evaluation/SPEC.md)、[Arena](docs/arena/SPEC.md) 与 [Project PLAN](docs/PLAN.md)。
 
-- **证据优先**：模型调用、工具结果、artifact、delivery 和失败进入 trace；角色自述不等于完成证据。
-- **职责分离**：Inspector 发现问题，Engineer/Evolution 生成 Candidate，Verifier/Reviewer 负责裁决。
-- **单一真相**：一次 Case execution 只有一个 `pass / fail / blocked` Outcome；Report 只展示。
+<details>
+<summary>开发者：测试、评测与可观测性</summary>
 
-## 能做什么
+```bash
+npm test
+npm run test:base-runtime
+npm run test:check-scripted-runtime
 
-| 任务 | 接管者 | 交付 |
-| --- | --- | --- |
-| 修改代码、修复问题、验证构建 | EngineerCat | 代码改动、测试结果和 artifact evidence |
-| 浏览网页、收集资料、核验页面 | BrowserCat | 结构化结果、来源和页面证据 |
-| 操作 macOS 桌面应用 | GuiCat | 操作结果和 GUI evidence |
-| 处理飞书消息、日历、任务和文档 | SecretaryCat | 飞书侧结果、文件和 delivery evidence |
+# 真实 Agent CaseSet，默认只读 Replay
+npm run dev -- eval run --case-set eval/case-sets/xiaoba-core-readonly.json
 
-运行状态、trace 和 artifact evidence 默认保存在本地；模型可以按配置连接 OpenAI-compatible、Anthropic、Ollama 或其他兼容端点。
+# 场景探索与受控改进
+npm run dev -- arena evaluate --role engineer-cat --scenario "帮我修好这个项目"
+npm run dev -- evolution sleep
+```
 
-## 运行界面
+本地 `traces.jsonl` 是运行证据来源。可选 OTLP/HTTP 导出通过 `XIAOBA_OBSERVABILITY_ENABLED=true` 和 `OTEL_EXPORTER_OTLP_ENDPOINT` 启用；不会导出 prompt、工具参数或文件内容。可见聊天可在同时配置 `CATENA_BASE_URL` 和 `CATENA_API_KEY` 后同步到 Catena。
 
-<p align="center">
-  <img src="assets/dashboard.png" alt="XiaoBa Runtime Dashboard：服务、角色、技能、配置、商店和 Chat" width="100%">
-</p>
+静态 Logo 和角色图直接调用产品的共享 Canvas renderer 生成：
 
-<p align="center"><sub>Electron Dashboard 把运行服务、角色、技能、配置、商店和 Chat 收在同一个入口。</sub></p>
+```bash
+npx playwright install chromium
+npm run assets:readme
+```
+
+已安装系统 Chromium 时，可用 `XIAOBA_CHROMIUM_PATH` 指定路径。生成器输出透明背景的静态 PNG Logo 与角色配色图；深色主题使用带浅色细描边的 Logo。
+
+</details>
 
 ## 快速开始
 
-> **Desktop Preview**：可下载 [XiaoBa v0.2.2](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2)。Release 同时提供 macOS Apple Silicon（arm64）DMG 与 Windows x64 安装包，包含程序化 XiaoBa 视觉系统及 Base + 八个默认 Role。macOS 包采用 ad-hoc 签名且未 notarize，Windows 安装包未签名；桌面启动的 CLI / Pet / IM 子服务需要系统 Node.js 18.19+。
+### 从源码运行
 
-源码运行需要 Node.js 22.12 或更高版本。统一 SDK 沙箱目前接入 macOS 和 Linux；Windows 的受限文件/Shell 执行会明确返回 blocked。
+需要 **Node.js ≥ 22.12**。以下命令适用于 macOS / Linux shell；Windows 可手动复制 `.env.example` 为 `.env`。
 
 ```bash
-git clone https://github.com/fightheyyy/xiaobaOS.git
-cd xiaobaOS
+git clone https://github.com/fightheyyy/XIAOBA.git
+cd XIAOBA
 npm install
 cp .env.example .env
 ```
 
-在 `.env` 中配置模型：
+在 `.env` 中配置模型，例如：
 
 ```env
 XIAOBA_LLM_PROVIDER=openai
@@ -124,135 +139,49 @@ XIAOBA_LLM_API_KEY=your_api_key
 XIAOBA_LLM_MODEL=your_model
 ```
 
+选择一个入口：
+
 ```bash
-# 检查模型、角色、Driver、权限和平台配置
+# 先检查模型、角色、Driver 和平台配置
 npm run dev -- doctor
 
-# 交互式 CLI
+# CLI 对话
 npm run dev -- chat -i
 
-# 开发 / 调试：绕过 Base，直接启动指定角色
-npm run dev -- chat -r engineer-cat -i
+# 桌宠与对话窗口
+npm run dev -- pet
 
 # Electron Dashboard
 npm run electron:dev
 ```
 
-BrowserCat、GuiCat 和 SecretaryCat 的外部 CLI / 平台依赖见 [`docs/requirements.txt`](docs/requirements.txt)；只在使用对应角色时安装和授权。
+BrowserCat、GuiCat、SecretaryCat 的外部依赖与权限见 [Driver 安装说明](docs/requirements.txt)。EngineerCat 的 Codex 执行器需要单独登录，见 [角色使用指南](roles/README.md)。
 
-## 八个默认角色
+### 下载桌面预览版
 
-Base Main Agent 是唯一面向用户的沟通和调度入口。八个 Role 复用同一套 XiaoBa Agent loop；Base 不预装默认 Skills，独立 Skill 需要显式安装或挂载到 Arena。
+[**v0.2.2 Preview**](https://github.com/fightheyyy/XIAOBA/releases/tag/v0.2.2) 提供 [macOS Apple Silicon DMG](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-mac-arm64.dmg) 和 [Windows x64 安装包](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-win.exe)。Logo 展示的是当前源码中的新造型，已有安装包不会随源码自动更新。
 
-<p align="center">
-  <img src="assets/default-role-architecture.png" alt="xiaobaOS 默认角色架构：左侧 Base Main Agent，右侧八个 Role Subagents" width="100%">
-</p>
+macOS 包采用 ad-hoc 签名、未 notarize；Windows 包未签名。预览包的桌面子服务仍依赖系统 Node.js，当前源码要求 Node.js ≥ 22.12。若桌面无法找到 Node，可通过 `XIAOBA_NODE_EXE` 指定可执行文件的绝对路径。
 
-| 类型 | Role | 责任 |
-| --- | --- | --- |
-| 执行 | EngineerCat | 共享 XiaoBa Agent loop 的 coding owner；实质性编码可经窄适配器委托 Codex，原生工具作为小修改和降级路径 |
-| 执行 | BrowserCat | 受限、可验证的浏览器接管 |
-| 执行 | GuiCat | macOS 桌面 GUI 接管 |
-| 执行 | SecretaryCat | 飞书工作流；`FeishuCat` 是别名，领域能力来自官方 `lark-cli` |
-| 改进 | UserCat | 在 Arena 中像普通用户一样与被测 Agent 互动；缺省时生成 Scenario |
-| 改进 | InspectorCat | 把 Trace 中的问题变成有证据的 Finding + executable Case |
-| 改进 | EvolutionCat | 生成 Role / Skill / Memory Candidate；持有 `remember` |
-| 改进 | ReviewerCat | 作为共享 Agentic Judge 判断通过硬检查的 Case runs |
+<details>
+<summary>展开查看 Dashboard 预览</summary>
 
-Browser、GUI 和飞书 driver 只提供确定性能力，不启动第二套 Chat、Agent 或 MCP loop。详细用法见 [Roles Guide](roles/README.md) 和 [Skills Guide](skills/README.md)。
+![XiaoBa Dashboard：服务、角色、技能、配置、商店与 Chat](assets/dashboard.png)
 
-EngineerCat 仍使用 XiaoBa 的 SubAgent 生命周期，但多一个受限 `codex_run` Tool 作为外部 coding executor。XiaoBa 不复制 Codex loop，也不保存第二套 job/session 状态；详细的安全边界和登录要求见 [Roles Guide](roles/README.md)。
+现有 Dashboard 截图供布局参考；猫形与角色配色以当前 Logo 和上方角色图为准。
 
-## 受控进化
+</details>
 
-Evolution 是轻量控制 DAG，不拥有另一套评测系统：
+## 当前支持范围
 
-```mermaid
-flowchart LR
-    Input["Trace or Case"] --> Inspector["InspectorCat<br/>Trace only"]
-    Inspector --> Pair["Finding + Case"]
-    Input -->|Case| Pair
-    Pair --> Owner["EngineerCat or EvolutionCat"]
-    Owner --> Candidate["Candidate"]
-    Candidate --> Test["shared Test"]
-    Test --> Eval["shared Eval"]
-    Eval -->|pass| Activate["capability: new Session<br/>code: next process"]
-```
+- 记忆按会话和角色范围隔离，跨入口的用户身份尚未统一。提醒与主动检查依赖对应服务运行；CLI 重新打开时会处理到期提醒。
+- GuiCat 桌面接管仅支持 macOS；BrowserCat 和飞书工作流需要相应 Driver、登录与权限。
+- 当前源码的统一文件 / Shell 沙箱接入 macOS 和 Linux；Windows 的受限执行会返回 blocked。写入型 Case 需要显式声明 `workspace_write` 并在隔离 Runtime 中运行。
+- Dashboard、Pet 和 Bridge 主要面向本机使用；不可信网络下的完整认证与 Owner 授权尚未完成。
+- Preview 自动更新默认关闭，新桌面版本通过 [Releases](https://github.com/fightheyyy/XIAOBA/releases) 手动安装。
 
-Arena 是独立的 Agentic Eval：从 Scenario 开始，UserCat 与 Subject 产生普通 Trace，InspectorCat 把反例回归成 Case，再交给同一个 Eval。它不是 Candidate promotion gate。
+## 继续了解
 
-```bash
-# 运行一次夜间演化
-xiaoba evolution sleep
-
-# 在隔离 Arena 中验收一个已安装或已导入的 skill
-xiaoba arena skill <skill-name>
-
-# 新的轻量 Arena：可传 Scenario，也可让 UserCat 自动生成
-xiaoba arena evaluate --role engineer-cat --scenario "帮我修好这个项目"
-
-```
-
-`evolution sleep`、`arena evaluate`、`arena skill` 和 `arena run execute` 已进入共享轻量核心；旧 Arena scorecard worker、typed Evolution DAG、manual Promote、patch regression 以及 Dashboard/loader capability lifecycle 均已删除。真实进度见 [Project PLAN](docs/PLAN.md)。
-
-## 证据与验收
-
-| 证据层 | 作用 |
-| --- | --- |
-| Trace | 保存一次请求中的模型、工具、失败、交付和 runtime event |
-| Conversation Journal | 保存用户输入与实际成功交付的文本/文件；不包含 thinking、system prompt 或工具内部数据 |
-| Artifact / Delivery Evidence | 记录文件、消息、外部回执和实际交付结果 |
-| Replay | 执行 Case，重新驱动当前 Agent，并产生 fresh Trace；本身不裁决 |
-| Eval | Verifier 做硬检查，ReviewerCat 做语义判断，产生唯一 Outcome |
-| Arena | UserCat 场景探索 → Inspector Finding+Case → shared Eval |
-
-```bash
-npm test
-npm run replay:trace
-npm run test:base-runtime
-npm run test:check-scripted-runtime
-
-# 维护中的真实 Agent 行为评测（默认只读 Replay）
-xiaoba eval run --case-set eval/case-sets/xiaoba-core-readonly.json
-```
-
-XiaoBa 可以把同一组 session / model / tool span 通过 OTLP/HTTP protobuf 发给 Barena、LangWatch 或普通 OTel Collector。导出默认关闭，本地 `traces.jsonl` 仍是权威证据；prompt、tool args、file content 和自由文本错误不会进入外部 span。
-
-```bash
-XIAOBA_OBSERVABILITY_ENABLED=true \
-OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
-xiaoba chat
-```
-
-用户实际可见的对话另存为本地 append-only Journal：`data/conversations/<surface>/<conversation-hash>.jsonl`。它与 provider transcript、Trace 和 Pet SSE history 相互独立；本地记录在非测试运行时默认开启，可显式关闭。只有同时配置 Catena 地址和 API key 时才会 best-effort 导出，网络失败不会改变消息处理或交付结果。
-
-```bash
-XIAOBA_CONVERSATION_RECORDING_ENABLED=true \
-CATENA_BASE_URL=https://catena.example.com \
-CATENA_API_KEY=barena_pat_your_api_key \
-XIAOBA_CONVERSATION_AGENT_ID=my_xiaoba_agent \
-xiaoba chat
-```
-
-可验证范围、最近结果和风险只维护在 [Project PLAN](docs/PLAN.md)；合同边界见 [Evaluation SPEC](docs/evaluation/SPEC.md) 与 [Arena SPEC](docs/arena/SPEC.md)。
-
-## 当前边界
-
-- macOS Electron DMG 是 Apple Silicon arm64 Preview，采用 ad-hoc 签名且尚未 notarize。
-- Windows Electron 安装包面向 x64，当前未做代码签名，首次安装可能触发 SmartScreen 提示。
-- Windows Preview 不捆绑仅 macOS 可用的 Peekaboo，因此 GuiCat 桌面接管在 Windows 上不可用；`workspace_write` 原生沙箱也只在 macOS 开放，其他平台 fail closed。
-- 桌面子服务不内嵌 Node，当前源码构建需要系统 Node.js 22.12 或更高版本；若 Finder 无法发现 Homebrew / nvm 的 Node，请用 `XIAOBA_NODE_EXE` 指向绝对可执行路径。
-- BrowserCat、GuiCat 和 SecretaryCat 依赖对应 driver / CLI，以及必要的安装、权限或登录状态；可先运行 `xiaoba doctor` 检查。
-- Preview 默认关闭尚未完成端到端验证的自动更新通道，新版本通过 GitHub Release 手动安装。
-- Dashboard、Pet 和 Bridge 主要面向本机使用，尚未完成不可信网络下的完整认证与 Owner 授权。
-- Case Replay 默认只允许读取；需要写入的 Case 必须显式声明 `workspace_write`，且只能在 enforced clean runtime 中运行。当前原生写沙箱只支持 macOS，其他平台 fail closed。
-
-## 文档与社区
-
-- [Architecture](docs/SPEC.md) · [Status / Plan](docs/PLAN.md)
-- [Roles](roles/README.md) · [Skills](skills/README.md)
-- [Releases](https://github.com/fightheyyy/xiaobaOS/releases) · [Discussions](https://github.com/fightheyyy/xiaobaOS/discussions) · [Issues](https://github.com/fightheyyy/xiaobaOS/issues)
-
-## License
+[架构](docs/SPEC.md) · [进度与验证](docs/PLAN.md) · [角色](roles/README.md) · [技能](skills/README.md) · [配置示例](.env.example) · [Issues](https://github.com/fightheyyy/XIAOBA/issues) · [Discussions](https://github.com/fightheyyy/XIAOBA/discussions)
 
 [Apache-2.0](LICENSE)

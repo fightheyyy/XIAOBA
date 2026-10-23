@@ -1,121 +1,136 @@
 <div align="center">
-  <img src="../assets/readme-hero.gif" alt="XiaoBa's work loop and governed evolution loop: deliver work and review capability growth" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/xiaoba-logo-dark.png">
+    <img src="../assets/xiaoba-logo.png" alt="XiaoBa" width="180" height="180">
+  </picture>
 
-  # XiaoBa-CLI
+# XiaoBa
 
-  **An IM-native AI coworker runtime that delivers work, preserves evidence, and evolves behind explicit gates.**
+**An open-source personal agent with memory, tools, and follow-up.**
 
-  Send work from the CLI, an IM surface, or the desktop. Base owns conversation and dispatch, specialist Roles take over execution, and XiaoBa returns files, messages, and inspectable evidence. Real traces may produce candidate capabilities, but they enter production only after Arena review and explicit human promotion.
+Keep a conversation going, save your preferences, delegate tasks, and agree on reminders and follow-ups. Use the CLI, Feishu, Weixin or desktop; results, files and reminders return to the conversation where the work began.
 
-  <em>Works like a teammate. Evolves like reviewed software.</em>
+[![Release](https://img.shields.io/github/v/release/fightheyyy/XIAOBA?include_prereleases&label=preview&color=61746d)](https://github.com/fightheyyy/XIAOBA/releases) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.12-61746d)](../package.json) [![License](https://img.shields.io/badge/License-Apache%202.0-61746d)](../LICENSE)
 
-  [![Release](https://img.shields.io/github/v/release/fightheyyy/xiaobaOS?include_prereleases&label=release)](https://github.com/fightheyyy/xiaobaOS/releases)
-  [![Desktop](https://img.shields.io/badge/desktop-macOS%20arm64%20%7C%20Windows%20x64-yellow.svg)](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2)
-  [![Node](https://img.shields.io/badge/CLI-Node.js%20%3E%3D18.19-green.svg)](../package.json)
-  [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
+[Role collaboration](#a-little-cat-a-whole-team) · [Connectors](#app-connections-connectors) · [Governed evolution](#governed-evolution) · [Quick start](#quick-start) · [简体中文](../README.md)
 
-  [Quick Start from Source](#quick-start) · [Desktop v0.2.2 Preview](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) · [How It Works](#work-and-evolution) · [Governed Evolution](#governed-evolution) · [简体中文](../README.md)
-
-  <sub>The v0.2.2 Preview provides a macOS Apple Silicon (arm64) DMG and a Windows x64 installer, including the procedural XiaoBa visual system, nine default agents, and the lightweight Assurance & Evolution path. The macOS build is ad-hoc signed and not notarized; the Windows build is unsigned. Desktop child services still require system Node.js 18.19+.</sub>
 </div>
 
----
+## Your personal agent
 
-## Work and Evolution
+**Remember context and preferences.** Sessions can be restored. Stable preferences can be saved as local Markdown and loaded into later requests; you can inspect and edit the memory files.
 
-XiaoBa connects a user-visible work loop to an internal improvement loop on one Agent Runtime, without turning “self-evolution” into unbounded automatic rewriting.
+**Come back when agreed.** Set reminders or scheduled checks so XiaoBa can return to the original conversation, check progress and bring back results.
+
+**Take on real work.** Specialist Roles execute code, browser, macOS desktop and Feishu tasks. XiaoBa handles conversation and dispatch and brings back results and files. Its cat's eyes and movements reflect runtime state.
+
+**Choose your model and capabilities.** Sessions, memory and execution evidence stay local by default. Connect OpenAI-compatible, Anthropic or local Ollama models; external models still receive request content according to your configuration. Install Role dependencies and standalone Skills as needed; see [Roles](../roles/README.md) and [Skills](../skills/README.md).
+
+### Work you can delegate
+
+| What you need | How it gets done | What comes back |
+| --- | --- | --- |
+| Change code, fix a bug, run a build | Edit files and run verification | Code changes, verification results and generated files |
+| Browse sites, collect research, verify pages | Operate the browser and check pages | Organized results, sources and page evidence |
+| Operate macOS desktop applications | Execute actions through the desktop Driver | Action results and interface evidence |
+| Handle Feishu messages, calendars, tasks and docs | Use the authorized Feishu CLI | Results in Feishu, files and delivery receipts |
+
+## A little cat, a whole team
+
+![Base Main Agent and eight specialist Roles share one cat design, each with its own color](../assets/readme-roles.png)
+
+Talk to XiaoBa and it dispatches specialist Roles as needed. **Base** owns conversation, dispatch and bringing results together. Eight specialist Roles share the XiaoBa Agent loop and handle execution, evaluation and improvement.
+
+| Role | Responsibility |
+| --- | --- |
+| **EngineerCat** | Implement and repair code; call the official Codex SDK through `codex_run` |
+| **BrowserCat** | Operate and verify browser pages |
+| **GuiCat** | Operate macOS desktop interfaces |
+| **SecretaryCat** | Run Feishu workflows through the official `lark-cli`; `FeishuCat` is an alias |
+| **UserCat** | Simulate users and explore scenarios in Arena |
+| **InspectorCat** | Extract evidenced problems and executable Cases from traces |
+| **ReviewerCat** | Judge Case results against evidence after hard checks |
+| **EvolutionCat** | Maintain long-term memory and improve Roles, Skills and Memory |
+
+The first four Roles execute tasks; the other four support internal evaluation and improvement. They do not all run sequentially on every request. See the [Roles Guide](../roles/README.md) for permissions, tools and setup.
+
+## App connections: Connectors
+
+Connect apps so XiaoBa can read authorized information and act through tools. Native Connectors currently use the official Gmail, Notion and GitHub APIs.
+
+| App | Implemented capabilities |
+| --- | --- |
+| **Gmail** | Search mail, read messages and threads, manage labels, create drafts and send mail |
+| **Notion** | Search and read shared pages, query data sources, create or update pages and append blocks |
+| **GitHub** | Read repositories, Issues, PRs, files and Actions status; create or update Issues, post comments and open PRs from existing branches |
+
+Configure GitHub / Notion tokens or Gmail OAuth in the Dashboard's **Connectors** page. Base main sessions use these connections. Writes such as sending mail or creating content show a parameter proposal and execute after confirmation. Credentials are managed through local configuration rather than chat.
+
+SecretaryCat accesses Feishu through the official `lark-cli`, with its own CLI login. See the [app connection guide](../roles/README.md#agent-自有应用连接) for setup and permissions.
+
+## Governed evolution
+
+Problems from real use can become replayable Cases and candidate changes. Candidates pass tests and evaluation before activation; failure or blocked evaluation preserves the current version.
 
 ```mermaid
 flowchart LR
-    subgraph SurfaceLayer["1) Surface"]
-        direction TB
-        Surface["CLI · Feishu · Weixin<br/>Desktop · Pet"]
-    end
-
-    subgraph MainAgent["2) Main Agent"]
-        direction TB
-        Base["Base Main Agent<br/>conversation · decisions · dispatch"]
-    end
-
-    subgraph FunctionalRoles["3) Functional Role Subagents"]
-        direction TB
-        Engineer["EngineerCat<br/>code implementation and repair"]
-        Browser["BrowserCat<br/>browser takeover"]
-        Gui["GuiCat<br/>desktop GUI takeover"]
-        Secretary["SecretaryCat<br/>Feishu workflows"]
-    end
-
-    subgraph Evidence["4) Trace & Evidence"]
-        direction TB
-        Trace["model · tools · failures<br/>artifacts · deliveries"]
-    end
-
-    subgraph ImprovementRoles["5) Improvement Roles"]
-        direction TB
-        User["UserCat<br/>user-side evaluation"]
-        Inspector["InspectorCat<br/>issue detection and routing"]
-        Reviewer["ReviewerCat<br/>independent replay and review"]
-        Evolution["EvolutionCat<br/>memory · Skill · Role evolution"]
-    end
-
-    Surface --> Base
-    Base --> Engineer
-    Base --> Browser
-    Base --> Gui
-    Base --> Secretary
-    Engineer --> Trace
-    Browser --> Trace
-    Gui --> Trace
-    Secretary --> Trace
-    Trace --> User
-    Trace --> Inspector
-    Trace --> Reviewer
-    Trace --> Evolution
+    Input["Trace / Case"] --> Candidate["Candidate change"]
+    Candidate --> Test["Test engineering checks"]
+    Test -->|pass| Eval["Eval behavior checks"]
+    Eval -->|pass| Activate["New Session / next process"]
+    Test -->|fail / blocked| Keep["Keep current version"]
+    Eval -->|fail / blocked| Keep
 ```
 
-This is an ownership topology, not a claim that all four improvement Roles run sequentially on every trace. The governed workflow selects participants through typed routes.
+- **Inspectable delivery.** Traces record model calls, tool results, files, deliveries and failures. User-visible messages are stored separately in a Conversation Journal.
+- **Replayable results.** Replay runs a Case against the current Agent. Verifier performs hard checks, then ReviewerCat judges meaning; each execution has one `pass / fail / blocked` outcome.
+- **Verified improvements.** Evolution produces Candidates from traces or Cases and reuses Test + Eval. Passing capability updates take effect in new Sessions; code updates take effect in the next process. Failure or blocked evaluation preserves the current version.
 
-| Work loop | Evolution loop |
-| --- | --- |
-| Message → Base dispatch → specialist Role takeover → tool execution → file / message delivery | Real trace → Inspector diagnosis → candidate Skill / Role → Arena replay and scorecard → explicit human promotion |
+Arena explores Scenarios and sends Cases to the shared Eval. Contracts and current progress live in [Evaluation](evaluation/SPEC.md), [Arena](arena/SPEC.md) and the [Project PLAN](PLAN.md).
 
-- **Evidence first**: model calls, tool results, artifacts, deliveries, and failures enter traces; a Role claiming success is not completion evidence.
-- **Separated responsibilities**: diagnosis, candidate generation, engineering repair, formal replay, and Arena review have distinct owners.
-- **Candidates never auto-deploy**: weak evidence may end in `no_op`, failed evaluation may block a candidate, and even an Arena `pass` does not mutate production assets automatically.
-
-## What XiaoBa Can Take Over
-
-| Task | Owner | Delivery |
-| --- | --- | --- |
-| Change code, fix a bug, verify a build | EngineerCat | Code changes, test results, and artifact evidence |
-| Browse sites, collect research, verify a page | BrowserCat | Structured results, sources, and page evidence |
-| Operate macOS desktop applications | GuiCat | Action results and GUI evidence |
-| Work with Feishu messages, calendars, tasks, and docs | SecretaryCat | Feishu results, files, and delivery evidence |
-
-Runtime state, traces, and artifact evidence stay local by default. Models can be configured through OpenAI-compatible, Anthropic, Ollama, or other compatible endpoints.
-
-## Runtime Dashboard
-
-<p align="center">
-  <img src="../assets/dashboard.png" alt="XiaoBa Runtime Dashboard with services, roles, skills, configuration, store, and Chat" width="100%">
-</p>
-
-<p align="center"><sub>The Electron Dashboard brings runtime services, roles, skills, configuration, the store, and Chat into one entry point.</sub></p>
-
-## Quick Start
-
-> **Desktop Preview**: [XiaoBa v0.2.2](https://github.com/fightheyyy/xiaobaOS/releases/tag/v0.2.2) provides a macOS Apple Silicon (arm64) DMG and a Windows x64 installer with the procedural XiaoBa visual system and Base plus eight default Roles. The macOS build is ad-hoc signed and not notarized; the Windows installer is unsigned. CLI / Pet / IM child services started by the desktop app require system Node.js 18.19+.
-
-Node.js 18.19 or newer is required to run from source:
+<details>
+<summary>Developers: tests, evaluation and observability</summary>
 
 ```bash
-git clone https://github.com/fightheyyy/xiaobaOS.git
-cd xiaobaOS
+npm test
+npm run test:base-runtime
+npm run test:check-scripted-runtime
+
+# Real Agent CaseSet; Replay is read-only by default
+npm run dev -- eval run --case-set eval/case-sets/xiaoba-core-readonly.json
+
+# Scenario exploration and governed improvement
+npm run dev -- arena evaluate --role engineer-cat --scenario "Fix this project"
+npm run dev -- evolution sleep
+```
+
+Local `traces.jsonl` remains the source of execution evidence. Optional OTLP/HTTP export uses `XIAOBA_OBSERVABILITY_ENABLED=true` and `OTEL_EXPORTER_OTLP_ENDPOINT`; prompt text, tool arguments and file contents are excluded. Visible conversations can sync to Catena when both `CATENA_BASE_URL` and `CATENA_API_KEY` are configured.
+
+The static logo and Role illustration render the product's shared Canvas player directly:
+
+```bash
+npx playwright install chromium
+npm run assets:readme
+```
+
+For an existing system Chromium installation, set `XIAOBA_CHROMIUM_PATH` to its executable. The generator outputs transparent static PNG logos and the Role illustration. Dark themes use a logo with a thin light outline.
+
+</details>
+
+## Quick start
+
+### Run from source
+
+Requires **Node.js ≥ 22.12**. These commands use a macOS / Linux shell; on Windows, copy `.env.example` to `.env` manually.
+
+```bash
+git clone https://github.com/fightheyyy/XIAOBA.git
+cd XIAOBA
 npm install
 cp .env.example .env
 ```
 
-Configure a model in `.env`:
+Configure a model in `.env`, for example:
 
 ```env
 XIAOBA_LLM_PROVIDER=openai
@@ -124,114 +139,49 @@ XIAOBA_LLM_API_KEY=your_api_key
 XIAOBA_LLM_MODEL=your_model
 ```
 
+Choose an entry point:
+
 ```bash
-# Check model, Role, driver, permission, and surface readiness
+# Check the model, Roles, Drivers and platform configuration
 npm run dev -- doctor
 
-# Interactive CLI
+# CLI conversation
 npm run dev -- chat -i
 
-# Development / debugging: bypass Base and start with a specific Role
-npm run dev -- chat -r engineer-cat -i
+# Desktop pet and conversation window
+npm run dev -- pet
 
 # Electron Dashboard
 npm run electron:dev
 ```
 
-See [`requirements.txt`](requirements.txt) for the external CLIs and platform dependencies used by BrowserCat, GuiCat, and SecretaryCat. Install and authorize them only when you need the corresponding Role.
+BrowserCat, GuiCat and SecretaryCat require external dependencies and permissions: see [Driver setup](requirements.txt). EngineerCat's Codex executor requires a separate login; see the [Roles Guide](../roles/README.md).
 
-## Eight Default Roles
+### Download the desktop preview
 
-The Base Main Agent is the only user-facing conversation and dispatch layer. All eight Roles reuse the same XiaoBa Agent loop. Base ships with no default Skills; standalone Skills are installed explicitly or mounted into Arena.
+[**v0.2.2 Preview**](https://github.com/fightheyyy/XIAOBA/releases/tag/v0.2.2) provides a [macOS Apple Silicon DMG](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-mac-arm64.dmg) and a [Windows x64 installer](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-win.exe). The logo shows the updated design in the current source; existing installers do not update when source changes.
 
-| Type | Role | Responsibility |
-| --- | --- | --- |
-| Execution | EngineerCat | XiaoBa's native coding Role on the shared Agent loop; owns code, repositories, builds, and engineering repairs |
-| Execution | BrowserCat | Bounded, verifiable browser takeover |
-| Execution | GuiCat | macOS desktop GUI takeover |
-| Execution | SecretaryCat | Feishu workflows; `FeishuCat` is an alias and official `lark-cli` supplies domain capabilities |
-| Improvement | UserCat | Pressures candidate capabilities through low-information, realistic interactions and produces traces |
-| Improvement | InspectorCat | Diagnoses trace, tool, and artifact evidence and emits a typed route |
-| Improvement | EvolutionCat | Turns reusable patterns into candidate Skills / Roles; owns `remember` and publishing workflows |
-| Improvement | ReviewerCat | Formally replays one Replay Case in a clean session and returns a terminal decision |
+The macOS build is ad-hoc signed and not notarized; the Windows build is unsigned. Preview desktop child services require system Node.js; current source requires Node.js ≥ 22.12. If the desktop cannot locate Node, set `XIAOBA_NODE_EXE` to its absolute executable path.
 
-Browser, GUI, and Feishu drivers provide deterministic capabilities without starting a second Chat, Agent, or MCP loop. See the [Roles Guide](../roles/README.md) and [Skills Guide](../skills/README.md) for detailed usage.
+<details>
+<summary>Show the Dashboard preview</summary>
 
-EngineerCat likewise does not wrap a second coding-agent runtime. Base owns its SubAgent lifecycle externally, while EngineerCat implements and verifies changes through a narrow coding / Skill tool boundary and the child-side `ask_parent` uplink.
+![XiaoBa Dashboard: services, Roles, Skills, configuration, store and Chat](../assets/dashboard.png)
 
-## Governed Evolution
+This existing screenshot shows the Dashboard layout. The logo and Role illustration above show the current cat design and colors.
 
-The nightly workflow starts with InspectorCat. It scans real session traces, preserves evidence, and routes findings to `evolution`, `repair`, `replay`, or `no_op`. Internal Roles participate by route; XiaoBa does not run a fixed eight-agent pipeline every night.
+</details>
 
-<p align="center">
-  <img src="../assets/self-evolution-dag.png" alt="XiaoBa Self-Evolution DAG: InspectorCat routes traces to evolution, repair, replay, or a no-op terminal" width="100%">
-</p>
+## Current support
 
-| Route | Execution | Review terminal |
-| --- | --- | --- |
-| `evolution` | EvolutionCat creates an isolated candidate Skill / Role | Arena runs multi-case, multi-attempt review in a clean runtime and emits a scorecard; human promotion is still required |
-| `repair` | EngineerCat implements an engineering repair | ReviewerCat formally replays it and returns `closed / next_run / blocked` |
-| `replay` | ReviewerCat directly reruns the frozen Replay Case | Returns `closed / next_run / blocked`; the same DAG run cannot jump back into repair |
-| `no_op` | No improvement is produced when evidence is insufficient | Terminates explicitly instead of pretending that “nothing found” is evolution |
+- Memory is scoped to sessions and Roles; cross-surface user identity is not unified. Reminders and proactive checks depend on the corresponding service running; reopening the CLI processes due reminders.
+- GuiCat desktop takeover is macOS-only. BrowserCat and Feishu workflows require their respective Drivers, login and permissions.
+- The current source integrates the shared file / Shell sandbox on macOS and Linux. Restricted execution on Windows returns blocked. Write-enabled Cases must explicitly declare `workspace_write` and run in an isolated Runtime.
+- Dashboard, Pet and Bridge primarily target local use; complete authentication and Owner authorization for untrusted networks are pending.
+- Preview auto-update is disabled by default. Install desktop updates manually from [Releases](https://github.com/fightheyyy/XIAOBA/releases).
 
-```bash
-# Run one nightly evolution cycle
-xiaoba evolution sleep
+## Keep exploring
 
-# Review an installed or imported skill in an isolated Arena
-xiaoba arena skill <skill-name>
-
-# After Arena passes, explicitly promote the immutable Candidate bound to that day's DAG
-xiaoba evolution promote --date YYYY-MM-DD --confirm <candidate-name>
-```
-
-Arena supports exactly three review modes: `base + skill`, `role + skill`, and `role`. A candidate may remain a candidate or be blocked; production promotion always requires an explicit human action.
-A candidate declaring a fixed line contract can pass only when every native and replay turn is bound to the same subject and the full contract passes.
-
-## Evidence and Verification
-
-| Evidence layer | Purpose |
-| --- | --- |
-| Trace | Records model, tool, failure, delivery, and runtime-event facts for one request |
-| Artifact / Delivery Evidence | Records files, messages, external receipts, and actual delivery outcomes |
-| Trace Replay | Drives the current runtime from historical user intent to observe behavioral changes |
-| Live Agent Eval | Fresh-runs the current runtime on curated cases and applies hard verifiers |
-| Arena | Reviews candidate capabilities in a clean runtime and emits an auditable scorecard |
-
-```bash
-npm test
-npm run replay:trace
-npm run eval:base-runtime
-npm run check:benchmarks
-```
-
-XiaoBa can export the same session / model / tool span topology through OTLP/HTTP protobuf to Barena, LangWatch, or a standard OTel Collector. Export is disabled by default, local `traces.jsonl` remains authoritative, and prompts, tool arguments, file contents, and free-form error text are excluded from external spans.
-
-```bash
-XIAOBA_OBSERVABILITY_ENABLED=true \
-OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
-xiaoba chat
-```
-
-The current claim boundary, recent results, and open risks live in the [Project PLAN](PLAN.md). See the [Evaluation SPEC](evaluation/SPEC.md) and [Arena SPEC](arena/SPEC.md) for contract details.
-
-## Current Boundaries
-
-- The macOS Electron DMG is an Apple Silicon arm64 Preview with an ad-hoc signature and no notarization.
-- The Windows Electron installer targets x64 and is currently unsigned, so SmartScreen may warn on first install.
-- The Windows Preview does not bundle the macOS-only Peekaboo driver, so GuiCat desktop takeover is unavailable on Windows; the native `workspace_write` sandbox is also macOS-only and fails closed elsewhere.
-- Desktop child services do not embed Node and currently require system Node.js 18.19 or newer; if Finder cannot discover Homebrew / nvm Node, set `XIAOBA_NODE_EXE` to its absolute executable path.
-- BrowserCat, GuiCat, and SecretaryCat depend on their corresponding drivers / CLIs and the required installation, permissions, or login state; run `xiaoba doctor` first.
-- The Preview keeps the not-yet-verified automatic update channel disabled; install updates manually from GitHub Releases.
-- Dashboard, Pet, and Bridge primarily target local use and do not yet provide complete authentication and Owner authorization for untrusted networks.
-- Trace Replay can execute current real side effects. Do not batch-replay arbitrary historical traces without review until isolation is complete.
-
-## Docs and Community
-
-- [Architecture](SPEC.md) · [Status / Plan](PLAN.md)
-- [Roles](../roles/README.md) · [Skills](../skills/README.md)
-- [Releases](https://github.com/fightheyyy/XiaoBa-CLI/releases) · [Discussions](https://github.com/fightheyyy/XiaoBa-CLI/discussions) · [Issues](https://github.com/fightheyyy/XiaoBa-CLI/issues)
-
-## License
+[Architecture](SPEC.md) · [Progress and verification](PLAN.md) · [Roles](../roles/README.md) · [Skills](../skills/README.md) · [Configuration](../.env.example) · [Issues](https://github.com/fightheyyy/XIAOBA/issues) · [Discussions](https://github.com/fightheyyy/XIAOBA/discussions)
 
 [Apache-2.0](../LICENSE)
