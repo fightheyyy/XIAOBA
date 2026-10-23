@@ -30,7 +30,7 @@
     "test:check-scripted-runtime": "tsx scripts/check-scripted-runtime.ts",
     "test:base-runtime": "tsx scripts/run-scripted-runtime-test.ts --out output/test/base-runtime",
     "replay:trace": "tsx scripts/run-trace-replay.ts",
-    "assets:readme-hero": "node scripts/generate-readme-white-story.mjs",
+    "assets:readme": "node scripts/generate-readme-assets.mjs",
     "report": "node dist/index.js chat --exec '/report'",
     "clean-logs": "node scripts/clean-logs.mjs"
   },
