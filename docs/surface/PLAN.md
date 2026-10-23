@@ -23,7 +23,7 @@ Owner：Surface maintainers
 - Dashboard capability lifecycle API/UI 已删除；Role/Skill 卡片只保留选择、安装和删除 package。
 - 共享 Conversation Journal / Catena 导出已接入 CLI、Feishu、Weixin 和
   Pet；Surface 只提供可见输入/成功交付语义，不各自维护第二套聊天存储。
-- Pet Surface 只保留程序化小恶魔猫 renderer、role theme manifest 与共享 Canvas player；Pet API 下发完整 Role inventory，默认九色保持固定，自定义 Role 由共享分配器获得当前 inventory 内不重复的 body color。Dashboard Role 卡片、当前角色徽标和侧栏品牌也使用同一 renderer、inventory 和 theme map 的静态首帧。旧 renderer、资源端点、内置旧宠物、像素猫 PNG 和静态角色头像映射均已删除。
+- Pet Surface 只保留参考图软耳圆身弯尾猫 renderer、role theme manifest 与共享 Canvas player；Pet API 下发完整 Role inventory，默认九色保持固定，自定义 Role 由共享分配器获得当前 inventory 内不重复的 body color。Dashboard Role 卡片、当前角色徽标和侧栏品牌也使用同一 renderer、inventory 和 theme map 的静态首帧。旧 renderer、资源端点、内置旧宠物、像素猫 PNG 和静态角色头像映射均已删除。
 
 ```mermaid
 flowchart LR
@@ -47,7 +47,7 @@ flowchart LR
 12. Dashboard three-state lifecycle removal：completed。
 13. Lightweight Evolution trigger and activation status：completed for CLI capability new-Session / code next-process activation evidence。
 14. Shared visible Conversation Journal：completed for current CLI、Feishu、Weixin、Pet text/file paths；Catena export remains optional and fail-open。
-15. Procedural XiaoBa visual system and role themes：completed；Pet/Chat 动画与 Dashboard 头像共用 renderer；Base 黑金、八个默认 Role 一角色一色。
+15. Procedural XiaoBa visual system and role themes：completed；Pet/Chat 动画与 Dashboard 头像共用 renderer；Base 炭灰色与奶白胶囊眼、默认无额外描边；八个默认 Role 一角色一色，共用连续轮廓与可选描边。
 16. Remove spritesheet compatibility：completed；legacy renderer、资源端点、内置旧宠物资产和对应发布/测试约定已删除。
 17. Remove legacy Dashboard avatars：completed；Role 卡片、当前角色徽标和侧栏品牌不再读取像素猫 PNG 或静态角色映射。
 18. Unique custom-role colors：completed；默认九色保持固定，自定义 Role 由完整已安装 inventory 统一分配不重复颜色，并供 Dashboard、Pet 与 Chat 共用；显式撞色会重分配，容量耗尽 fail closed。
@@ -110,6 +110,8 @@ flowchart LR
 - 自定义 Role palette 当前支持 4096 个自动分配槽位；超过容量时 Surface 会明确拒绝分配，不会通过复用颜色降级。
 
 ## Recent Verification
+
+- 2026-10-23 Reference visual refresh：共享 player 的静态首帧与动画使用不对称软耳、宽圆身体、粗弯尾和倾斜胶囊眼；Base 配色与 manifest 同步，保留九种状态、Role 唯一配色与自定义描边。验收：TypeScript build passed；Dashboard renderer / Pet channel / desktop launcher 定向测试 38/38 passed；真实 Chromium 检查九种状态及有/无描边共 2160 帧，最小边缘余量 6px（384×416 backing canvas），零裁切与页面异常；RAF、眨眼和表情渐变通过。预览位于 `output/playwright/xiaoba-reference-base.png`、`xiaoba-role-preview.png` 与 `xiaoba-motion-preview.gif`。原生 Electron 安装包未在本轮重新构建。
 
 - 2026-10-08: `npm run build` passed; standard tsx-run focused integration passed
   59/59 and repository regression passed 583/584. The sole regression failure

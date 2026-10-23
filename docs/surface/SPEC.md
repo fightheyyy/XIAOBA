@@ -41,7 +41,7 @@ Out of scope:
 
 入口实现已统一归位到 `src/surfaces/`：CLI 组装和 commands、Feishu、Weixin、Pet、Dashboard、Bridge 与 shared 交付适配。`src/index.ts` 只负责调用 CLI 启动入口并处理启动错误；Electron 主入口 `main.js` 与子进程入口 `server-entry.js` 均加载 `dist/surfaces/dashboard/server`。静态前端与 prompt 通过安装目录定位，任务工作区仍拥有自己的 data/logs/memory。Surface 使用 `src/runtime/index.ts` 的会话入口与 `runtime/contracts`；事件接入与 Connector 继续是独立代码层。
 
-当前入口层已经收敛到共享 `AgentSession`，但各入口仍分别维护平台协议、文件语义和服务控制。CLI 的 `evolution sleep` 与 schedule 已进入轻量 Evolution control；manual `evolution promote` 已删除。Channel delivery 的 canonical prompt 集中在 `prompts/surface.md`。Pet/Dashboard 的 role-scoped session key 已绑定到对应 SkillManager / ToolManager，并在 Chat 与桌宠间共享历史和 SSE replay。Pet manifest 与共享 Canvas player 只支持程序化 `grok-cat-v1`；内置 `xiaoba` 使用一体化小恶魔猫轮廓、状态驱动眼睛和 role theme。Pet API 同时提供完整已安装 Role inventory；共享确定性分配器保留默认九色，并为自定义 Role 分配当前 inventory 内不重复的 body color，显式撞色也会重新分配，容量耗尽则 fail closed。Pet/Chat 使用动画播放，Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌使用同一 renderer、inventory 和 theme map 的静态首帧；旧 renderer、spritesheet API、内置旧宠物资产、像素猫 PNG 和静态角色头像映射均已删除。Dashboard 只展示、选择、安装或删除当前 Role/Skill package，不再维护 capability lifecycle。macOS Electron 只打包 GuiCat 的固定 Peekaboo driver。入口级文本、文件和 external receipt 由 deterministic Test 覆盖。
+当前入口层已经收敛到共享 `AgentSession`，但各入口仍分别维护平台协议、文件语义和服务控制。CLI 的 `evolution sleep` 与 schedule 已进入轻量 Evolution control；manual `evolution promote` 已删除。Channel delivery 的 canonical prompt 集中在 `prompts/surface.md`。Pet/Dashboard 的 role-scoped session key 已绑定到对应 SkillManager / ToolManager，并在 Chat 与桌宠间共享历史和 SSE replay。Pet manifest 与共享 Canvas player 只支持程序化 `grok-cat-v1`；内置 `xiaoba` 使用参考图中的不对称软耳、宽圆身体、粗弯尾和倾斜胶囊眼；身体与尾巴共用连续外轮廓，role theme 的可选描边不穿过尾根。Base 使用炭灰色 `#29343C` 与奶白眼睛 `#FFF8ED`，默认无额外描边；状态驱动表情与 role theme 继续共用此造型。Pet API 同时提供完整已安装 Role inventory；共享确定性分配器保留默认九色，并为自定义 Role 分配当前 inventory 内不重复的 body color，显式撞色也会重新分配，容量耗尽则 fail closed。Pet/Chat 使用动画播放，Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌使用同一 renderer、inventory 和 theme map 的静态首帧；旧 renderer、spritesheet API、内置旧宠物资产、像素猫 PNG 和静态角色头像映射均已删除。Dashboard 只展示、选择、安装或删除当前 Role/Skill package，不再维护 capability lifecycle。macOS Electron 只打包 GuiCat 的固定 Peekaboo driver。入口级文本、文件和 external receipt 由 deterministic Test 覆盖。
 
 ```mermaid
 flowchart LR
@@ -91,7 +91,7 @@ flowchart LR
 
 目标是让所有入口都显式实现同一套 surface contract：平台层只做输入解析、鉴权、文件处理和交付回调，agent loop、role/skill、tool、state/evidence 都由下游模块统一承担。
 
-Pet 与 Dashboard 角色头像的目标渲染路径保持单一：pet manifest 声明程序化 renderer 与可选的 role theme；已安装 Role inventory 与 manifest theme 一起进入共享的确定性唯一配色分配器，再由共享 Canvas player 消费既有 PetState，并为 Role 卡片、当前角色徽标和侧栏品牌绘制静态首帧。Base 与八个默认 Role 保留固定配色；用户安装或创建的 Role 必须在当前 inventory 内获得未占用的 body color，显式自定义色撞色时也必须重新分配，规范化后的 role key 冲突或配色空间耗尽时 fail closed，不能回退成 Base 黑金。Surface 只支持 `grok-cat-v1`，不保留 spritesheet renderer、旧静态像素猫映射、资源路由或页面级重复动画实现。
+Pet 与 Dashboard 角色头像的目标渲染路径保持单一：pet manifest 声明程序化 renderer 与可选的 role theme；已安装 Role inventory 与 manifest theme 一起进入共享的确定性唯一配色分配器，再由共享 Canvas player 消费既有 PetState，并为 Role 卡片、当前角色徽标和侧栏品牌绘制静态首帧。Base 使用参考图炭灰与奶白配色，八个默认 Role 保留各自固定配色；所有 Role 的外形和可选描边共用参考图轮廓；用户安装或创建的 Role 必须在当前 inventory 内获得未占用的 body color，显式自定义色撞色时也必须重新分配，规范化后的 role key 冲突或配色空间耗尽时 fail closed，不能回退成 Base 配色。Surface 只支持 `grok-cat-v1`，不保留 spritesheet renderer、旧静态像素猫映射、资源路由或页面级重复动画实现。
 
 ```mermaid
 flowchart LR
@@ -184,7 +184,7 @@ source 支持 `surface / connector / timer / runtime`，以便后续接入任务
 - 每个入口的 raw event / route payload 应能归一化为稳定 surface event：surface、event type、event id、session key、channel id、user id、user message、payload type 和必要 metadata。
 - Pet/Dashboard 的 `pet:<petId>:role-<role>` session key，以及 `pet:<petId>:role-<role>:<safe-suffix>` 这类带附加隔离后缀的 session key，必须创建或复用对应角色的 scoped services；`/skills`、skill 激活、tool allowlist、visible history 和 SSE replay 都必须按归一化后的 session key 隔离，`role-base` 归一到默认 `pet:<petId>`。
 - Pet manifest 必须声明 `renderer: "grok-cat-v1"`，并可声明 `roleThemes`。共享 player 消费同一组 PetState 和事件映射；role theme 只改变视觉颜色，不改变 role 权限、session key 或 runtime 行为。缺失或未知 renderer 必须 fail closed；Surface 不提供 spritesheet renderer 或资源端点。
-- Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌必须由同一 `grok-cat-v1` renderer 绘制；Base 与八个默认 Role 使用固定 role theme，用户安装或创建的 Role 必须基于完整已安装 inventory 获得确定性且不与任何当前 Role 重复的 body color；显式 theme 撞色必须重新分配，规范化后的 role key 冲突或分配空间耗尽时 fail closed，不得回退到 Base 黑金或读取旧像素猫 PNG / 角色专属静态映射。
+- Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌必须由同一 `grok-cat-v1` renderer 绘制；Base 与八个默认 Role 使用固定 role theme，用户安装或创建的 Role 必须基于完整已安装 inventory 获得确定性且不与任何当前 Role 重复的 body color；显式 theme 撞色必须重新分配，规范化后的 role key 冲突或分配空间耗尽时 fail closed，不得回退到 Base 配色或读取旧像素猫 PNG / 角色专属静态映射。
 - Arena 可在进程内构造 PetChannel 时设置不可由 HTTP body 覆盖的 `requiredActiveSkillName`；它必须在每条 queued Pet message 前重新激活同一个 subject Skill，缺失时 fail closed。普通 Pet / Dashboard / Base / CLI 不设置该字段，行为保持不变。
 - CLI 的正常用户可见输出是 direct final reply；CLI 不应向模型暴露 `send_text` / `send_file`。
 - Feishu、Weixin、Pet 和 Dashboard 这类 channel-backed surface 的正常用户可见输出是 `send_text` / `send_file` 或等价 channel callback；direct final reply 默认只进入 provider/session trace，不外发给用户。

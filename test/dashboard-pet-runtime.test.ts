@@ -14,7 +14,7 @@ function loadPetRuntime(): any {
 }
 
 describe('Dashboard procedural XiaoBa renderer', () => {
-  test('ships the black-gold base and a distinct color for every default role', () => {
+  test('ships the reference charcoal-and-cream base and a distinct color for every default role', () => {
     const runtime = loadPetRuntime();
     const petDir = path.join(process.cwd(), 'desktop', 'dashboard', 'pets', 'xiaoba');
     const manifest = JSON.parse(fs.readFileSync(path.join(petDir, 'pet.json'), 'utf-8'));
@@ -32,9 +32,9 @@ describe('Dashboard procedural XiaoBa renderer', () => {
 
     assert.strictEqual(runtime.rendererName, 'grok-cat-v1');
     assert.deepStrictEqual(Object.keys(runtime.defaultRoleThemes), roleKeys);
-    assert.strictEqual(runtime.defaultRoleThemes.base.body, '#17140F');
-    assert.strictEqual(runtime.defaultRoleThemes.base.eyes, '#E5B94F');
-    assert.strictEqual(runtime.defaultRoleThemes.base.outline, '#C79A3B');
+    assert.strictEqual(runtime.defaultRoleThemes.base.body, '#29343C');
+    assert.strictEqual(runtime.defaultRoleThemes.base.eyes, '#FFF8ED');
+    assert.strictEqual(runtime.defaultRoleThemes.base.outline, null);
     assert.strictEqual(new Set(roleKeys.map(key => runtime.defaultRoleThemes[key].body)).size, roleKeys.length);
     assert.strictEqual(manifest.renderer, runtime.rendererName);
     assert.deepStrictEqual(manifest.roleThemes, JSON.parse(JSON.stringify(runtime.defaultRoleThemes)));
@@ -90,7 +90,7 @@ describe('Dashboard procedural XiaoBa renderer', () => {
       ['custom-black', 'custom-first', 'custom-second'],
       {
         ...runtime.defaultRoleThemes,
-        'custom-black': { body: '#17140f' },
+        'custom-black': { body: '#29343c' },
         'custom-first': { body: '#abc' },
         'custom-second': { body: '#AABBCC' },
       },
