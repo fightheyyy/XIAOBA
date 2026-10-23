@@ -18,9 +18,10 @@
   };
 
   const rendererName = 'grok-cat-v1';
-  const designViewBox = { x: -18, y: -24, width: 294, height: 294 };
+  const designViewBox = { x: -16, y: -24, width: 306, height: 274 };
+  const catFace = { x: 94, y: 113 };
   const defaultRoleThemes = Object.freeze({
-    base: { body: '#17140F', eyes: '#E5B94F', outline: '#C79A3B' },
+    base: { body: '#29343C', eyes: '#FFF8ED', outline: null },
     'user-cat': { body: '#E76F51', eyes: '#281A12' },
     'inspector-cat': { body: '#3A86FF', eyes: '#FFFDF7' },
     'reviewer-cat': { body: '#8338EC', eyes: '#FFFDF7' },
@@ -268,68 +269,68 @@
     return data;
   }
 
-  function traceCatBody(ctx) {
+  // One continuous contour keeps an optional outline off the tail/body join.
+  // The soft, asymmetric ears and curled tail follow XiaoBa's reference mark.
+  function traceCatBody(ctx, tailAngle = 0) {
+    const angle = tailAngle * Math.PI / 180;
+    const tailPoint = (x, y) => [
+      218 + (x - 218) * Math.cos(angle) - (y - 190) * Math.sin(angle),
+      190 + (x - 218) * Math.sin(angle) + (y - 190) * Math.cos(angle),
+    ];
+    const tailCurve = (...points) => ctx.bezierCurveTo(
+      ...tailPoint(points[0], points[1]),
+      ...tailPoint(points[2], points[3]),
+      ...tailPoint(points[4], points[5]),
+    );
     ctx.beginPath();
-    ctx.moveTo(114.27, 9.27);
-    ctx.bezierCurveTo(96, 9.27, 79, 14, 65, 23);
-    ctx.lineTo(48, -14);
-    ctx.bezierCurveTo(46, -18, 42, -17, 40, -12);
-    ctx.lineTo(26, 46);
-    ctx.bezierCurveTo(15, 64, 9.27, 87, 9.27, 114.27);
-    ctx.bezierCurveTo(9.27, 172.26, 56.28, 219.27, 114.27, 219.27);
-    ctx.bezierCurveTo(172.26, 219.27, 219.27, 172.26, 219.27, 114.27);
-    ctx.bezierCurveTo(219.27, 87, 213.5, 64, 202, 46);
-    ctx.lineTo(188, -12);
-    ctx.bezierCurveTo(186, -17, 182, -18, 180, -14);
-    ctx.lineTo(163, 23);
-    ctx.bezierCurveTo(149, 14, 132, 9.27, 114.27, 9.27);
+    ctx.moveTo(30, 65);
+    ctx.bezierCurveTo(39, 29, 54, 0, 68, 0);
+    ctx.bezierCurveTo(82, -1, 96, 23, 104, 37);
+    ctx.bezierCurveTo(105, 39, 106, 40, 109, 40);
+    ctx.bezierCurveTo(119, 41, 129, 44, 137, 47);
+    ctx.bezierCurveTo(155, 38, 175, 33, 185, 36);
+    ctx.bezierCurveTo(194, 38, 197, 46, 197, 57);
+    ctx.bezierCurveTo(198, 66, 191, 70, 186, 73);
+    ctx.bezierCurveTo(183, 75, 188, 80, 189, 96);
+    ctx.bezierCurveTo(190, 108, 193, 110, 204, 120);
+    ctx.bezierCurveTo(221, 135, 233, 158, 229, 178);
+    tailCurve(240, 173, 246, 158, 243, 148);
+    tailCurve(240, 132, 223, 126, 221, 115);
+    tailCurve(217, 101, 228, 89, 241, 90);
+    tailCurve(259, 90, 273, 111, 273, 132);
+    tailCurve(276, 161, 255, 188, 216, 202);
+    ctx.bezierCurveTo(194, 218, 166, 223, 126, 223);
+    ctx.bezierCurveTo(75, 224, 38, 220, 16, 194);
+    ctx.bezierCurveTo(-7, 167, -5, 132, 8, 102);
+    ctx.bezierCurveTo(15, 86, 23, 75, 30, 65);
     ctx.closePath();
   }
 
-  function traceTailTip(ctx) {
-    ctx.beginPath();
-    ctx.moveTo(244, 83);
-    ctx.lineTo(260, 89);
-    ctx.lineTo(254, 104);
-    ctx.lineTo(251, 94);
-    ctx.closePath();
-  }
-
-  function drawTail(ctx, theme, angle) {
-    ctx.save();
-    ctx.translate(196, 165);
-    ctx.rotate(angle * Math.PI / 180);
-    ctx.translate(-196, -165);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    const traceLine = () => {
-      ctx.beginPath();
-      ctx.moveTo(198, 166);
-      ctx.bezierCurveTo(236, 181, 253, 150, 243, 124);
-      ctx.bezierCurveTo(238, 111, 242, 99, 253, 92);
-    };
-
-    if (theme.outline) {
-      traceLine();
-      ctx.strokeStyle = theme.outline;
-      ctx.lineWidth = 18;
-      ctx.stroke();
-    }
-    traceLine();
-    ctx.strokeStyle = theme.body;
-    ctx.lineWidth = 14;
-    ctx.stroke();
-
-    traceTailTip(ctx);
-    ctx.fillStyle = theme.body;
-    ctx.fill();
-    if (theme.outline) {
-      ctx.strokeStyle = theme.outline;
-      ctx.lineWidth = 2.4;
-      ctx.stroke();
-    }
-    ctx.restore();
+  function catExpression(expression, index) {
+    return expression.map((ring, eyeIndex) => {
+      const center = centroid(ring);
+      const home = eyeIndex === 0 ? { x: 54, y: 99 } : { x: 115, y: 114 };
+      return ring.map((point, pointIndex) => {
+        let x;
+        let y;
+        if (index === 0 || index === 8) {
+          // Two slanted capsules form the neutral face, including static avatars.
+          const upper = pointIndex < ring.length / 2;
+          const arc = Math.PI + (pointIndex % (ring.length / 2))
+            / (ring.length / 2 - 1) * Math.PI + (upper ? 0 : Math.PI);
+          x = Math.cos(arc) * 8;
+          y = Math.sin(arc) * 8 + (upper ? -10 : 10);
+        } else {
+          x = (point[0] - center.x) * 0.62;
+          y = (point[1] - center.y) * 0.62;
+        }
+        const lean = 0.36;
+        return [
+          home.x + x * Math.cos(lean) - y * Math.sin(lean),
+          home.y + x * Math.sin(lean) + y * Math.cos(lean),
+        ];
+      });
+    });
   }
 
   function motionForState(state, elapsed, reducedMotion) {
@@ -370,7 +371,7 @@
       bob = 2 + Math.sin(elapsed * 1.3) * 0.6;
       scaleX = 1.018;
       scaleY = 0.965;
-      tailBase = 18;
+      tailBase = 8;
       tailAmplitude = 2;
       tailFrequency = 1.2;
     } else if (state === 'waiting') {
@@ -432,7 +433,7 @@
     load(source, options = {}) {
       cancelAnimationFrame(this.rafId);
       this.rafId = 0;
-      this.ctx.clearRect(0, 0, cell.width, cell.height);
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       const manifest = source && typeof source === 'object' ? source : null;
       const renderer = manifest && manifest.renderer;
       if (renderer !== rendererName) {
@@ -511,7 +512,7 @@
         || this.data.expressionStates.idle;
       this.expressionState = nextState;
       this.currentIndex = nextState.expressions[0];
-      this.currentExpression = this.data.expressions[this.currentIndex];
+      this.currentExpression = catExpression(this.data.expressions[this.currentIndex], this.currentIndex);
       this.targetExpression = this.currentExpression;
       this.morph = 1;
       this.morphVelocity = 0;
@@ -534,7 +535,7 @@
         this.targetExpression,
         clamp(this.morph, 0, 1),
       );
-      this.targetExpression = this.data.expressions[nextIndex];
+      this.targetExpression = catExpression(this.data.expressions[nextIndex], nextIndex);
       this.currentIndex = nextIndex;
       this.morph = 0;
       this.morphVelocity = 0;
@@ -615,22 +616,19 @@
       );
       const offsetX = (cell.width - designViewBox.width * scale) / 2 - designViewBox.x * scale;
       const offsetY = (cell.height - designViewBox.height * scale) / 2 - designViewBox.y * scale;
-      const faceCenter = this.data.viewBox.faceCenter;
-      const inset = this.data.viewBox.inset;
-
-      ctx.clearRect(0, 0, cell.width, cell.height);
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.imageSmoothingEnabled = true;
       ctx.save();
+      ctx.scale(this.canvas.width / cell.width, this.canvas.height / cell.height);
       ctx.translate(offsetX, offsetY);
       ctx.scale(scale, scale);
-      ctx.translate(inset, inset + motion.bob);
-      ctx.translate(faceCenter, faceCenter);
+      ctx.translate(0, motion.bob);
+      ctx.translate(catFace.x, catFace.y);
       ctx.rotate(motion.tilt);
       ctx.scale(motion.scaleX, motion.scaleY);
-      ctx.translate(-faceCenter, -faceCenter);
+      ctx.translate(-catFace.x, -catFace.y);
 
-      drawTail(ctx, this.theme, motion.tailAngle);
-      traceCatBody(ctx);
+      traceCatBody(ctx, motion.tailAngle);
       ctx.fillStyle = this.theme.body;
       ctx.fill();
       if (this.theme.outline) {
@@ -641,7 +639,7 @@
       }
 
       ctx.save();
-      traceCatBody(ctx);
+      traceCatBody(ctx, motion.tailAngle);
       ctx.clip();
       this.drawEyes(ctx, rings, motion, elapsed);
       ctx.restore();
@@ -649,23 +647,15 @@
     }
 
     drawEyes(ctx, rings, motion, elapsed) {
-      const shape = this.data.shapes.blob;
-      const faceCenter = this.data.viewBox.faceCenter;
-      const origin = {
-        x: faceCenter + shape.faceX,
-        y: faceCenter + shape.faceY,
-      };
-      const radius = 105 * Math.min(shape.faceScaleX, shape.faceScaleY);
+      const origin = catFace;
+      const radius = 105;
       const turn = motion.turnBias + (this.reducedMotion ? 0 : 0.1 * Math.sin(elapsed * 0.9));
       const gazeX = this.reducedMotion ? 0 : 0.45 * Math.sin(elapsed * 0.53);
       const gazeY = this.reducedMotion ? 0 : 0.3 * Math.cos(elapsed * 0.41);
       ctx.fillStyle = this.theme.eyes;
 
       for (let eyeIndex = 0; eyeIndex < 2; eyeIndex += 1) {
-        const corrected = rings[eyeIndex].map(point => [
-          origin.x + (point[0] - faceCenter) * shape.faceScaleX,
-          origin.y + (point[1] - faceCenter) * shape.faceScaleY,
-        ]);
+        const corrected = rings[eyeIndex];
         const center = centroid(corrected);
         const offset = center.x - origin.x;
         const baseLongitude = Math.asin(clamp(offset / Math.max(radius, 1), -1, 1));
@@ -674,8 +664,8 @@
         if (depth <= 0.02) continue;
 
         const perspective = Math.max(depth, 0.02) / Math.max(Math.cos(baseLongitude), 0.02);
-        const scaleX = clamp(perspective * shape.eyeScale, 0.02, 2.4);
-        const scaleY = clamp(this.blinkScale() * shape.eyeScale, 0.02, 2.4);
+        const scaleX = clamp(perspective, 0.02, 2.4);
+        const scaleY = clamp(this.blinkScale(), 0.02, 2.4);
         const projectedX = origin.x + radius * Math.sin(longitude) + gazeX;
         const projectedY = center.y + gazeY;
 

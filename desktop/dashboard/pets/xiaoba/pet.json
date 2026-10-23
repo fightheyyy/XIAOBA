@@ -1,10 +1,10 @@
 {
   "id": "xiaoba",
   "displayName": "XiaoBa",
-  "description": "A live small-devil cat whose eyes and body motion respond to XiaoBa's runtime state.",
+  "description": "A soft charcoal cat with cream capsule eyes, asymmetric ears and a curled tail that responds to XiaoBa's runtime state.",
   "renderer": "grok-cat-v1",
   "roleThemes": {
-    "base": { "body": "#17140F", "eyes": "#E5B94F", "outline": "#C79A3B" },
+    "base": { "body": "#29343C", "eyes": "#FFF8ED", "outline": null },
     "user-cat": { "body": "#E76F51", "eyes": "#281A12" },
     "inspector-cat": { "body": "#3A86FF", "eyes": "#FFFDF7" },
     "reviewer-cat": { "body": "#8338EC", "eyes": "#FFFDF7" },
