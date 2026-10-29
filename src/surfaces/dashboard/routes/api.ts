@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createDashboardConnectorRouter, DashboardConnectorOptions } from './connectors';
 import { SkillManager } from '../../../capabilities/skills/skill-manager';
+import { SkillsShStore, SkillStoreError, markInstalledStoreSkills } from '../../../capabilities/skills/skills-sh';
 import { ConfigManager } from '../../../runtime/config';
 import { ServiceManager } from '../service-manager';
 import * as os from 'os';
@@ -132,6 +133,7 @@ export interface DashboardApiOptions {
   observabilityRootDir?: string;
   observabilityOutputRoot?: string;
   connectors?: DashboardConnectorOptions;
+  skillStore?: SkillsShStore;
 }
 
 /**
@@ -156,6 +158,7 @@ function installSkillNpmDeps(skillDir: string): void {
 
 export function createApiRouter(serviceManager: ServiceManager, options: DashboardApiOptions = {}): Router {
   const router = Router();
+  const skillStore = options.skillStore || new SkillsShStore();
   router.use('/connectors', createDashboardConnectorRouter(serviceManager.getProjectRoot(), options.connectors));
   router.use(createPetRouter());
 
@@ -471,75 +474,34 @@ export function createApiRouter(serviceManager: ServiceManager, options: Dashboa
 
   // ==================== Skill Store ====================
 
-  // GET /api/store - 可安装的skills（本地+远程registry合并）
-  // ?refresh=1 强制刷新远程缓存
+  // GET /api/store — skills.sh all-time leaderboard or keyword search.
   router.get('/store', async (req, res) => {
     try {
-      if (req.query.refresh === '1') {
-        remoteRegistryCache = null;
-        remoteRegistryCacheTime = 0;
+      if ((req.query.q !== undefined && typeof req.query.q !== 'string')
+        || (req.query.page !== undefined && typeof req.query.page !== 'string')) {
+        throw new SkillStoreError('Invalid search or page.', 400);
       }
-      const local = loadRegistry();
-      const remote = await fetchRemoteRegistry();
-      const registry = mergeRegistries(local, remote);
-      const manager = new SkillManager();
-      await manager.loadSkills();
-      const installed = new Set(manager.getAllSkills().map(s => s.metadata.name));
-
-      const available = registry
-        .filter(entry => !isDashboardHiddenSkillName(entry.name))
-        .map(entry => ({
-          ...entry,
-          installed: installed.has(entry.name),
-        }));
-      res.json(available);
+      const result = await skillStore.list(
+        String(req.query.q || ''), Number(req.query.page || 0), req.query.refresh === '1',
+      );
+      res.set('X-Skills-Has-More', String(result.hasMore));
+      res.set('X-Skills-Total', String(result.total));
+      res.json(markInstalledStoreSkills(
+        result.skills.filter(entry => !isDashboardHiddenSkillName(entry.name)),
+        PathResolver.getBaseSkillsPath(),
+      ));
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      res.status(e instanceof SkillStoreError ? e.status : 502).json({ error: e.message });
     }
   });
 
-  // POST /api/store/install - 安装skill
+  // Install exactly one skills.sh package into the standalone Skills directory.
   router.post('/store/install', async (req, res) => {
     try {
-      const { name, repo, dir } = req.body;
-      const skillsPath = PathResolver.getSkillsPath();
-      const targetDir = path.join(skillsPath, dir || name);
-
-      // 防止路径逃逸
-      if (!targetDir.startsWith(skillsPath)) {
-        return res.status(400).json({ error: '非法路径' });
-      }
-
-      if (fs.existsSync(targetDir)) {
-        return res.status(400).json({ error: `Skill "${name}" 已存在` });
-      }
-
-      if (repo === 'local') {
-        return res.json({ ok: true, message: 'Skill already bundled' });
-      }
-
-      PathResolver.ensureDir(skillsPath);
-      const warnings: string[] = [];
-
-      // 优先用 ZIP 下载（不需要 git），失败时回退 git clone
-      const installed = await installFromGitHub(repo, targetDir, warnings);
-      if (!installed) {
-        return res.status(500).json({ error: 'Skill 安装失败，请检查 URL 是否正确' });
-      }
-
-      const installedSkills = validateInstalledSkills(targetDir);
-
-      // 安装依赖
-      installPythonDeps(targetDir, warnings);
-      installSkillNpmDeps(targetDir);
-
-      res.json({
-        ok: true,
-        skills: installedSkills,
-        warnings: warnings.length > 0 ? warnings : undefined,
-      });
+      const result = await skillStore.install(req.body?.source, req.body?.skillId, PathResolver.getBaseSkillsPath());
+      res.json({ ok: true, skills: [result.name], source: req.body.source, skillId: req.body.skillId });
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      res.status(e instanceof SkillStoreError ? e.status : 500).json({ error: e.message });
     }
   });
 
@@ -674,63 +636,6 @@ export function createApiRouter(serviceManager: ServiceManager, options: Dashboa
 }
 
 // ==================== Helpers ====================
-
-const REMOTE_REGISTRY_URL = 'https://raw.githubusercontent.com/fightheyyy/XiaoBa-SkillHub/main/registry.json';
-let remoteRegistryCache: any[] | null = null;
-let remoteRegistryCacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-function loadRegistry(): any[] {
-  const registryPath = [
-    path.join(process.cwd(), 'skills', 'registry.json'),
-    // Existing workspaces can keep their previous local catalog until upgraded.
-    path.join(process.cwd(), 'skill-registry.json'),
-  ].find(candidate => fs.existsSync(candidate));
-  if (!registryPath) return [];
-  return JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
-}
-
-function fetchRemoteRegistry(): Promise<any[]> {
-  return new Promise((resolve) => {
-    // Use cache if fresh
-    if (remoteRegistryCache && (Date.now() - remoteRegistryCacheTime < CACHE_TTL)) {
-      return resolve(remoteRegistryCache);
-    }
-
-    const doFetch = (url: string, redirects: number = 0) => {
-      if (redirects > 5) return resolve([]);
-      const protocol = url.startsWith('https') ? https : http;
-      const req = protocol.get(url, { timeout: 8000 }, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return doFetch(res.headers.location, redirects + 1);
-        }
-        if (res.statusCode !== 200) { return resolve([]); }
-        let data = '';
-        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
-        res.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            remoteRegistryCache = Array.isArray(parsed) ? parsed : [];
-            remoteRegistryCacheTime = Date.now();
-            resolve(remoteRegistryCache);
-          } catch { resolve([]); }
-        });
-      });
-      req.on('error', () => resolve([]));
-      req.on('timeout', () => { req.destroy(); resolve([]); });
-    };
-    doFetch(REMOTE_REGISTRY_URL);
-  });
-}
-
-function mergeRegistries(local: any[], remote: any[]): any[] {
-  const map = new Map<string, any>();
-  for (const entry of local) map.set(entry.name, entry);
-  for (const entry of remote) {
-    if (!map.has(entry.name)) map.set(entry.name, entry);
-  }
-  return Array.from(map.values());
-}
 
 /**
  * 从 GitHub 下载 ZIP 并解压到 targetDir，不依赖 git

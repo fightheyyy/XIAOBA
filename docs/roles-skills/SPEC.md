@@ -1,7 +1,7 @@
 # Roles & Skills SPEC
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 适用范围：Base、八个默认 Role、Role-local Skills、共享 review roles 和 Evolution。
 
 本文是 XiaoBa-CLI `Roles & Skills` 模块的唯一架构真相源。
@@ -40,7 +40,7 @@ Out of scope:
 
 ## Current Architecture
 
-Skill 的本地商店索引资源归入 skills/registry.json；外部 CLI 依赖清单位于 docs/requirements.txt，Skill Hub 初始化材料位于 scripts/skill-hub-init/。这些文件不作为可执行 Skill 注册。
+Skill 商店改接 skills.sh；目录查询、单项下载与安装归 `src/capabilities/skills/skills-sh.ts`，Dashboard 与 CLI 共用同一实现。`skills/registry.json` 和 `scripts/skill-hub-init/` 是历史自建 Hub 资产，不再作为商店数据源；外部 CLI 依赖清单仍位于 `docs/requirements.txt`。这些文件不作为可执行 Skill 注册。
 
 可执行能力实现已统一归位到 `src/capabilities/tools/`、`src/capabilities/skills/`、`src/capabilities/roles/`。Tools 拥有注册、可见性、确认和具体工具实现；Skills/ Roles 拥有加载、解析、策略及角色适配。根目录 `skills/` 和 `roles/` 继续保存声明式资产。角色与 Skill 的执行合同位于 `runtime/contracts`，所有角色继续复用唯一 runtime loop；不新增角色或生命周期系统。
 
@@ -65,6 +65,9 @@ SecretaryCat 工具保留 schema、确认和 delivery policy，App 执行已抽�
 
 ```mermaid
 flowchart LR
+    Directory["skills.sh directory / snapshots"] --> Distribution["Shared Skill distribution adapter"]
+    Distribution --> Packages["Explicit installed Skill packages"]
+    Packages --> Runtime["one XiaoBa Agent loop"]
     Runtime --> Execution["Shell / file tools / bounded workers"]
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Base --> NativeAppTools["Gmail / Notion / GitHub tools"]
@@ -98,6 +101,9 @@ Role 只拥有策略与工件生成；控制 DAG 只编排已经存在的 Test�
 
 ```mermaid
 flowchart LR
+    Directory["skills.sh directory / snapshots"] --> Distribution["Shared Skill distribution adapter"]
+    Distribution --> Packages["Explicit installed Skill packages"]
+    Packages --> Runtime["one XiaoBa Agent loop"]
     Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Sandbox --> Native["Seatbelt on macOS / Bubblewrap on Linux"]
     Base["Base Main Agent"] --> AppTools["Native app tools"]
@@ -120,6 +126,15 @@ flowchart LR
     Eval -->|pass| Activate["capability: new Session<br/>code: next process"]
     Eval -->|fail / blocked| Keep["keep current version"]
 ```
+
+## Skill Distribution Contract
+
+- Dashboard 商店和 `xiaoba skill find [query]` 使用 skills.sh 热门榜、搜索；`xiaoba skill add owner/repo --skill name` 和商店安装共用安装器。角色模式 CLI 沿用既有 role-local 路径，Dashboard 安装到 Base 的显式 Skill 目录。
+- 目录身份为 `source + skillId`（仓库与单个 Skill），不把同名的不同发布者当成同一个包。当前仅展示 GitHub `owner/repo` 来源，skills.sh 的纯域名或 URL 来源暂不支持。热门榜分页，搜索至少两个字符、最多返回 100 项；成功列表缓存五分钟，刷新可绕过缓存。上游失败直接报告，不回退到自建 Hub 或显示伪空列表。
+- 下载使用官方 CLI 同源的 `/api/download/<owner>/<repo>/<skillId>` 快照接口，只安装所选 Skill 及其 references/scripts/assets。校验文件路径、大小、重复项和根 `SKILL.md` 元数据，计算本地 SHA-256 内容摘要，再在监视目录外暂存并原子移入目标目录；同名目录已存在返回冲突，不覆盖。
+- `.skills-sh.json` 记录来源、Skill ID、本地 SHA-256 内容摘要、独立的上游版本指纹 `upstreamHash` 与安装时间。上游指纹不是文件校验和；本地摘要用于后续比对，不提供独立的供应链真实性保证。安装不运行包内脚本，也不自动执行 npm/pip 安装钩子；包的使用仍遵循已有工具权限。
+- 旧已安装 Skill 和手动 GitHub 安装继续使用原加载器；不迁移或删除用户包，不增加默认 Base Skill，不增加运行时生命周期。发布 Skill 只需标准 GitHub package；发布成功不等于 skills.sh 已收录或快照已就绪。
+- 依赖 skills.sh 公开接口，接口变更或未收录包会报告错误；不持有用户的 skills.sh 登录凭据。
 
 ## Stable Role Architecture
 

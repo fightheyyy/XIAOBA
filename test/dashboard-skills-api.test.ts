@@ -3,9 +3,8 @@ import * as assert from 'node:assert';
 import express from 'express';
 import * as fs from 'fs';
 import * as http from 'http';
-import https from 'https';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
+import { createHash } from 'node:crypto';
+import { SkillsShStore } from '../src/capabilities/skills/skills-sh';
 import * as os from 'os';
 import * as path from 'path';
 import { createApiRouter } from '../src/surfaces/dashboard/routes/api';
@@ -70,6 +69,8 @@ describe('Dashboard installed capability API', () => {
   let testRoot = '';
   let server: http.Server | null = null;
   let baseUrl = '';
+  let storeRequests: string[] = [];
+  const catalogEntry = { name: 'catalog-skill', skillId: 'catalog-skill', source: 'publisher/skills', installs: 42 };
 
   beforeEach(async () => {
     RoleResolver.clearActiveRole();
@@ -85,7 +86,17 @@ describe('Dashboard installed capability API', () => {
 
     const app = express();
     app.use(express.json({ limit: '1mb' }));
-    app.use('/api', createApiRouter(new ServiceManager(testRoot)));
+    storeRequests = [];
+    const skillStore = new SkillsShStore(async url => {
+      storeRequests.push(url);
+      if (url.includes('/api/download/')) {
+        const contents = '---\nname: catalog-skill\ndescription: Downloaded skill\n---\nDo the work.\n';
+        return { files: [{ path: 'SKILL.md', contents }],
+          hash: createHash('sha256').update('SKILL.md').update(contents).digest('hex') };
+      }
+      return { skills: [catalogEntry], total: 201, hasMore: true };
+    });
+    app.use('/api', createApiRouter(new ServiceManager(testRoot), { skillStore }));
     const listening = await listen(app);
     server = listening.server;
     baseUrl = listening.baseUrl;
@@ -105,26 +116,53 @@ describe('Dashboard installed capability API', () => {
     restoreEnvValue('CURRENT_ROLE_DISPLAY_NAME', originalCurrentRoleDisplayName);
   });
 
-  for (const layout of ['canonical', 'legacy'] as const) {
-    test(`loads the ${layout} workspace catalog without mixing registry assets into installed Skills`, async () => {
-      const entry = { name: 'catalog-skill', description: 'Local catalog', repo: 'https://example.invalid/skill' };
-      const registryPath = layout === 'canonical'
-        ? path.join(testRoot, 'skills', 'registry.json')
-        : path.join(testRoot, 'skill-registry.json');
-      writeFile(registryPath, JSON.stringify([entry]));
-      if (layout === 'canonical') {
-        writeFile(path.join(testRoot, 'skill-registry.json'), JSON.stringify([{ ...entry, name: 'obsolete-entry' }]));
-      }
-      mock.method(https, 'get', (_url: unknown, _options: unknown, callback: (response: any) => void) => {
-        const response = Object.assign(new PassThrough(), { statusCode: 200 });
-        queueMicrotask(() => { callback(response); response.end('[]'); });
-        return Object.assign(new EventEmitter(), { destroy() {} });
-      });
-      const response = await fetch(`${baseUrl}/api/store?refresh=1`);
-      assert.equal(response.status, 200);
-      assert.deepEqual(await response.json(), [{ ...entry, installed: false }]);
+  test('uses skills.sh instead of either legacy registry and forwards search/pagination', async () => {
+    for (const filename of ['skills/registry.json', 'skill-registry.json']) {
+      writeFile(path.join(testRoot, filename), JSON.stringify([{ name: 'obsolete-private-entry' }]));
+    }
+    const response = await fetch(`${baseUrl}/api/store?page=1&refresh=1`);
+    assert.equal(response.status, 200);
+    const entries = await response.json();
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].source, 'publisher/skills');
+    assert.equal(entries[0].installed, false);
+    assert.equal(response.headers.get('X-Skills-Has-More'), 'true');
+    assert.equal(response.headers.get('X-Skills-Total'), '201');
+    assert.equal(storeRequests[0], 'https://skills.sh/api/skills/all-time/1');
+    await fetch(`${baseUrl}/api/store?q=react%20native`);
+    assert.match(storeRequests[1], /api\/search\?q=react\+native&limit=100/);
+  });
+
+  test('installs only the chosen snapshot into standalone Skills and exposes it to the loader', async () => {
+    const response = await fetch(`${baseUrl}/api/store/install`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: 'publisher/skills', skillId: 'catalog-skill' }),
     });
-  }
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).skills, ['catalog-skill']);
+    assert.ok(fs.existsSync(path.join(testRoot, 'skills/catalog-skill/SKILL.md')));
+    assert.equal(fs.existsSync(path.join(testRoot, 'roles/engineer-cat/skills/catalog-skill')), false);
+    const list = await (await fetch(`${baseUrl}/api/store`)).json();
+    assert.equal(list[0].installed, true);
+    const installed = await (await fetch(`${baseUrl}/api/skills-all`)).json();
+    assert.ok(installed.some((skill: any) => skill.name === 'catalog-skill'));
+    const again = await fetch(`${baseUrl}/api/store/install`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: 'publisher/skills', skillId: 'catalog-skill' }),
+    });
+    assert.equal(again.status, 409);
+  });
+
+  test('rejects invalid identities and query parameters before network access', async () => {
+    for (const query of ['q=x', 'page=-1', 'page=abc', 'q=react&q=vue']) {
+      assert.equal((await fetch(`${baseUrl}/api/store?${query}`)).status, 400);
+    }
+    assert.equal((await fetch(`${baseUrl}/api/store/install`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: 'https://attacker.invalid', skillId: '../escape' }),
+    })).status, 400);
+    assert.deepEqual(storeRequests, []);
+  });
 
   test('lists every installed Skill without lifecycle fields', async () => {
     writeSkill(testRoot, 'legacy-candidate', 'candidate');

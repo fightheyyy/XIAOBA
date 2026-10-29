@@ -1,6 +1,6 @@
 # XiaoBa SkillHub
 
-本目录保存初始化独立 SkillHub 仓库的 README 与索引模板。XiaoBa 应用自身的本地商店索引资源位于 `../../skills/registry.json`。
+本目录保留历史独立 SkillHub 仓库的初始化模板。XiaoBa 当前商店已使用 https://skills.sh，不再读取此索引；以下为旧仓库模板，不代表当前商店或发布流程。
 
 XiaoBa 官方 Skill 商店索引仓库。
 

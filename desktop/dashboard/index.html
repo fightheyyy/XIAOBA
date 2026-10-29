@@ -3669,12 +3669,18 @@
 
       <!-- Page: Store -->
       <div class="page" id="page-store">
-        <div class="section-title">Skill Store <button class="btn" onclick="refreshStore()" id="refresh-store-btn" style="font-size:12px;padding:6px 14px;margin-left:8px">Refresh</button></div>
+        <div class="section-title"><span data-i18n="storeTitle">Skill Store</span> <a class="badge" href="https://skills.sh" target="_blank" rel="noopener noreferrer">skills.sh</a><button class="btn" onclick="refreshStore()" id="refresh-store-btn" data-i18n="storeRefresh" style="font-size:12px;padding:6px 14px;margin-left:8px">Refresh</button></div>
+        <form class="store-install-bar" onsubmit="event.preventDefault();fetchStore()">
+          <input class="config-input" id="store-search-input" type="search" autocomplete="off" data-i18n-placeholder="storeSearchPlaceholder" placeholder="Search skills.sh..." oninput="searchStore()" aria-label="Search skills.sh" />
+          <button class="btn btn-primary" type="submit" data-i18n="storeSearch">Search</button>
+        </form>
+        <div class="skill-meta" id="store-status" role="status" aria-live="polite" style="margin-bottom:16px"></div>
+        <div class="skills-grid" id="store-grid"><div class="loading">Loading...</div></div>
+        <div style="text-align:center;margin:20px 0"><button class="btn" id="store-more-btn" onclick="fetchStore(false,true)" data-i18n="storeMore" hidden>Load more</button></div>
         <div class="store-install-bar">
-          <input class="config-input" id="github-url-input" type="text" placeholder="Install a skill from a GitHub repository URL..." />
+          <input class="config-input" id="github-url-input" type="text" data-i18n-placeholder="storeGithubPlaceholder" placeholder="Install a skill from a GitHub repository URL..." />
           <button class="btn btn-primary" onclick="installFromGithub()">Install</button>
         </div>
-        <div class="skills-grid" id="store-grid"><div class="loading">Loading...</div></div>
       </div>
 
     </div>
@@ -3871,6 +3877,16 @@
         getToken: 'Get Token',
         saved: 'Saved',
         saveFailed: 'Save failed: ',
+        storeTitle: 'Skill Store',
+        storeSearch: 'Search',
+        storeSearchPlaceholder: 'Search skills.sh by name or capability...',
+        storeSearchHint: 'Enter at least 2 characters to search.',
+        storeGithubPlaceholder: 'Or install from a GitHub repository URL...',
+        storeMore: 'Load more',
+        storeDetails: 'Details',
+        storePopular: 'Popular on skills.sh',
+        storeResults: 'Search results',
+        storeInstalls: 'installs',
         storeRefresh: 'Refresh',
         storeRefreshing: 'Refreshing...',
         noStoreSkills: 'No available skills',
@@ -4026,6 +4042,16 @@
         getToken: '获取Token',
         saved: '已保存',
         saveFailed: '保存失败: ',
+        storeTitle: 'Skill 商店',
+        storeSearch: '搜索',
+        storeSearchPlaceholder: '在 skills.sh 搜索技能名称或能力...',
+        storeSearchHint: '请输入至少 2 个字符进行搜索。',
+        storeGithubPlaceholder: '或输入 GitHub 仓库地址安装...',
+        storeMore: '加载更多',
+        storeDetails: '查看详情',
+        storePopular: 'skills.sh 热门技能',
+        storeResults: '搜索结果',
+        storeInstalls: '次安装',
         storeRefresh: '刷新',
         storeRefreshing: '刷新中...',
         noStoreSkills: '暂无可用 Skill',
@@ -4127,7 +4153,7 @@
       if ((rolesState.roles || []).length) renderRoles(rolesState);
       if (pets.length) renderPet();
       if (Object.keys(configData || {}).length) renderConfig();
-      if (storeState.length) renderStore(storeState);
+      renderStore(storeState);
       window.XiaoBaConnectors?.render();
     }
 
@@ -5056,45 +5082,72 @@
 
     // === Store ===
     let storeState=[];
-    async function fetchStore(refresh){try{const r=await fetch(API+'/api/store'+(refresh?'?refresh=1':''));storeState=await r.json();renderStore(storeState);}catch(e){document.getElementById('store-grid').innerHTML='<div class="loading">'+t('loadFailed')+'</div>';}}
+    let storePage=0,storeHasMore=false,storeTotal=0,storeQuery='',storeRequestId=0,storeSearchTimer;
+    function searchStore(){
+      clearTimeout(storeSearchTimer);
+      storeRequestId++;
+      document.getElementById('store-more-btn').hidden=true;
+      storeSearchTimer=setTimeout(()=>fetchStore(),300);
+    }
+    async function fetchStore(refresh=false,append=false){
+      clearTimeout(storeSearchTimer);
+      const query=document.getElementById('store-search-input').value.trim();
+      const requestId=++storeRequestId;
+      const status=document.getElementById('store-status');
+      const more=document.getElementById('store-more-btn');
+      append=append&&query===storeQuery;
+      if(query.length===1){storeState=[];storeHasMore=false;storeTotal=0;storeQuery=query;renderStore([]);return;}
+      const page=append?storePage+1:0;
+      more.disabled=true;
+      status.textContent=t('loading');
+      try{
+        const params=new URLSearchParams({q:query,page:String(page)});
+        if(refresh)params.set('refresh','1');
+        const r=await fetch(API+'/api/store?'+params);
+        const data=await r.json();
+        if(!r.ok||!Array.isArray(data))throw new Error(data.error||t('loadFailed'));
+        if(requestId!==storeRequestId)return;
+        storeState=append?Array.from(new Map([...storeState,...data].map(item=>[item.id,item])).values()):data;
+        storeQuery=query;storePage=page;
+        storeHasMore=r.headers.get('X-Skills-Has-More')==='true';
+        storeTotal=Number(r.headers.get('X-Skills-Total'))||storeState.length;
+        renderStore(storeState);
+      }catch(e){
+        if(requestId!==storeRequestId)return;
+        status.textContent=t('loadFailed')+': '+e.message;
+        storeHasMore=false;more.hidden=true;
+        if(!append){storeState=[];document.getElementById('store-grid').innerHTML='<div class="loading empty-state">'+escapeHtml(e.message)+'</div>';}
+      }finally{if(requestId===storeRequestId)more.disabled=false;}
+    }
     async function refreshStore(){
       const btn=document.getElementById('refresh-store-btn');btn.disabled=true;btn.textContent=t('storeRefreshing');
-      await fetchStore(true);
-      btn.disabled=false;btn.textContent=t('storeRefresh');
+      try{await fetchStore(true);}finally{btn.disabled=false;btn.textContent=t('storeRefresh');}
     }
     function renderStore(items){
       const g=document.getElementById('store-grid');
-      g.classList.toggle('is-empty', !items.length);
-      if(!items.length){g.innerHTML='<div class="loading empty-state">'+t('noStoreSkills')+'</div>';return;}
-      g.innerHTML=items.map(i=>{
-        const displayName = getSkillDisplayName(i);
-        const actionName = getSkillActionName(i, displayName);
-        const repoArg = escapeHtml(escapeJs(i.repo || ''));
-        const dirArg = escapeHtml(escapeJs(i.dir || ''));
-        return '<div class="skill-card"><div class="skill-name" title="'+escapeHtml(displayName)+'">'+escapeHtml(displayName)+(i.recommended?' <span class="tag recommended">'+t('recommended')+'</span>':'')+(i.installed?' <span class="tag installed-tag">'+t('installed')+'</span>':'')+'</div><div class="skill-desc">'+escapeHtml(i.description||'')+'</div><div class="skill-meta"><span class="tag">'+escapeHtml(i.category||t('categoryOther'))+'</span></div><div class="skill-actions">'+(i.installed?'<button class="btn" disabled>'+t('installed')+'</button>':'<button class="btn btn-primary" onclick="installSkill(\''+escapeHtml(escapeJs(actionName))+'\',\''+repoArg+'\',\''+dirArg+'\')">'+t('install')+'</button>')+'</div></div>';
+      const short=storeQuery.length===1;
+      document.getElementById('store-status').textContent=short?t('storeSearchHint'):
+        (storeQuery?t('storeResults'):t('storePopular'))+' · '+items.length.toLocaleString()+' / '+storeTotal.toLocaleString();
+      document.getElementById('store-more-btn').hidden=!storeHasMore;
+      g.classList.toggle('is-empty',!items.length);
+      if(!items.length){g.innerHTML='<div class="loading empty-state">'+t(short?'storeSearchHint':'noStoreSkills')+'</div>';return;}
+      g.innerHTML=items.map((i,index)=>{
+        const displayName=getSkillDisplayName(i);
+        return '<div class="skill-card"><div class="skill-name" title="'+escapeHtml(displayName)+'">'+escapeHtml(displayName)+(i.installed?' <span class="tag installed-tag">'+t('installed')+'</span>':'')+'</div><div class="skill-desc">'+escapeHtml(i.description||i.source)+'</div><div class="skill-meta"><span class="tag">'+Number(i.installs||0).toLocaleString()+' '+t('storeInstalls')+'</span></div><div class="skill-actions"><a class="btn" href="'+escapeHtml(i.url)+'" target="_blank" rel="noopener noreferrer">'+t('storeDetails')+'</a>'+(i.installed?'<button class="btn" disabled>'+t('installed')+'</button>':'<button class="btn btn-primary" onclick="installStoreSkill('+index+',this)">'+t('install')+'</button>')+'</div></div>';
       }).join('');
     }
-    async function installSkill(n,r,d){
-      const btn=event.target;
-      btn.disabled=true;
-      btn.textContent=t('installing');
+    async function installStoreSkill(index,btn){
+      const skill=storeState[index];
+      if(!skill)return;
+      btn.disabled=true;btn.textContent=t('installing');
       try{
-        const res=await fetch(API+'/api/store/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,repo:r,dir:d})});
+        const res=await fetch(API+'/api/store/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:skill.source,skillId:skill.skillId})});
         const data=await res.json();
-        if(data.error){
-          alert(t('installFailed')+data.error);
-          btn.disabled=false;
-          btn.textContent=t('install');
-        }else{
-          btn.textContent=t('installed');
-          fetchStore();
-          fetchSkills();
-        }
-      }catch(e){
-        alert(t('installFailed')+e.message);
-        btn.disabled=false;
-        btn.textContent=t('install');
-      }
+        if(!res.ok||data.error)throw new Error(data.error||res.status);
+        skill.installed=true;
+        renderStore(storeState);
+        await fetchSkills();
+      }catch(e){alert(t('installFailed')+e.message);btn.disabled=false;btn.textContent=t('install');}
     }
     async function installFromGithub(){
       const input=document.getElementById('github-url-input'),url=input.value.trim();

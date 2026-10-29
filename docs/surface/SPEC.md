@@ -1,7 +1,7 @@
 # Surfaces SPEC
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 适用范围：XiaoBa 的用户入口层，包括 `src/surfaces/cli/commands`、`src/surfaces/feishu`、`src/surfaces/weixin`、`src/surfaces/pet`、`src/surfaces/dashboard`、`src/events`、`src/connectors` 和 `desktop`。
 
 本文件是顶层架构模块之一的入口层 spec，也是 Dashboard、Electron 和 packaging 资源的唯一架构文档。
@@ -37,7 +37,7 @@ Out of scope:
 
 ## Current Architecture
 
-随根目录整理，Electron 从应用 skills/registry.json 同步本地索引；Dashboard 优先读取工作区 skills/registry.json，缺省时兼容旧 skill-registry.json。打包显式包含新的资源路径。
+Dashboard Skill 商店改接 skills.sh，Surface 只负责搜索、分页、安装动作和用户反馈；目录与安装能力委托 Roles & Skills 的共享分发适配器。旧 `skills/registry.json`、`skill-registry.json` 和 Electron 的兼容资源同步不再决定商店内容。
 
 入口实现已统一归位到 `src/surfaces/`：CLI 组装和 commands、Feishu、Weixin、Pet、Dashboard、Bridge 与 shared 交付适配。`src/index.ts` 只负责调用 CLI 启动入口并处理启动错误；Electron 主入口 `main.js` 与子进程入口 `server-entry.js` 均加载 `dist/surfaces/dashboard/server`。静态前端与 prompt 通过安装目录定位，任务工作区仍拥有自己的 data/logs/memory。Surface 使用 `src/runtime/index.ts` 的会话入口与 `runtime/contracts`；事件接入与 Connector 继续是独立代码层。
 
@@ -45,6 +45,8 @@ Out of scope:
 
 ```mermaid
 flowchart LR
+    SkillStore["Dashboard store / CLI skill find-add"] --> Distribution["Roles & Skills distribution adapter"]
+    Distribution --> SkillsSh["skills.sh directory / snapshots"]
     ConnectorPage["Dashboard Agent connections"] --> LocalAdmin["Loopback / same-origin management"]
     LocalAdmin --> AppService
     LocalAdmin --> OAuth["Google OAuth / state / PKCE"]
@@ -95,6 +97,8 @@ Pet 与 Dashboard 角色头像的目标渲染路径保持单一：pet manifest �
 
 ```mermaid
 flowchart LR
+    SkillStore["Dashboard store / CLI skill find-add"] --> Distribution["Roles & Skills distribution adapter"]
+    Distribution --> SkillsSh["skills.sh directory / snapshots"]
     ConnectorPage["Dashboard Agent connections"] --> LocalAdmin["Loopback / same-origin management"]
     LocalAdmin --> AppService["Shared Agent connection service"]
     LocalAdmin --> OAuth["Google OAuth / state / PKCE"]
@@ -122,6 +126,13 @@ flowchart LR
     Runtime --> Delivery["Channel callbacks / visible evidence"]
     Delivery --> Surface
 ```
+
+## Skill Store Surface Contract
+
+- 商店沿用现有 Skills 卡片、按钮、布局和中英文切换，增加 skills.sh 来源链接、热门榜、搜索、安装量、详情及加载更多。保留手动 GitHub 安装入口。
+- `GET /api/store?q=&page=0&refresh=1` 返回数组；`X-Skills-Has-More`、`X-Skills-Total` 表达分页。搜索至少两个字符，输入防抖 300ms，过时请求不得覆盖新结果；刷新绕过目录缓存。上游失败显示实际错误，并允许重试。
+- `POST /api/store/install` 接收 `{source, skillId}`，成功后更新已安装状态及 Skills 列表。输入错误为 400，目录冲突为 409，上游不可用或下载包无效为 502。单项安装、校验与来源回执合同由 [`../roles-skills/SPEC.md`](../roles-skills/SPEC.md) 维护。
+- 不再读取自建 XiaoBa-SkillHub 的 registry 作为目录；旧已安装 Skill 的加载与删除仍使用现有 API。
 
 ## Surface / Connector / Event boundaries
 

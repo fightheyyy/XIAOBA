@@ -3,6 +3,7 @@ import { Logger } from '../../../runtime/observability/logger';
 import { styles } from '../../../runtime/observability/colors';
 import { SkillManager } from '../../../capabilities/skills/skill-manager';
 import { SkillParser } from '../../../capabilities/skills/skill-parser';
+import { SkillsShStore } from '../../../capabilities/skills/skills-sh';
 import { PathResolver } from '../../../runtime/paths';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
@@ -20,6 +21,29 @@ export function registerSkillCommand(program: Command): void {
   const skillCmd = addRoleOption(program
     .command('skill')
     .description('管理 XiaoBa skills'));
+
+  skillCmd.command('find [query]').alias('search')
+    .description('在 skills.sh 搜索 Skill；不传关键词时显示热门技能')
+    .action(async (query?: string) => {
+      try {
+        const result = await new SkillsShStore().list(query);
+        for (const skill of result.skills.slice(0, 20)) {
+          Logger.info(`${skill.source}@${skill.skillId}  (${skill.installs} installs)`);
+          Logger.info(`  ${skill.url}`);
+        }
+        if (!result.skills.length) Logger.info('没有找到匹配的 Skill。');
+      } catch (error: any) { Logger.error(error.message); process.exitCode = 1; }
+    });
+
+  addRoleOption(skillCmd.command('add <source>')
+    .description('从 skills.sh 安装指定 Skill（source: owner/repo）')
+    .requiredOption('--skill <name>', 'skills.sh 中的 Skill 名称'))
+    .action(async (source: string, options: { skill: string }) => {
+      try {
+        const result = await new SkillsShStore().install(source, options.skill, PathResolver.getSkillsPath());
+        Logger.success(`已安装 ${result.name}: ${result.path}`);
+      } catch (error: any) { Logger.error(error.message); process.exitCode = 1; }
+    });
 
   // skill list - 列出所有可用的 skills
   addRoleOption(skillCmd

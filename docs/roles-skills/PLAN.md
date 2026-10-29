@@ -1,10 +1,12 @@
 # Roles & Skills PLAN
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 Owner：Policy maintainers
 
 ## Current Status
+
+skills.sh 目录与单项安装已接入共享 Skill 分发适配器；保留旧包和手动 GitHub 安装，不再从自建 Hub 读取商店目录。默认 Base Skill 仍为零。
 
 根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
 
@@ -56,6 +58,8 @@ flowchart LR
 
 ## Next Steps
 
+- 随 skills.sh 官方接口变化维护目录和快照适配，不引入第二份自建索引。
+
 - 按真实需求决定是否增加 Memory Candidate adapter。
 
 ## Owners
@@ -81,11 +85,15 @@ flowchart LR
 
 ## Risks / Open Questions
 
+- skills.sh 公开目录/快照接口不是版本化 SDK；上游接口变动或尚未收录的 Skill 会显示错误，需跟随官方 CLI 合同维护。
+
 - Source Candidate 的完整 Test 依赖 enforced native sandbox；统一 SDK 支持 macOS/Linux；当前 Linux 实测通过，macOS 发行构建待验收。
 - 自动激活必须保留原版本，以便失败时回滚，但不应演化成新的 lifecycle subsystem。
 - BrowserCat/GuiCat/SecretaryCat 的外部 driver 可用性仍是独立运维风险。
 
 ## Recent Verification
+
+- 2026-10-29：skills.sh 接入 `npm run build` 通过；分发适配、Dashboard API、Skill 解析/加载、已安装 package、EvolutionCat 和模块边界测试 38/38 通过。真实公开接口完成热门榜、react 搜索、find-skills 下载与 Runtime 加载，测试包位于临时目录并已清理。Chromium 在模拟上游下通过分页、单项安装及附属文件、短搜索词、过时响应、错误提示、桌面/手机布局和零页面异常检查；截图位于 `output/test/skills-store/`。未执行 Skill 指令或调用模型。
 
 - 2026-10-08: build passed; file-memory/runtime/Role focused tests passed 33/33;
   repository regression passed 591/592. The sole failure remains the existing

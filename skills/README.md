@@ -33,6 +33,18 @@ roles/evolution-cat/skills/
 xiaoba skill list
 ```
 
+### 从 skills.sh 查找和安装
+
+Dashboard 的「Skill 商店」默认使用 [skills.sh](https://skills.sh)，支持 GitHub 来源 Skill 的热门榜、搜索及单项安装，无需登录。skills.sh 的纯域名或 URL 来源暂不支持。
+
+```bash
+xiaoba skill find               # 热门 Skill
+xiaoba skill find react         # 搜索
+xiaoba skill add vercel-labs/skills --skill find-skills
+```
+
+只下载选中的 Skill 及其配套文件，不安装整个仓库，也不自动执行依赖脚本。安装后沿用现有 SkillManager 加载规则；默认 Base Skill 数量仍为零。旧已安装 Skill 无需迁移，手动 GitHub 安装继续可用。未被 skills.sh 收录或快照未就绪的包可以通过下面的 GitHub 入口安装。
+
 ### 从 GitHub 安装 Skill
 
 ```bash

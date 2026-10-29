@@ -1,10 +1,12 @@
 # Surface PLAN
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 Owner：Surface maintainers
 
 ## Current Status
+
+Dashboard 商店已改接 skills.sh，提供热门、搜索、分页、来源详情及单项安装；沿用现有卡片和中英文样式，CLI 共用分发能力。
 
 根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
 
@@ -73,6 +75,8 @@ flowchart LR
 
 ## Next Steps
 
+- 随 skills.sh 官方接口变化维护目录和快照适配，不引入第二份自建索引。
+
 - Add authenticated principal and Owner identity at surface normalization.
 - Default local HTTP/control surfaces to loopback and fail closed before remote exposure.
 - Bind consequential confirmations to actor, action payload and expiry.
@@ -104,12 +108,16 @@ flowchart LR
 
 ## Risks / Open Questions
 
+- skills.sh 公开目录/快照接口不是版本化 SDK；上游接口变动或尚未收录的 Skill 会显示错误，需跟随官方 CLI 合同维护。
+
 - Current local control APIs are useful but not ready for untrusted networks.
 - Platform file receipts and identity semantics differ across Feishu, Weixin and local surfaces.
 - Signed/notarized release artifacts still need their own release-time verification; the local ad-hoc `.app` check does not prove distribution signing.
 - 自定义 Role palette 当前支持 4096 个自动分配槽位；超过容量时 Surface 会明确拒绝分配，不会通过复用颜色降级。
 
 ## Recent Verification
+
+- 2026-10-29：skills.sh 接入 `npm run build` 通过；分发适配、Dashboard API、Skill 解析/加载、已安装 package、EvolutionCat 和模块边界测试 38/38 通过。真实公开接口完成热门榜、react 搜索、find-skills 下载与 Runtime 加载，测试包位于临时目录并已清理。Chromium 在模拟上游下通过分页、单项安装及附属文件、短搜索词、过时响应、错误提示、桌面/手机布局和零页面异常检查；截图位于 `output/test/skills-store/`。未执行 Skill 指令或调用模型。
 
 - 2026-10-23 Reference visual refresh：共享 player 的静态首帧与动画使用不对称软耳、宽圆身体、粗弯尾和倾斜胶囊眼；Base 配色与 manifest 同步，保留九种状态、Role 唯一配色与自定义描边。验收：TypeScript build passed；Dashboard renderer / Pet channel / desktop launcher 定向测试 38/38 passed；真实 Chromium 检查九种状态及有/无描边共 2160 帧，最小边缘余量 6px（384×416 backing canvas），零裁切与页面异常；RAF、眨眼和表情渐变通过。预览位于 `output/playwright/xiaoba-reference-base.png`、`xiaoba-role-preview.png` 与 `xiaoba-motion-preview.gif`。原生 Electron 安装包未在本轮重新构建。
 
