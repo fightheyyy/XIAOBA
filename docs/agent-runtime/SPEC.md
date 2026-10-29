@@ -1,7 +1,7 @@
 # Agent Runtime SPEC
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 适用范围：XiaoBa 的核心 agent harness runtime，包括 `src/runtime`、`src/runtime/harness/models`、`src/capabilities/tools`、`src/runtime/contracts/tool.ts` 和 runtime-facing harness docs。
 
 本文是顶层架构模块之一的 Agent Runtime spec。它定义 agent loop、provider transcript、tool boundary 和 session lifecycle；入口、角色策略、观测证据、评测和 Arena 分别由各自模块 spec 维护。
@@ -29,6 +29,8 @@ Out of scope:
 - Test、Case Replay、Verifier、Reviewer Judge 和 EvaluationResult 归 [`../evaluation/SPEC.md`](../evaluation/SPEC.md)。
 
 ## Current Architecture
+
+Intelligent Chat 已实现可选 `ChannelCallbacks.sendUI`、Main-only `send_ui`、结构化 UI delivery evidence 与可信 parentToolCallId。SubAgentManager 在现有 journal 回调之后投影状态，Session/Runner 的工具结束回调可附带 canonical ToolResult；默认渠道的回调签名保持兼容。Dashboard 显式 Base prompt/skill/tool policy 不再回退到进程全局角色。每请求 `transientContext` 承载 catalog 与明确标记的 App 数据，不写作真实用户消息或长期授权。
 
 现有执行内核已归位到 `src/runtime/`：`harness/loop` 是唯一 ConversationRunner，`harness/models` 是模型适配，`harness/context` 是 prompt 与上下文压缩，`sessions` 和 `subagents` 管理生命周期，`delivery` 保存交付回执和可见会话日志，`sandbox` 管理执行隔离，`observability` 保存 Trace 与投影，`contracts` 保存消息、工具、模型和扩展接口。工具注册与具体实现位于 `src/capabilities/tools/`；长期记忆位于 `src/memory/`。`src/runtime/index.ts` 为 Surface 暴露会话入口。模型服务通过注入的 ProviderAudit 接口接受 Arena 计费审计，不导入 Eval 实现。
 
@@ -58,6 +60,8 @@ Current addendum：显式配置 `allowedWriteRoot` 的窄 SubAgent workflow 现�
 
 ```mermaid
 flowchart LR
+    Tools --> UIChannel["Optional Main UI delivery"]
+    Subagent --> Activity["Parent tool identity / state callback"]
     Tools --> Execution["Shell / file tools / bounded workers"]
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     ToolManager --> AppTools["App tools / exact write confirmation"]
@@ -154,12 +158,16 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 
 ## Target Architecture
 
+Dashboard Intelligent Chat 仍使用 Base 的同一 AgentSession / ConversationRunner。可选 channel UI callback 使 `send_ui` 仅在支持富 UI 的 Main session 可见；Subagent 不直接交付 UI。SubAgentManager 将可信 parent tool-call identity 与状态变化提供给 Surface，Surface 决定 AG-UI 投影，Runtime 不依赖浏览器协议。MCP 工具调用通过注入的 Connector 能力执行，并保留既有 role/surface/confirmed gate。
+
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 目标是把 provider transcript、trace 和 durable session 分清楚，并把 tool result、delivery evidence、runtime failure 和 retry budget 升级为结构化事实。Provider adapter 必须作为可扩展边界存在：OpenAI-compatible、Anthropic Messages 和 Ollama native `/api/chat` 都要统一归一到 `ChatResponse` / `Message` / `ToolDefinition` 合同，而不是把 provider-specific transcript 泄漏到 runner。工具可见性必须支持 role 声明式策略：默认角色继续看到三层 ToolManager 过滤后的工具；显式配置的弱模型/窄动作角色可以通过 active skill 激活 scoped toolsets，并由 runtime 强制执行确认类工具 gate。
 
 ```mermaid
 flowchart LR
+    Tools --> UIChannel["Optional Main UI delivery"]
+    Subagent --> Activity["Parent tool identity / state callback"]
     Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Sandbox --> Native["Seatbelt on macOS / Bubblewrap on Linux"]
     Tools --> AppTools["App tools / all app operations / confirmed writes"]

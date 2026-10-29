@@ -7,7 +7,8 @@
     "xiaoba": "dist/index.js"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc",
+    "build": "node scripts/clean-dist.mjs && tsc && node scripts/build-chat.mjs",
+    "predev": "node scripts/build-chat.mjs",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "start:cli": "node dist/index.js",
@@ -19,6 +20,7 @@
     "watch": "tsc --watch",
     "pretest": "npm run build",
     "test": "node scripts/run-tests.mjs",
+    "test:chat-browser": "tsx --test test/browser/intelligent-chat.ts",
     "test:contract-smoke": "tsx scripts/run-contract-smoke.ts --out output/test/contract-smoke",
     "test:contract": "tsx scripts/run-test-suite.ts --suite test/contract-smoke/suites/contract-sentinel.json --out output/test/contract-sentinel",
     "test:contract-boundary": "tsx scripts/run-test-suite.ts --suite test/contract-smoke/suites/contract-boundary-smoke.json --out output/test/contract-boundary-smoke",
@@ -54,9 +56,12 @@
   },
   "homepage": "https://github.com/fightheyyy/xiaobaOS#readme",
   "dependencies": {
+    "@ag-ui/core": "1.0.3",
     "@anthropic-ai/sandbox-runtime": "0.0.79",
     "@anthropic-ai/sdk": "^0.27.0",
     "@larksuiteoapi/node-sdk": "^1.58.0",
+    "@modelcontextprotocol/ext-apps": "2.0.4",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@openai/codex-sdk": "0.146.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.221.0",
@@ -89,6 +94,7 @@
     "electron": "^33.4.11",
     "electron-builder": "^26.8.1",
     "electron-packager": "^17.1.2",
+    "esbuild": "0.28.2",
     "figlet": "^1.11.0",
     "gifenc": "^1.0.3",
     "playwright": "^1.58.2",

@@ -26,7 +26,7 @@ export type ToolControlMode = 'pause_turn';
 export type ToolResultStatus = 'success' | 'failure' | 'timeout' | 'cancelled' | 'blocked';
 export type ArtifactAction = 'created' | 'updated' | 'sent' | 'generated' | 'captured';
 export type DeliveryEvidenceStatus = 'delivered' | 'failed' | 'blocked';
-export type DeliveryEvidenceType = 'text' | 'file';
+export type DeliveryEvidenceType = 'text' | 'file' | 'ui';
 export type ExternalDeliveryReceiptType = 'message' | 'file' | 'upload' | 'download';
 export type ExternalDeliveryReceiptStatus = 'accepted' | 'available' | 'delivered' | 'failed' | 'blocked';
 
@@ -169,6 +169,8 @@ export interface ChannelCallbacks {
   reply: (chatId: string, text: string) => Promise<ChannelDeliveryReceipt | void>;
   /** 发送文件 */
   sendFile: (chatId: string, filePath: string, fileName: string) => Promise<ChannelDeliveryReceipt | void>;
+  /** Optional rich UI delivery. Only the owning Main session receives this capability. */
+  sendUI?: (content: Record<string, unknown>) => Promise<void>;
 }
 
 /** @deprecated Use ChannelCallbacks instead */

@@ -28,6 +28,7 @@ export type SubAgentSkillSelectionMode = 'preselected' | 'subagent_decides' | 'n
 
 export interface SubAgentInfo {
   id: string;
+  parentToolCallId?: string;
   skillName?: string;
   skillSelectionMode?: SubAgentSkillSelectionMode;
   roleName?: string;
@@ -47,6 +48,7 @@ export interface SubAgentInfo {
 }
 
 export interface SubAgentSpawnOptions {
+  parentToolCallId?: string;
   /** Runtime-owned state journal callback; no new execution authority. */
   onStateChange?: (info: SubAgentInfo) => void;
   /** Narrow runtime-owned turn budget; normal role dispatch keeps the existing default. */
@@ -81,6 +83,7 @@ const SUB_AGENT_ALWAYS_HIDDEN_TOOLS = new Set([
   'resume_subagent',
   'send_text',
   'send_file',
+  'send_ui',
 ]);
 
 const SUB_AGENT_TOOL_ALIASES: Record<string, string> = {
@@ -586,6 +589,7 @@ export class SubAgentSession {
   getInfo(): SubAgentInfo {
     return {
       id: this.id,
+      ...(this.options.parentToolCallId ? { parentToolCallId: this.options.parentToolCallId } : {}),
       ...(this.selectedSkillName ? { skillName: this.selectedSkillName } : {}),
       skillSelectionMode: this.getSkillSelectionMode(),
       ...(this.options.roleName ? { roleName: this.options.roleName } : {}),

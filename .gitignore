@@ -106,6 +106,9 @@ bash.exe.stackdump
 # Local README rendering
 /README.preview.html
 
+# Generated, locally bundled Chat protocol runtime (produced by npm run build).
+/desktop/dashboard/chat-runtime.js
+
 # Personal scratch files
 *_resume.tex
 resume*.tex

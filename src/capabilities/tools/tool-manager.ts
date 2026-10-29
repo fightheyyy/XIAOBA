@@ -28,6 +28,7 @@ import { GrepTool } from './grep-tool';
 import { SkillTool } from './skill-tool';
 import { SendFileTool } from './send-file-tool';
 import { SendTextTool } from './send-text-tool';
+import { SendUITool } from './send-ui-tool';
 import { SpawnSubagentTool } from './spawn-subagent-tool';
 import { CheckSubagentTool } from './check-subagent-tool';
 import { StopSubagentTool } from './stop-subagent-tool';
@@ -158,6 +159,7 @@ export class ToolManager implements ToolExecutor {
     // Surface delivery tools: only visible/executable on channel-backed surfaces.
     this.registerSurfaceTool(new SendTextTool());
     this.registerSurfaceTool(new SendFileTool());
+    this.registerSurfaceTool(new SendUITool());
 
     // 元工具
     this.registerBaseTool(new SpawnSubagentTool());
@@ -451,7 +453,7 @@ export class ToolManager implements ToolExecutor {
       const deliveryType = typeof record.delivery_type === 'string' ? record.delivery_type : '';
       const status = typeof record.status === 'string' ? record.status : '';
       const timestamp = typeof record.timestamp === 'string' ? record.timestamp : '';
-      if ((deliveryType !== 'text' && deliveryType !== 'file') || !status || !timestamp) return [];
+      if (!['text', 'file', 'ui'].includes(deliveryType) || !status || !timestamp) return [];
       return [{
         ...(typeof record.delivery_id === 'string' && { delivery_id: record.delivery_id }),
         ...(typeof record.surface === 'string' && { surface: record.surface as DeliveryEvidence['surface'] }),

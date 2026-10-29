@@ -11,6 +11,8 @@ export class PromptManager {
   private static promptsDir = path.join(PathResolver.getApplicationRoot(), 'prompts');
 
   private static resolveRoleName(roleName?: string): string | undefined {
+    // Preserve an explicit Base selection through nested prompt resolution.
+    if (roleName && ['base', 'default', 'none'].includes(roleName.trim().toLowerCase())) return 'base';
     return roleName ? ActiveRoleContext.resolveRoleDirectoryName(roleName) : ActiveRoleContext.getActiveRoleName();
   }
 
@@ -211,7 +213,7 @@ export class PromptManager {
       || process.env.BOT_BRIDGE_NAME
       || ''
     ).trim();
-    const roleName = resolvedRoleName || '';
+    const roleName = resolvedRoleName === 'base' ? '' : resolvedRoleName || '';
     const roleDisplayName = roleName
       ? (ActiveRoleContext.getRoleConfig(roleName)?.displayName || roleName)
       : '';

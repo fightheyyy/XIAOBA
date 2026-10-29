@@ -8,7 +8,7 @@ export interface PetVisibleHistoryEvent {
   id?: number;
   petId?: string;
   sessionKey?: string;
-  timestamp?: string;
+  timestamp?: string | number;
   [key: string]: unknown;
 }
 
