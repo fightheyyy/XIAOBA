@@ -161,6 +161,23 @@ Dashboard 左侧 **应用连接 / Connectors** 只保留 Gmail、Notion、GitHub
 Electron 桌面客户端会在系统浏览器打开 Google 授权；完成后返回应用自动刷新连接状态。浏览器版 Dashboard 会直接跳转并在授权回调后返回应用连接页。
 
 
+### Dashboard Intelligent Chat
+
+Chat 始终回到同一段 XiaoBa Main Agent 长期对话，不提供新建、切换或分支话题入口；刷新、换浏览器仍继续同一主对话。升级时自动续接最近使用的旧 Chat，其他旧记录保留在本地。Subagent 是 Main Agent 调用的工具，进度和结果显示在可折叠工具卡片中。Chat 不随管理页的当前 Role 切换身份。旧 Pet 页面与桌宠仍保留各自的 Role session。
+
+Main Agent 可通过 `send_ui` 在消息内展示表单、指标和图表，提交后继续同一对话。最近 2000 个 UI/工具事件支持刷新恢复；刷新不会重做已提交的操作。界面沿用 Dashboard 的暖白主题、共享按钮和头像 renderer。
+
+要使用工具提供的 MCP App，可在配置页的 **MCP Apps** 中设置服务器 JSON，或在工作区 `.env` 配置：
+
+```dotenv
+XIAOBA_MCP_SERVERS={"projects":{"url":"https://example.com/mcp","tokenEnv":"PROJECTS_MCP_TOKEN","allowedTools":["project_progress","project_update"]}}
+PROJECTS_MCP_TOKEN=your-local-token
+```
+
+`tokenEnv` 和 `allowedTools` 都可省略；凭据值只放在本机环境中。当前支持 HTTPS 和 loopback HTTP 的 Streamable HTTP 服务器，暂不支持 stdio 或自动 OAuth。Main Agent 使用 `mcp_list` 查看工具，`mcp_read` 调用明确声明为只读的工具；工具的 `_meta.ui.resourceUri` 指向 `ui://` HTML 时自动嵌入对话。App 只可经代理调用同一服务器的只读工具；写操作由 Main Agent 先展示完整参数，再由用户明确确认后通过 `mcp_write` 执行。
+
+开发时先 `npm run build`（会本地打包官方 AppBridge 与 Chat renderer），再启动 Dashboard。浏览器验收用 `npm run test:chat-browser`，需要 Playwright Chromium；已安装的浏览器可通过 `XIAOBA_BROWSER_EXECUTABLE` 指定。
+
 ### 统一执行沙箱
 
 Shell、文件工具、受限子任务、Arena 和 Evolution 的进程隔离统一使用本地开源 `@anthropic-ai/sandbox-runtime`，无需购买沙箱服务。需要 Node.js >=22.12；Linux 安装 Bubblewrap、socat、ripgrep，并需要可用的 user namespace；macOS 使用 SDK 的 Seatbelt。先执行 `xiaoba sandbox check` 验证实际可用性。Windows 接入尚未验收，受限执行会返回 blocked。

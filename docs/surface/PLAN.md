@@ -8,6 +8,10 @@ Owner：Surface maintainers
 
 Dashboard 商店已改接 skills.sh，提供热门、搜索、分页、来源详情及单项安装；沿用现有卡片和中英文样式，CLI 共用分发能力。
 
+Personal Agent 主对话收敛（2026-10-29，Owner: Surface）：已完成一个工作区、一段长期 Main Agent 对话；新建、切换及分支入口已移除。前后端由服务端确定唯一身份，升级续接最近使用且含用户消息的旧 Chat。构建、73/73 定向检查和 1/1 Chromium 场景通过：刷新和独立浏览器上下文恢复同一主对话、拒绝自选新身份、重启续接且保留旧记录。下一步为真实模型和用户使用验收；最近 2000 个事件的 UI 恢复窗口仍是现有限制。
+
+Dashboard Intelligent Chat（2026-10-29，Owner: Surface / Runtime / Evidence）：本地实现和确定性协议/浏览器闭环已完成。单一 Base Main Agent、AG-UI 工具/Subagent 状态、受限 A2UI catalog 与 MCP Apps iframe 已接入；原 Pet 入口保持兼容。用户指出独立视觉风格偏离后，Chat 已改回 Dashboard 共享主题、按钮和头像体系。浏览器覆盖表单提交、实际 AppBridge/MCP 通信、刷新无重执行、其他会话身份拒绝，以及 390×844 / 844×390 输入区可见性。真实模型行为、用户自己的 MCP 服务和原生 Electron 发行构建尚未验收。
+
 根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
 
 源码目录迁移完成（2026-10-23）：全部渠道与 CLI 已迁入 surfaces；Electron 主入口 main.js 与子进程 server-entry.js 均使用迁移后的 Dashboard 路径，资源测试从主入口实际声明的加载表达式定位模块；编译后的 CLI、prompt、Dashboard/Pet 页面已在独立工作目录验收。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
@@ -15,7 +19,7 @@ Dashboard 商店已改接 skills.sh，提供热门、搜索、分页、来源详
 - CLI、Feishu、Weixin、Pet、Dashboard 和 Electron 进入共享 AgentSession。
 - CLI 使用 direct final reply；channel-backed surfaces 通过 `send_text` / `send_file` 交付。
 - `prompts/surface.md` 是 channel delivery prompt 的唯一运行时来源。
-- Pet/Dashboard role-scoped session、visible history、SSE replay 和 subagent completion callback 已实现。
+- 旧 Pet 协议的 role-scoped session、visible history、SSE replay 和 subagent completion callback 已实现；新版 Dashboard Chat 固定 Base，Role 作为工具调用。
 - Feishu/Pet runtime smoke 已覆盖文本、文件和 external receipt 基本形态。
 - Feishu Surface App ID 已作为 canonical application identity；SecretaryCat 按同 App ID 显式选择官方 `lark-cli` profile，不修改全局 active profile。
 - macOS Electron packaging maps the optional `@steipete/peekaboo@3.8.0` binary to GuiCat's fixed `resources/drivers/peekaboo/peekaboo` path.
@@ -94,6 +98,7 @@ flowchart LR
 ## Acceptance Criteria
 
 - Every maintained surface declares `surface`, session key and user-visible output semantics.
+- Dashboard Chat 只提供同一段长期 Main 对话；服务端身份跨刷新、浏览器上下文和重启保持稳定，不提供新建、切换、分支或会话列表接口，升级不删除旧文件。
 - CLI does not expose channel delivery tools.
 - Channel delivery tools appear only with real callbacks and explicit surface context.
 - Role-scoped Pet/Dashboard sessions isolate skills, tools, history and SSE replay.
@@ -118,6 +123,10 @@ flowchart LR
 ## Recent Verification
 
 - 2026-10-29：skills.sh 接入 `npm run build` 通过；分发适配、Dashboard API、Skill 解析/加载、已安装 package、EvolutionCat 和模块边界测试 38/38 通过。真实公开接口完成热门榜、react 搜索、find-skills 下载与 Runtime 加载，测试包位于临时目录并已清理。Chromium 在模拟上游下通过分页、单项安装及附属文件、短搜索词、过时响应、错误提示、桌面/手机布局和零页面异常检查；截图位于 `output/test/skills-store/`。未执行 Skill 指令或调用模型。
+
+- 2026-10-29 主对话收敛：整合 origin/main 的 skills.sh 商店更新（10c56a9）后，构建、73/73 Chat/renderer/config/store/角色与交付定向检查、1/1 Chromium 桌面/移动端场景通过。验证旧用户消息超出 2000 事件窗口时仍能选择同一身份、服务重启不删除历史、自选新 thread 被拒绝、独立浏览器忽略旧 localStorage 选择并恢复同一表单，且不重复模型或 MCP 工具调用。最终日志为 `output/test/intelligent-chat/github-{build,focused,browser}.log`，截图沿用同目录；本次未重跑整仓测试。
+
+- 2026-10-29 Intelligent Chat：TypeScript/build 与本地协议 bundle 通过；新增 UI/协议与配置定向检查 10/10、真实 Chromium 浏览器场景 1/1 通过（包括原生主题传递、已提交表单值恢复、明确确认后的写入和变更参数拒绝）。相关模块回归 106/108；整合 skills.sh 前的完整回归 707/716。以本功能开发前的 b18b23e 源码、同一依赖和 Node 在独立临时目录验证，完整基线 700/709，失败的 9 项测试名称一致，涉及本机 sandbox 路径/执行和 reminder 路由；不宣称整仓全绿。截图和日志在 `output/test/intelligent-chat/`。协议测试使用 Scripted AI + 真实 AgentSession、MCP SDK Server 与官方 AppBridge，不等同于 Live Agent Eval。
 
 - 2026-10-23 Reference visual refresh：共享 player 的静态首帧与动画使用不对称软耳、宽圆身体、粗弯尾和倾斜胶囊眼；Base 配色与 manifest 同步，保留九种状态、Role 唯一配色与自定义描边。验收：TypeScript build passed；Dashboard renderer / Pet channel / desktop launcher 定向测试 38/38 passed；真实 Chromium 检查九种状态及有/无描边共 2160 帧，最小边缘余量 6px（384×416 backing canvas），零裁切与页面异常；RAF、眨眼和表情渐变通过。预览位于 `output/playwright/xiaoba-reference-base.png`、`xiaoba-role-preview.png` 与 `xiaoba-motion-preview.gif`。原生 Electron 安装包未在本轮重新构建。
 

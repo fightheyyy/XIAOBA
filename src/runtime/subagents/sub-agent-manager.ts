@@ -10,6 +10,8 @@ import { randomUUID } from 'crypto';
 export interface PlatformCallbacks {
   /** 向主会话投递消息，触发主 agent 新一轮推理 */
   injectMessage: (text: string) => Promise<void>;
+  /** Read-only activity projection; cannot grant execution authority. */
+  onStateChange?: (info: SubAgentInfo) => void;
 }
 
 export type StopSubAgentResult = 'stopped' | 'not_found' | 'forbidden' | 'not_running';
@@ -64,7 +66,10 @@ export class SubAgentManager {
   /** New message in the SAME live Surface: keep child ownership, refresh its route. */
   refreshPlatformCallbacks(sessionKey: string, callbacks: PlatformCallbacks, owner?: object): void {
     const current = this.platformCallbacks.get(sessionKey);
-    if (current && this.callbackOwners.get(sessionKey) === owner) current.injectMessage = callbacks.injectMessage;
+    if (current && this.callbackOwners.get(sessionKey) === owner) {
+      current.injectMessage = callbacks.injectMessage;
+      current.onStateChange = callbacks.onStateChange;
+    }
     else {
       this.registerPlatformCallbacks(sessionKey, callbacks);
       if (owner) this.callbackOwners.set(sessionKey, owner);
@@ -104,7 +109,7 @@ export class SubAgentManager {
     workingDirectory: string,
     aiService: AIService,
     skillManager: SkillManager,
-    spawnOptions: Pick<SubAgentSpawnOptions, 'roleName' | 'allowSkillSelection' | 'observabilityContext' | 'parentSessionId'> = {},
+    spawnOptions: Pick<SubAgentSpawnOptions, 'roleName' | 'allowSkillSelection' | 'observabilityContext' | 'parentSessionId' | 'parentToolCallId'> = {},
   ): SubAgentInfo | { error: string } {
     // 并发限制
     const active = this.listByParent(parentSessionKey,workingDirectory).filter(s => SubAgentManager.isActiveStatus(s.status));
@@ -127,8 +132,16 @@ export class SubAgentManager {
     }
 
     const journal = new SubAgentJournal(workingDirectory);
+    const recordState = (info: SubAgentInfo) => {
+      journal.record(parentSessionKey, info);
+      if (this.platformCallbacks.get(parentSessionKey) === platform) {
+        try { platform.onStateChange?.(info); }
+        catch (error: any) { Logger.warning(`[SubAgentManager] Activity projection failed: ${error.message}`); }
+      }
+    };
     const options: SubAgentSpawnOptions = {
-      onStateChange: info => journal.record(parentSessionKey,info),
+      onStateChange: recordState,
+      parentToolCallId: spawnOptions.parentToolCallId,
       skillName,
       taskDescription,
       userMessage,
@@ -145,13 +158,13 @@ export class SubAgentManager {
     };
 
     const session = new SubAgentSession(id, aiService, skillManager, options);
-    journal.record(parentSessionKey,session.getInfo());
+    recordState(session.getInfo());
     this.subAgents.set(id, session);
     this.parentMap.set(id, parentSessionKey);
 
     // fire-and-forget
     session.run().finally(() => {
-      journal.record(parentSessionKey,session.getInfo());
+      recordState(session.getInfo());
       // 通知主 agent 子智能体已完成（stopped 不通知）
       if (session.status !== 'stopped' && this.platformCallbacks.get(parentSessionKey)===platform) {
         const info = session.getInfo();

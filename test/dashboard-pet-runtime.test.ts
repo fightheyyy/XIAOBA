@@ -204,22 +204,15 @@ describe('Dashboard pet runtime event handling', () => {
 });
 
 describe('Dashboard pet page wiring', () => {
-  test('main dashboard chat passes role-scoped session keys to event replay and sends', () => {
-    const index = fs.readFileSync(path.join(process.cwd(), 'desktop', 'dashboard', 'index.html'), 'utf-8');
-
-    assert.match(index, /function roleScopedSessionKey\(petId, roleKey\)/);
-    assert.match(index, /selectedSessionKey = roleScopedSessionKey\(selectedPetId, selectedPetRole\);/);
-    assert.match(index, /petClient\.connect\(selectedPetId, handlePetEvent, \{ replay: true, sessionKey: selectedSessionKey \}\)/);
-    assert.match(index, /petClient\.sendMessage\(selectedPetId, text, petEventSource \? undefined : handlePetEvent, \{ source: 'dashboard', sessionKey: selectedSessionKey \}\)/);
-  });
-
-  test('main dashboard chat renders message-mode text as separate visible replies', () => {
-    const index = fs.readFileSync(path.join(process.cwd(), 'desktop', 'dashboard', 'index.html'), 'utf-8');
-
-    assert.match(index, /onText: \(_event, text, meta\) => \{\s*renderAssistantText\(text, meta\);/);
-    assert.match(index, /onDone: \(event, meta\) => \{\s*if \(event\.visibleToUser !== false && event\.text && !meta\?\.alreadyRenderedText\) \{/);
-    assert.match(index, /if \(meta\.mode === 'message'\) \{\s*appendPetBubble\('assistant', value\);\s*currentAssistantBubble = null;\s*return;\s*\}/);
-    assert.doesNotMatch(index, /function renderToolStart\(event\) \{\s*discardAssistantDraft\(\);/);
+  test('dashboard Chat has one Main Agent composer while the Pet widget keeps its separate runtime', () => {
+    const root = path.join(process.cwd(), 'desktop/dashboard');
+    const index = fs.readFileSync(path.join(root, 'index.html'), 'utf-8');
+    const chat = index.slice(index.indexOf('<!-- Page: Chat:'), index.indexOf('<!-- Page: Agent connections -->'));
+    assert.match(index, /<script src="chat-runtime.js"><\/script>/);
+    assert.match(chat, /Main Agent/);
+    assert.strictEqual((chat.match(/<textarea/g) || []).length, 1);
+    assert.doesNotMatch(chat, /role-select|selectPet|selectedPetRole/);
+    assert.doesNotMatch(index, /petClient\.sendMessage|roleScopedSessionKey/);
   });
 
   test('desktop pet widget does not repeat done text after a text event', () => {
@@ -282,7 +275,7 @@ describe('Dashboard pet page wiring', () => {
 
     assert.match(index, /function getSkillDisplayName\(skill\) \{/);
     assert.match(index, /const displayName = getSkillDisplayName\(sk\);/);
-    assert.match(index, /const displayName = getSkillDisplayName\(i\);/);
+    assert.match(index, /const displayName\s*=\s*getSkillDisplayName\(i\);/);
     const renderedNameFragments = index.match(/<div class="skill-name" title="'\+escapeHtml\(displayName\)\+'">'\+escapeHtml\(displayName\)/g) || [];
     assert.ok(renderedNameFragments.length >= 2);
   });

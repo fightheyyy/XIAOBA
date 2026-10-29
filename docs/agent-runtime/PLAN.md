@@ -1,10 +1,12 @@
 # Agent Runtime PLAN
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 Owner：Runtime maintainers
 
 ## Current Status
+
+Intelligent Chat（2026-10-29，Owner: Runtime）：可选 UI channel callback、Main-only send_ui、parentToolCallId 和只读 Subagent 状态投影已实现；Base prompt/skill 显式选择不受全局角色影响。新增协议/Runtime 集成 6/6 通过，完整回归与 HEAD 基线有相同 9 项失败（详见 Surface PLAN）。下一步为真实模型和原生 Electron 打包验收；不增加 Agent loop 或新的角色调度器。
 
 源码目录迁移完成（2026-10-23）：Runtime 子目录与会话公共入口已落地；Arena 审计改为注入接口，新增依赖检查阻止 Runtime 直接引用 Surface、Connector 或 Eval 实现。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 

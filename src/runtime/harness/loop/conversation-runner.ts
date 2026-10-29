@@ -67,7 +67,7 @@ export interface RunnerCallbacks {
   /** 工具开始执行 */
   onToolStart?: (name: string, toolUseId: string, input: any) => void;
   /** 工具执行完成 */
-  onToolEnd?: (name: string, toolUseId: string, result: string) => void;
+  onToolEnd?: (name: string, toolUseId: string, result: string, facts?: ToolResult) => void;
   /** 需要显示工具输出（如 task_planner） */
   onToolDisplay?: (name: string, content: string) => void;
   /** 重试通知 */
@@ -600,11 +600,11 @@ export class ConversationRunner {
           attributes: toolResultAttrs,
         });
         Logger.info(`[${this.sessionLabel}Turn ${turns}] 工具完成: ${toolName} | 耗时: ${toolDuration}ms | 结果: ${ConversationRunner.truncateForLog(result.content, 300)}`);
-        callbacks?.onToolEnd?.(toolName, toolUseId, contentToString(result.content));
+        callbacks?.onToolEnd?.(toolName, toolUseId, contentToString(result.content), result);
 
         const transcriptMode = this.getToolTranscriptMode(toolName, toolDefinitions);
         if (
-          (transcriptMode === 'outbound_message' || transcriptMode === 'outbound_file')
+          (transcriptMode === 'outbound_message' || transcriptMode === 'outbound_file' || result.delivery_evidence?.some(delivery => delivery.status === 'delivered'))
           && result.ok
           && !this.hasStructuredFailure(result)
         ) {

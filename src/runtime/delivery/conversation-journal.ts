@@ -21,7 +21,8 @@ export type ConversationDeliveryStatus = 'received' | 'delivered';
 
 export type ConversationContent =
   | { type: 'text'; text: string }
-  | { type: 'file'; name: string; ref?: string };
+  | { type: 'file'; name: string; ref?: string }
+  | { type: 'ui'; format: 'a2ui' | 'mcp'; ref: string; title?: string };
 
 export type ConversationContentPart = ConversationContent;
 
@@ -433,6 +434,12 @@ function normalizeContent(content: ConversationContent[]): ConversationContent[]
       const ref = normalizeOptionalVisibleText(item.ref, MAX_FILE_REF_BYTES);
       totalBytes += Buffer.byteLength(name, 'utf8') + (ref ? Buffer.byteLength(ref, 'utf8') : 0);
       return { type: 'file' as const, name, ...(ref && { ref }) };
+    }
+    if (item?.type === 'ui' && ['a2ui', 'mcp'].includes(item.format)) {
+      const ref = normalizeRequiredVisibleText(item.ref, MAX_FILE_REF_BYTES, `content[${index}].ref`);
+      const title = normalizeOptionalVisibleText(item.title, MAX_FILE_NAME_BYTES);
+      totalBytes += Buffer.byteLength(ref, 'utf8') + (title ? Buffer.byteLength(title, 'utf8') : 0);
+      return { type: 'ui' as const, format: item.format, ref, ...(title ? { title } : {}) };
     }
     throw new TypeError(`content[${index}] is not a supported visible item`);
   });

@@ -118,6 +118,7 @@ export function journalVisibleChannel(
 ): ChannelCallbacks {
   let deliveredCount = 0;
   return {
+    ...(channel.sendUI ? { sendUI: channel.sendUI } : {}),
     chatId: channel.chatId,
     reply: async (chatId, text) => {
       const receipts = await channel.reply(chatId, text);

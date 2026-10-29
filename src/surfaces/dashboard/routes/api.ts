@@ -12,6 +12,8 @@ import * as https from 'https';
 import * as http from 'http';
 import { getDashboardActiveRole, registerDashboardApiExtensions } from '../api-extensions';
 import { createPetRouter } from '../../pet/channel';
+import { DashboardChatChannel, dashboardChatBoundary } from '../chat-channel';
+import { McpAppsConnector } from '../../../connectors/mcp-apps';
 import { PathResolver } from '../../../runtime/paths';
 import { RoleResolver } from '../../../capabilities/roles/role-resolver';
 import { RoleManager } from '../../../capabilities/roles/role-manager';
@@ -134,6 +136,7 @@ export interface DashboardApiOptions {
   observabilityOutputRoot?: string;
   connectors?: DashboardConnectorOptions;
   skillStore?: SkillsShStore;
+  chat?: DashboardChatChannel;
 }
 
 /**
@@ -161,6 +164,13 @@ export function createApiRouter(serviceManager: ServiceManager, options: Dashboa
   const skillStore = options.skillStore || new SkillsShStore();
   router.use('/connectors', createDashboardConnectorRouter(serviceManager.getProjectRoot(), options.connectors));
   router.use(createPetRouter());
+  let chat = options.chat;
+  router.use('/chat', (req, res, next) => {
+    chat ||= new DashboardChatChannel({ root: serviceManager.getProjectRoot() });
+    chat.router(req, res, next);
+  });
+  // Server shutdown owns long-lived Chat streams and MCP transports.
+  (router as any).closeChat = () => chat?.destroy();
 
   // ==================== 总览 ====================
 
@@ -370,10 +380,21 @@ export function createApiRouter(serviceManager: ServiceManager, options: Dashboa
     }
   });
 
-  router.put('/config', (req, res) => {
+  router.put('/config', (req, res, next) => {
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'XIAOBA_MCP_SERVERS')) return dashboardChatBoundary(req, res, next);
+    next();
+  }, (req, res) => {
     try {
       const envPath = path.join(process.cwd(), '.env');
       const updates: Record<string, string> = req.body;
+      if (Object.prototype.hasOwnProperty.call(updates, 'XIAOBA_MCP_SERVERS')) {
+        try {
+          if (typeof updates.XIAOBA_MCP_SERVERS !== 'string') throw new Error();
+          const config = new McpAppsConnector({ environment: { XIAOBA_MCP_SERVERS: updates.XIAOBA_MCP_SERVERS.trim() || '{}' } }).config();
+          // .env owns one line per value; pretty-printed textarea JSON must survive restart.
+          updates.XIAOBA_MCP_SERVERS = JSON.stringify(config);
+        } catch { res.status(400).json({ error: 'Invalid MCP server JSON. Use url, optional tokenEnv and allowedTools.' }); return; }
+      }
 
       let content = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf-8') : '';
       const updatedKeys: string[] = [];

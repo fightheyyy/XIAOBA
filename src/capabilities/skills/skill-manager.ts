@@ -44,8 +44,8 @@ export class SkillManager {
     const resolvedRoleName = this.roleName
       ? ActiveRoleContext.resolveRoleDirectoryName(this.roleName)
       : undefined;
-    const roleConfig = resolvedRoleName
-      ? ActiveRoleContext.getRoleConfig(resolvedRoleName)
+    const roleConfig = this.roleName
+      ? (resolvedRoleName ? ActiveRoleContext.getRoleConfig(resolvedRoleName) : undefined)
       : ActiveRoleContext.getActiveRoleConfig();
     const inheritBaseSkills = roleConfig?.inheritBaseSkills !== false;
     const excludedBaseSkills = new Set([

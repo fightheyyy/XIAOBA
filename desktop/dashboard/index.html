@@ -3540,6 +3540,7 @@
   
   </style>
   <link rel="stylesheet" href="connectors.css">
+  <link rel="stylesheet" href="chat.css">
 </head>
 <body>
   <!-- Sidebar -->
@@ -3619,18 +3620,30 @@
         <div class="signal-grid status-grid" id="status-grid"></div>
       </div>
 
-      <!-- Page: Chat -->
+      <!-- Page: Chat: one Main Agent; subagents are tool invocations. -->
       <div class="page" id="page-pet">
-        <div class="section-title"><span data-i18n="pageChat">Chat</span> <span class="badge" id="pet-session-key">pet</span></div>
-        <div class="pet-surface">
-          <div class="pet-chat-panel">
-            <div class="pet-messages" id="pet-messages"></div>
-            <div class="pet-composer">
-              <textarea class="config-input pet-input" id="pet-input" placeholder="Type a message..."></textarea>
-              <button class="btn btn-primary" id="pet-send-btn" onclick="sendPetMessage()">Send</button>
+        <section class="chat-shell" aria-label="XiaoBa Chat">
+          <header class="chat-header">
+            <div class="chat-heading">
+              <canvas width="96" height="104" data-xiaoba-role-avatar="base" role="img" aria-label="XiaoBa"></canvas>
+              <div><strong>XiaoBa</strong><small>Main Agent</small></div>
             </div>
+            <div class="chat-header-actions">
+              <span id="chat-connection" class="chat-connection" role="status">Connecting…</span>
+            </div>
+          </header>
+          <div id="chat-scroll" class="chat-scroll"><div id="chat-timeline" class="chat-timeline" role="log" aria-label="Conversation" aria-live="polite"></div></div>
+          <div class="chat-composer-area">
+            <form id="chat-form" class="chat-composer">
+              <textarea id="chat-input" rows="2" maxlength="32000" aria-label="Message XiaoBa" placeholder="Tell XiaoBa what you want to do next…"></textarea>
+              <div class="chat-composer-actions">
+                <button id="chat-stop" class="chat-stop" type="button" data-chat-label="stop" hidden>Stop current response</button>
+                <button id="chat-send" class="chat-send btn btn-primary" type="submit" aria-label="Send" data-chat-label="send">Send</button>
+              </div>
+            </form>
+            <p class="chat-composer-footer" data-chat-label="footer">Handled by XiaoBa · Enter to send, Shift + Enter for a new line</p>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Page: Agent connections -->
@@ -3706,6 +3719,7 @@
 
   <script src="grokbot-data.js"></script>
   <script src="pet-runtime.js"></script>
+  <script src="chat-runtime.js"></script>
   <script>
     (function markShellPlatform() {
       const ua = navigator.userAgent || '';
@@ -4078,24 +4092,7 @@
     let rolesState = { active: null, roles: [] };
     let skillsState = [];
     let latestStatus = null;
-    let pets = [];
     let dashboardNavigationRequestId = 0;
-    const petRoleStorageKey = 'xiaoba.pet.role';
-    let selectedPetId = localStorage.getItem('xiaoba.pet.id') || '';
-    let selectedPetRole = localStorage.getItem(petRoleStorageKey) || '';
-    let activePetRole = selectedPetRole || 'base';
-    let selectedSessionKey = '';
-    let petBusy = false;
-    let currentAssistantBubble = null;
-    let petIdleTimer = null;
-    const petClient = new XiaoBaPetRuntime.PetClient({ api: API });
-    let petEventSource = null;
-    let seenPetEventIds = new Set();
-    let currentPetState = 'idle';
-    let currentToolTrace = null;
-    let toolEventSeq = 0;
-    let petInputComposing = false;
-    let petInputCompositionEndedAt = 0;
     const skillGroupCollapsed = { role: false, runtime: false };
     let dashboardAvatarManifest = Object.freeze({
       renderer: XiaoBaPetRuntime.rendererName,
@@ -4151,7 +4148,7 @@
       updateActiveRolePill(latestStatus ? latestStatus.roleDetail || null : null);
       if (skillsState.length) renderSkills(skillsState);
       if ((rolesState.roles || []).length) renderRoles(rolesState);
-      if (pets.length) renderPet();
+      window.XiaoBaChat?.setLanguage();
       if (Object.keys(configData || {}).length) renderConfig();
       renderStore(storeState);
       window.XiaoBaConnectors?.render();
@@ -4170,7 +4167,7 @@
       if (title) title.textContent = t(pageTitles[name] || 'pageRuntime');
       if (name === 'connectors') window.XiaoBaConnectors.load();
       if (name === 'roles') fetchRoles();
-      if (name === 'pet') fetchPets();
+      if (name === 'pet') window.XiaoBaChat?.init();
     }
 
     function openService(name, url) {
@@ -4206,458 +4203,8 @@
       return labelKey ? t(labelKey) : (service?.label || service?.name || '-');
     }
 
-    async function fetchPets(options = {}) {
-      try {
-        const data = await petClient.getPets();
-        pets = Array.isArray(data.pets) ? data.pets : [];
-        const roleKey = data.activeRole || 'base';
-        const defaultPetId = data.rolePetId || data.defaultPetId || '';
-        const roleChanged = roleKey !== selectedPetRole;
-        const defaultPetExists = defaultPetId && pets.some(p => p.id === defaultPetId);
-        activePetRole = roleKey;
-
-        if ((options.preferDefault || roleChanged) && defaultPetExists) {
-          if (selectedPetId !== defaultPetId) {
-            resetCurrentTurn();
-            seenPetEventIds = new Set();
-            document.getElementById('pet-messages').innerHTML = '';
-          }
-          selectedPetId = defaultPetId;
-          selectedPetRole = roleKey;
-          localStorage.setItem(petRoleStorageKey, selectedPetRole);
-        } else if (!selectedPetId || !pets.some(p => p.id === selectedPetId)) {
-          selectedPetId = defaultPetId || (pets[0] && pets[0].id) || '';
-          selectedPetRole = roleKey;
-          localStorage.setItem(petRoleStorageKey, selectedPetRole);
-        }
-        renderPet();
-      } catch (e) {
-        document.getElementById('pet-session-key').textContent = t('loadFailed');
-        if (!document.getElementById('pet-messages').children.length) {
-          appendPetEvent(t('petLoadFailed'));
-        }
-      }
-    }
-
-    function renderPet() {
-      const pet = pets.find(p => p.id === selectedPetId) || pets[0];
-      if (!pet) {
-        selectedPetId = '';
-        selectedSessionKey = '';
-        document.getElementById('pet-session-key').textContent = t('pageChat');
-        if (!document.getElementById('pet-messages').children.length) {
-          appendPetEvent(t('petNoAssets'));
-        }
-        return;
-      }
-
-      selectedPetId = pet.id;
-      localStorage.setItem('xiaoba.pet.id', selectedPetId);
-      const petLabel = pet.displayName || pet.id;
-      selectedSessionKey = roleScopedSessionKey(selectedPetId, selectedPetRole);
-      document.getElementById('pet-session-key').textContent = selectedSessionKey || petLabel;
-      currentPetState = 'idle';
-      connectPetEvents();
-      if (!document.getElementById('pet-messages').children.length) {
-        appendPetEvent(petLabel);
-      }
-    }
-
-    function selectPet(petId) {
-      selectedPetId = petId;
-      selectedPetRole = activePetRole || 'base';
-      localStorage.setItem(petRoleStorageKey, selectedPetRole);
-      resetCurrentTurn();
-      seenPetEventIds = new Set();
-      document.getElementById('pet-messages').innerHTML = '';
-      renderPet();
-    }
-
     function normalizeRoleKey(roleKey) {
-      const normalized = String(roleKey || 'base')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      return normalized || 'base';
-    }
-
-    function roleScopedSessionKey(petId, roleKey) {
-      if (!petId) return '';
-      const base = 'pet:' + petId;
-      const role = normalizeRoleKey(roleKey);
-      return role === 'base' ? base : base + ':role-' + role;
-    }
-
-    function focusPetInput() {
-      const panel = document.querySelector('#page-pet .pet-chat-panel');
-      const input = document.getElementById('pet-input');
-      if (panel) panel.classList.add('composing');
-      input.focus();
-      const length = input.value.length;
-      input.setSelectionRange(length, length);
-    }
-
-    function blurPetInputIfEmpty() {
-      const panel = document.querySelector('#page-pet .pet-chat-panel');
-      const input = document.getElementById('pet-input');
-      if (panel && !input.value.trim() && !petBusy) {
-        panel.classList.remove('composing');
-      }
-    }
-
-    function isPetInputComposing(event) {
-      return petInputComposing ||
-        event.isComposing ||
-        event.keyCode === 229 ||
-        event.code === 'Process' ||
-        Date.now() - petInputCompositionEndedAt < 80;
-    }
-
-    function setPetState(state) {
-      if (!XiaoBaPetRuntime.animations[state]) state = 'idle';
-      currentPetState = state;
-      clearTimeout(petIdleTimer);
-      if (state === 'waving' && !petBusy) {
-        petIdleTimer = setTimeout(() => setPetState('idle'), 1300);
-      }
-    }
-
-    function appendPetBubble(kind, text) {
-      const bubble = document.createElement('div');
-      bubble.className = 'pet-bubble '+kind;
-      bubble.textContent = text || '';
-      document.getElementById('pet-messages').appendChild(bubble);
-      scrollPetMessages();
-      return bubble;
-    }
-
-    function resetCurrentTurn() {
-      currentAssistantBubble = null;
-      currentToolTrace = null;
-    }
-
-    function renderAssistantText(text, meta = {}) {
-      const value = text || '';
-      if (!value.trim()) return;
-      if (meta.mode === 'message') {
-        appendPetBubble('assistant', value);
-        currentAssistantBubble = null;
-        return;
-      }
-      if (!currentAssistantBubble) currentAssistantBubble = appendPetBubble('assistant', '');
-      currentAssistantBubble.textContent = value;
-      scrollPetMessages();
-    }
-
-    function appendPetEvent(text) {
-      const event = document.createElement('div');
-      event.className = 'pet-event';
-      event.textContent = text;
-      document.getElementById('pet-messages').appendChild(event);
-      scrollPetMessages();
-    }
-
-    function ensureToolTrace() {
-      if (currentToolTrace) return currentToolTrace;
-      const trace = document.createElement('details');
-      trace.className = 'tool-trace running';
-      trace.open = true;
-
-      const summary = document.createElement('summary');
-      summary.className = 'tool-trace-summary';
-      const title = document.createElement('span');
-      title.className = 'tool-trace-title';
-      const meta = document.createElement('span');
-      meta.className = 'tool-trace-meta';
-      summary.append(title, meta);
-
-      const list = document.createElement('div');
-      list.className = 'tool-trace-list';
-      trace.append(summary, list);
-      document.getElementById('pet-messages').appendChild(trace);
-
-      currentToolTrace = {
-        el: trace,
-        title,
-        meta,
-        list,
-        rows: new Map(),
-      };
-      updateToolTrace();
-      scrollPetMessages();
-      return currentToolTrace;
-    }
-
-    function toolTraceCountText(toolCount, fileCount) {
-      if (currentLang === 'zh') {
-        const parts = [];
-        if (toolCount) parts.push(toolCount + ' 个工具');
-        if (fileCount) parts.push(fileCount + ' 个文件');
-        return parts.join(' / ') || t('toolTraceTitle');
-      }
-      const parts = [];
-      if (toolCount) parts.push(toolCount + ' tool' + (toolCount === 1 ? '' : 's'));
-      if (fileCount) parts.push(fileCount + ' file' + (fileCount === 1 ? '' : 's'));
-      return parts.join(' / ') || t('toolTraceTitle');
-    }
-
-    function updateToolTrace(trace = currentToolTrace) {
-      if (!trace) return;
-      const rows = Array.from(trace.rows.values());
-      const running = rows.filter(row => row.status === 'running').length;
-      const errors = rows.filter(row => row.status === 'error').length;
-      const warnings = rows.filter(row => row.status === 'warning').length;
-      const toolCount = rows.filter(row => row.kind === 'tool').length;
-      const fileCount = rows.filter(row => row.kind === 'file').length;
-
-      trace.el.classList.remove('running', 'warning', 'error');
-      if (!rows.length) {
-        trace.title.textContent = t('toolTraceTitle');
-        trace.meta.textContent = '';
-        return;
-      }
-      if (errors) {
-        trace.el.classList.add('error');
-        trace.el.open = true;
-        trace.title.textContent = t('toolTraceTitle') + ' · ' + t('toolTraceAttention');
-      } else if (warnings) {
-        trace.el.classList.add('warning');
-        trace.el.open = true;
-        trace.title.textContent = t('toolTraceTitle') + ' · ' + t('toolTraceAttention');
-      } else if (running) {
-        trace.el.classList.add('running');
-        trace.el.open = true;
-        trace.title.textContent = t('toolTraceTitle') + ' · ' + t('toolTraceRunning');
-      } else {
-        trace.title.textContent = t('toolTraceTitle') + ' · ' + t('toolTraceComplete');
-        trace.el.open = false;
-      }
-      trace.meta.textContent = toolTraceCountText(toolCount, fileCount);
-    }
-
-    function finishToolTrace() {
-      if (!currentToolTrace) return;
-      updateToolTrace(currentToolTrace);
-      const rows = Array.from(currentToolTrace.rows.values());
-      const needsAttention = rows.some(row => row.status === 'error' || row.status === 'warning');
-      const hasRunning = rows.some(row => row.status === 'running');
-      if (!needsAttention && !hasRunning) {
-        currentToolTrace.el.open = false;
-      }
-      currentToolTrace = null;
-    }
-
-    function toolKey(event, prefix) {
-      return event.toolUseId || `${prefix}:${event.name || event.fileName || 'event'}:${++toolEventSeq}`;
-    }
-
-    function compactToolPayload(value) {
-      if (value == null || value === '') return '';
-      const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-      return text.length > 1800 ? text.slice(0, 1800) + '\n...' : text;
-    }
-
-    function setToolRowStatus(row, status, label) {
-      row.status = status;
-      row.el.classList.remove('running', 'done', 'warning', 'error', 'file');
-      row.el.classList.add(status);
-      row.statusEl.textContent = label;
-    }
-
-    function syncToolRowDetail(row) {
-      const chunks = [];
-      if (row.input) chunks.push(t('toolInput') + ':\n' + row.input);
-      if (row.result) chunks.push(t('toolResult') + ':\n' + row.result);
-      row.detail.textContent = chunks.join('\n\n');
-      row.detail.hidden = chunks.length === 0;
-    }
-
-    function createToolRow(trace, key, kind, name, status, statusLabel) {
-      const rowEl = document.createElement('details');
-      rowEl.className = 'tool-row ' + status;
-      rowEl.open = status === 'running' || status === 'warning' || status === 'error';
-
-      const summary = document.createElement('summary');
-      summary.className = 'tool-row-summary';
-      const statusEl = document.createElement('span');
-      statusEl.className = 'tool-row-status';
-      statusEl.textContent = statusLabel;
-      const nameEl = document.createElement('span');
-      nameEl.className = 'tool-row-name';
-      nameEl.textContent = name || t('toolTraceTitle');
-      const metaEl = document.createElement('span');
-      metaEl.className = 'tool-row-meta';
-      summary.append(statusEl, nameEl, metaEl);
-
-      const detail = document.createElement('pre');
-      detail.className = 'tool-row-detail';
-      detail.hidden = true;
-      rowEl.append(summary, detail);
-      trace.list.appendChild(rowEl);
-
-      const row = {
-        kind,
-        status,
-        el: rowEl,
-        statusEl,
-        nameEl,
-        metaEl,
-        detail,
-        input: '',
-        result: '',
-      };
-      trace.rows.set(key, row);
-      return row;
-    }
-
-    function upsertToolRow(event) {
-      const trace = ensureToolTrace();
-      const key = toolKey(event, 'tool');
-      return trace.rows.get(key) || createToolRow(trace, key, 'tool', event.name, 'running', t('toolStatusRunning'));
-    }
-
-    function renderToolStart(event) {
-      const row = upsertToolRow(event);
-      setToolRowStatus(row, 'running', t('toolStatusRunning'));
-      row.metaEl.textContent = '';
-      row.input = compactToolPayload(event.input);
-      syncToolRowDetail(row);
-      row.el.open = Boolean(row.input);
-      updateToolTrace();
-      scrollPetMessages();
-    }
-
-    function renderToolEnd(event) {
-      const row = upsertToolRow(event);
-      setToolRowStatus(row, 'done', t('toolStatusDone'));
-      row.metaEl.textContent = '';
-      row.result = compactToolPayload(event.result);
-      syncToolRowDetail(row);
-      row.el.open = false;
-      updateToolTrace();
-      scrollPetMessages();
-    }
-
-    function renderToolDisplay(event) {
-      const trace = ensureToolTrace();
-      const key = toolKey(event, 'display');
-      const row = createToolRow(trace, key, 'tool', event.name, 'done', t('toolStatusInfo'));
-      row.result = compactToolPayload(event.content);
-      syncToolRowDetail(row);
-      updateToolTrace();
-      scrollPetMessages();
-    }
-
-    function renderToolRetry(event) {
-      const trace = ensureToolTrace();
-      const key = `retry:${++toolEventSeq}`;
-      const label = `${t('toolStatusRetry')} ${event.attempt || 0}/${event.maxRetries || 0}`;
-      const row = createToolRow(trace, key, 'notice', label, 'warning', t('toolStatusRetry'));
-      row.metaEl.textContent = t('toolTraceAttention');
-      row.el.open = true;
-      updateToolTrace();
-      scrollPetMessages();
-    }
-
-    function renderToolFile(event) {
-      const trace = ensureToolTrace();
-      const key = toolKey(event, 'file');
-      const row = createToolRow(trace, key, 'file', event.fileName || event.filePath || t('toolStatusFile'), 'file', t('toolStatusFile'));
-      row.result = compactToolPayload(event.filePath);
-      syncToolRowDetail(row);
-      updateToolTrace();
-      scrollPetMessages();
-    }
-
-    function renderToolError(event) {
-      const trace = ensureToolTrace();
-      const key = `error:${++toolEventSeq}`;
-      const row = createToolRow(trace, key, 'notice', event.message || t('toolStatusError'), 'error', t('toolStatusError'));
-      row.result = compactToolPayload(event.message);
-      syncToolRowDetail(row);
-      row.el.open = true;
-      updateToolTrace();
-      scrollPetMessages();
-    }
-
-    function scrollPetMessages() {
-      const box = document.getElementById('pet-messages');
-      box.scrollTop = box.scrollHeight;
-    }
-
-    const petRuntimeEventHandler = XiaoBaPetRuntime.createEventHandler({
-      setState: state => setPetState(state),
-      onUserMessage: event => {
-        resetCurrentTurn();
-        appendPetBubble('user', event.text || '');
-      },
-      onText: (_event, text, meta) => {
-        renderAssistantText(text, meta);
-      },
-      onToolStart: event => renderToolStart(event),
-      onToolEnd: event => renderToolEnd(event),
-      onToolDisplay: event => renderToolDisplay(event),
-      onRetry: event => renderToolRetry(event),
-      onFile: event => renderToolFile(event),
-      onError: event => renderToolError(event),
-      onDone: (event, meta) => {
-        if (event.visibleToUser !== false && event.text && !meta?.alreadyRenderedText) {
-          renderAssistantText(event.text);
-        }
-        finishToolTrace();
-        currentAssistantBubble = null;
-        setTimeout(() => {
-          if (!petBusy && currentPetState === 'waving') setPetState('idle');
-        }, 1500);
-      },
-    });
-
-    function connectPetEvents() {
-      if (petEventSource) petEventSource.close();
-      if (!selectedPetId) return;
-      petEventSource = petClient.connect(selectedPetId, handlePetEvent, { replay: true, sessionKey: selectedSessionKey });
-    }
-
-    async function sendPetMessage() {
-      const input = document.getElementById('pet-input');
-      const text = input.value.trim();
-      if (!text || petBusy || !selectedPetId) return;
-
-      petBusy = true;
-      document.getElementById('pet-send-btn').disabled = true;
-      input.value = '';
-      resetCurrentTurn();
-      setPetState('waiting');
-      document.querySelector('#page-pet .pet-chat-panel')?.classList.remove('composing');
-
-      try {
-        await petClient.sendMessage(selectedPetId, text, petEventSource ? undefined : handlePetEvent, { source: 'dashboard', sessionKey: selectedSessionKey });
-      } catch (e) {
-        setPetState('failed');
-        appendPetEvent(t('petSendFailed')+e.message);
-      } finally {
-        petBusy = false;
-        document.getElementById('pet-send-btn').disabled = false;
-        const state = currentPetState;
-        if (state === 'waving') {
-          setPetState('waving');
-        } else if (state !== 'failed') {
-          setPetState('idle');
-        }
-        input.focus();
-        if (!input.value.trim()) {
-          document.querySelector('#page-pet .pet-chat-panel')?.classList.remove('composing');
-        }
-      }
-    }
-
-    function handlePetEvent(event) {
-      if (event.id != null) {
-        if (seenPetEventIds.has(event.id)) return;
-        seenPetEventIds.add(event.id);
-      }
-      petRuntimeEventHandler(event);
+      return XiaoBaPetRuntime.normalizeRoleKey(roleKey || 'base');
     }
 
     function hydrateRoleAvatars(root = document) {
@@ -5000,7 +4547,6 @@
         await fetchRoles();
         await fetchStatus();
         await fetchSkills();
-        await fetchPets({ preferDefault: true });
       } catch (e) {
         alert(t('switchRoleFailed')+e.message);
       }
@@ -5016,7 +4562,6 @@
         await fetchRoles();
         await fetchStatus();
         await fetchSkills();
-        await fetchPets({ preferDefault: true });
       } catch(e) {
         alert(t('deleteRoleFailed')+e.message);
       }
@@ -5045,6 +4590,7 @@
     // === Config with collapsible groups ===
     let configData={};
     const configGroups=[
+      {title:'MCP Apps', collapsed:true, keys:[{key:'XIAOBA_MCP_SERVERS',label:'Servers (JSON)',type:'textarea'}]},
       {titleKey:'configPrimaryModel', collapsed:true, keys:[{key:'XIAOBA_LLM_PROVIDER',label:'Provider',type:'select',options:['anthropic','openai']},{key:'XIAOBA_LLM_API_BASE',label:'API Base URL'},{key:'XIAOBA_LLM_API_KEY',label:'API Key',sensitive:true},{key:'XIAOBA_LLM_MODEL',label:'Model'}]},
       {titleKey:'configBackupModel', collapsed:true, keys:[{key:'XIAOBA_LLM_BACKUP_PROVIDER',label:'Provider',type:'select',options:['','anthropic','openai']},{key:'XIAOBA_LLM_BACKUP_API_BASE',label:'API Base URL'},{key:'XIAOBA_LLM_BACKUP_API_KEY',label:'API Key',sensitive:true},{key:'XIAOBA_LLM_BACKUP_MODEL',label:'Model'}]},
       {titleKey:'configFeishu', collapsed:true, keys:[{key:'FEISHU_APP_ID',label:'App ID'},{key:'FEISHU_APP_SECRET',label:'App Secret',sensitive:true},{key:'FEISHU_BOT_OPEN_ID',label:'Bot Open ID'},{key:'FEISHU_BOT_ALIASES',label:'Bot Aliases'}]},
@@ -5065,7 +4611,8 @@
         const collapsedClass = g.collapsed ? ' collapsed' : '';
         const title = g.titleKey ? t(g.titleKey) : g.title;
         const rows = g.keys.map(i=>{
-          const v=configData[i.key]||'';
+          const v=configData[i.key]||(i.key==='XIAOBA_MCP_SERVERS'?'{}':'');
+          if(i.type==='textarea') return '<div class="config-row"><label class="config-label">'+i.label+'</label><textarea class="config-input" rows="5" data-key="'+i.key+'" placeholder="MCP server configuration JSON">'+escapeHtml(v)+'</textarea></div>';
           if(i.type==='select') return '<div class="config-row"><label class="config-label">'+i.label+'</label><select class="config-select" data-key="'+i.key+'">'+i.options.map(o=>'<option value="'+o+'"'+(v===o?' selected':'')+'>'+(o||t('emptyOption'))+'</option>').join('')+'</select></div>';
           const extraBtn = (i.key==='WEIXIN_TOKEN')?'<button class="btn btn-primary" onclick="getWeixinToken()" style="margin-left:8px">'+t('getToken')+'</button>':'';
           return '<div class="config-row"><label class="config-label">'+i.label+'</label><input class="config-input" data-key="'+i.key+'" type="'+(i.sensitive?'password':'text')+'" value="'+v+'" placeholder="'+i.key+'" />'+extraBtn+'</div>';
@@ -5077,7 +4624,7 @@
     async function saveConfig(){
       const inputs=document.querySelectorAll('[data-key]'),updates={};
       inputs.forEach(el=>{updates[el.dataset.key]=el.value;});
-      try{const r=await fetch(API+'/api/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(updates)});const d=await r.json();if(d.ok){const s=document.getElementById('config-saved');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),2000);}}catch(e){alert(t('saveFailed')+e.message);}
+      try{const r=await fetch(API+'/api/config',{method:'PUT',headers:{'Content-Type':'application/json','X-Xiaoba-Chat':'1'},body:JSON.stringify(updates)});const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||t('saveFailed'));if(d.ok){const s=document.getElementById('config-saved');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),2000);}}catch(e){alert(t('saveFailed')+e.message);}
     }
 
     // === Store ===
@@ -5189,31 +4736,14 @@
     // Init
     applyLanguage();
     queueRoleAvatarHydration();
-    fetchStatus();fetchSkills();fetchRoles();fetchConfig();fetchStore();fetchPets();
+    fetchStatus();fetchSkills();fetchRoles();fetchConfig();fetchStore();
+    window.XiaoBaChat?.init();
     window.XiaoBaConnectors.init({ getLanguage: () => currentLang });
     const initialPage = new URLSearchParams(location.search).get('page');
     if (initialPage && pageTitles[initialPage]) switchPage(initialPage);
     pollDashboardNavigation();
     setInterval(fetchStatus,5000);setInterval(fetchSkills,30000);
     setInterval(pollDashboardNavigation,1000);
-    const petInputEl = document.getElementById('pet-input');
-    petInputEl?.addEventListener('focus',focusPetInput);
-    petInputEl?.addEventListener('blur',blurPetInputIfEmpty);
-    petInputEl?.addEventListener('compositionstart',()=>{
-      petInputComposing = true;
-    });
-    petInputEl?.addEventListener('compositionend',()=>{
-      petInputComposing = false;
-      petInputCompositionEndedAt = Date.now();
-    });
-    petInputEl?.addEventListener('keydown',e=>{
-      if(e.key==='Enter'&&!e.shiftKey){
-        if (isPetInputComposing(e)) return;
-        e.preventDefault();
-        sendPetMessage();
-      }
-      if(e.key==='Escape'){e.currentTarget.blur();blurPetInputIfEmpty();}
-    });
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLogs();});
     document.getElementById('logs-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLogs();});
   </script>

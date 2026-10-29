@@ -15,6 +15,7 @@ const trackedEnvKeys = [
   'XIAOBA_LLM_API_BASE',
   'XIAOBA_LLM_API_KEY',
   'XIAOBA_LLM_MODEL',
+  'XIAOBA_MCP_SERVERS',
 ] as const;
 const originalEnv = new Map<string, string | undefined>(
   trackedEnvKeys.map(key => [key, process.env[key]])
@@ -136,5 +137,31 @@ describe('Dashboard config API', () => {
     const config = await configResponse.json() as { XIAOBA_LLM_API_KEY: string; XIAOBA_LLM_MODEL: string };
     assert.strictEqual(config.XIAOBA_LLM_API_KEY, '****3456');
     assert.strictEqual(config.XIAOBA_LLM_MODEL, 'gpt-5.5');
+  });
+
+  test('MCP server configuration requires a local same-origin Chat management request', async () => {
+    const body = JSON.stringify({ XIAOBA_MCP_SERVERS: '{}' });
+    const missing = await fetch(`${baseUrl}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
+    assert.strictEqual(missing.status, 403);
+    const crossOrigin = await fetch(`${baseUrl}/api/config`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Xiaoba-Chat': '1', Origin: 'https://attacker.invalid' }, body });
+    assert.strictEqual(crossOrigin.status, 403);
+    assert.ok(!fs.readFileSync(path.join(testRoot, '.env'), 'utf8').includes('XIAOBA_MCP_SERVERS='));
+  });
+
+  test('MCP textarea JSON survives dotenv reload, rejects inline secrets and permits clearing', async () => {
+    const headers = { 'Content-Type': 'application/json', 'X-Xiaoba-Chat': '1' };
+    const config = { projects: { url: 'https://example.com/mcp', tokenEnv: 'PROJECTS_MCP_TOKEN' } };
+    const saved = await fetch(`${baseUrl}/api/config`, { method: 'PUT', headers, body: JSON.stringify({ XIAOBA_MCP_SERVERS: JSON.stringify(config, null, 2) }) });
+    assert.strictEqual(saved.status, 200);
+    const dotenv = await import('dotenv');
+    const stored = dotenv.parse(fs.readFileSync(path.join(testRoot, '.env'), 'utf8'));
+    assert.deepStrictEqual(JSON.parse(stored.XIAOBA_MCP_SERVERS), config);
+    assert.deepStrictEqual(JSON.parse(process.env.XIAOBA_MCP_SERVERS!), config);
+    const denied = await fetch(`${baseUrl}/api/config`, { method: 'PUT', headers, body: JSON.stringify({ XIAOBA_MCP_SERVERS: JSON.stringify({ projects: { ...config.projects, token: 'inline-secret' } }) }) });
+    assert.strictEqual(denied.status, 400);
+    assert.ok(!fs.readFileSync(path.join(testRoot, '.env'), 'utf8').includes('inline-secret'));
+    const cleared = await fetch(`${baseUrl}/api/config`, { method: 'PUT', headers, body: JSON.stringify({ XIAOBA_MCP_SERVERS: '' }) });
+    assert.strictEqual(cleared.status, 200);
+    assert.strictEqual(process.env.XIAOBA_MCP_SERVERS, '{}');
   });
 });

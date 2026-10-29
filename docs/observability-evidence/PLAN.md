@@ -1,10 +1,12 @@
 # Observability & Evidence PLAN
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 Owner：Runtime / evidence maintainers
 
 ## Current Status
+
+Intelligent Chat UI evidence（2026-10-29，Owner: Evidence / Surface）：可见 UI 引用、action 输入和 session 内 UI snapshot 已实现，复用既有事件存储。新增 Runtime/协议 6/6 与浏览器 1/1 验证 Journal 不包含 HTML/隐藏 final，跨 session action/App 访问被拒绝，刷新恢复不重执行工具。恢复窗口为最近 2000 个事件，不宣称无限历史或自动恢复执行游标。完整回归与基线限制见 Surface PLAN。
 
 源码目录迁移完成（2026-10-23）：Trace、交付和长期记忆实现已分别归位到 runtime/observability、runtime/delivery 与 memory；既有持久化路径和 schema 保持原合同。 验证结果见仓库 PLAN 的 Recent Verification；本模块尚未完成的功能里程碑保持原状态。
 

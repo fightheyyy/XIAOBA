@@ -1,7 +1,7 @@
 # Observability & Evidence SPEC
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-10-29
 
 本文是顶层架构模块中的 **Observability & Evidence / 观测证据层** spec。它以本地 trace JSONL、durable state 和 artifact evidence 为事实源；当前实现可显式启用一个脱敏 OTLP trace 投影，但不会在本地 trace/log 写入前做清洗。
 
@@ -38,10 +38,14 @@ Out of scope:
 
 ## Current Architecture
 
+Intelligent Chat 已扩展 `DeliveryEvidence.delivery_type=ui` 和 Conversation 的 `{type:ui,format:a2ui|mcp,ref,title?}` 引用内容。完整 UI 消息和可见工具状态使用既有 `data/chat/sessions` 事件存储按 chat session 恢复；Journal 只记录成功交付的 UI 引用和用户提交动作，不记录 App HTML 或私有凭据。刷新不重放原 action/tool，未完成 Main run 标记中断。
+
 观测实现已归位到 `src/runtime/observability/`，包括 SessionTurnLogger、日志、指标、context debug 和 OTLP 投影；交付回执、Conversation Journal 和可见历史路径位于 `src/runtime/delivery/`；长期 Markdown 记忆、索引加载和维护位于 `src/memory/`。`harness/context` 只组装本次请求的上下文。运行产物仍写入既有 logs/data/memory/output 路径，schema 和 sessionKey 隔离不变。
 
 ```mermaid
 flowchart LR
+    UIDelivery["UI delivery / user action"] --> Conversation
+    UIDelivery --> ChatHistory["Session-scoped visible UI events"]
     CredentialStore["Private Agent credential file"] --> NativeApps
     ConnectorConfig["Agent connector config / credential refs"] --> NativeApps["Native app calls / safe outputs"]
     NativeApps --> Tools
@@ -134,10 +138,14 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 
 ## Target Architecture
 
+Dashboard Intelligent Chat 扩展可见交付的 `ui` 内容项，记录用户看到的 A2UI 或 MCP App 的交付引用；UI action 作为可见用户输入记录，工具内部数据仍只在 Trace。既有 Chat 事件存储保留协议事件供按 sessionKey 恢复界面；恢复不执行 action、不调用 MCP 写工具，也不把 App 的 HTML 或私有凭据写入 Conversation。Subagent 的状态属于可见工具活动，最终结论由 Main Agent 交付。
+
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 ```mermaid
 flowchart LR
+    UIDelivery["UI delivery / user action"] --> Conversation
+    UIDelivery --> ChatHistory["Session-scoped visible UI events"]
     CredentialStore["Private Agent credential file / write-only API"] --> AppCalls
     AgentConfig["Agent connection config / credential refs"] --> AppCalls["Native app calls / safe ToolResults"]
     SessionTimer["Persisted session reminders / checks"] --> ScheduledEvents

@@ -48,13 +48,15 @@ export interface SessionCallbacks {
   onText?: (text: string) => void;
   onThinking?: (thinking: string) => void;
   onToolStart?: (name: string, toolUseId: string, input: any) => void;
-  onToolEnd?: (name: string, toolUseId: string, result: string) => void;
+  onToolEnd?: (name: string, toolUseId: string, result: string, facts?: ToolResult) => void;
   onToolDisplay?: (name: string, content: string) => void;
   onRetry?: (attempt: number, maxRetries: number) => void;
 }
 
 /** 消息处理选项（由平台适配层传入） */
 export interface HandleMessageOptions {
+  /** Per-request Surface capabilities and labelled app context; never durable user instructions. */
+  transientContext?: string;
   /** Runtime feedback, never an authentic user instruction/approval. */
   internal?: boolean;
   callbacks?: SessionCallbacks;
@@ -334,6 +336,8 @@ export class AgentSession {
       const logInput = callbacksOrOptions && this.isHandleMessageOptions(callbacksOrOptions)
         ? (callbacksOrOptions as HandleMessageOptions).logInput
         : undefined;
+      const transientContext = callbacksOrOptions && this.isHandleMessageOptions(callbacksOrOptions)
+        ? callbacksOrOptions.transientContext : undefined;
       const surface = this.resolveSurface(explicitSurface);
 
       if (this.busy) {
@@ -404,6 +408,7 @@ export class AgentSession {
 
         // 构建上下文消息
         let contextMessages: Message[] = [...this.messages];
+        if (transientContext) contextMessages.splice(contextMessages.length - 1, 0, { role: 'system', content: transientContext.slice(0, 64_000) });
         contextMessages.splice(contextMessages.length - 1, 0, { role: 'system',
           content: `${TRANSIENT_CLOCK_PREFIX}\n本次请求的当前时间，以此为准，不沿用历史提示词的日期。\n${PromptManager.getCurrentTimeInfo()}` });
         try {
@@ -1436,6 +1441,7 @@ ${conversationText}`;
   private isHandleMessageOptions(value: SessionCallbacks | HandleMessageOptions): value is HandleMessageOptions {
     return (
       'internal' in value
+      || 'transientContext' in value
       || 'channel' in value
       || 'callbacks' in value
       || 'logInput' in value

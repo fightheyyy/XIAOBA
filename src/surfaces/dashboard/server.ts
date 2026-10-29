@@ -30,7 +30,8 @@ export async function startDashboard(
   app.use(express.json({ limit: bodyLimit }));
 
   // API routes
-  app.use('/api', createApiRouter(serviceManager, { onNavigate: options.onNavigate }));
+  const apiRouter = createApiRouter(serviceManager, { onNavigate: options.onNavigate });
+  app.use('/api', apiRouter);
 
   // Serve frontend
   const frontendPath = path.join(PathResolver.getApplicationRoot(), 'desktop/dashboard');
@@ -45,6 +46,7 @@ export async function startDashboard(
   let server: Server | null = null;
   const shutdown = async () => {
     serviceManager.stopAll();
+    await (apiRouter as any).closeChat?.();
     if (!server) {
       await shutdownObservability();
       process.exit(0);
@@ -61,6 +63,7 @@ export async function startDashboard(
 
   server = app.listen(port, listenHost);
   server.once('close', () => {
+    void (apiRouter as any).closeChat?.();
     process.off('SIGINT', onSigint);
     process.off('SIGTERM', onSigterm);
   });

@@ -39,55 +39,50 @@ Out of scope:
 
 Dashboard Skill 商店改接 skills.sh，Surface 只负责搜索、分页、安装动作和用户反馈；目录与安装能力委托 Roles & Skills 的共享分发适配器。旧 `skills/registry.json`、`skill-registry.json` 和 Electron 的兼容资源同步不再决定商店内容。
 
+Dashboard Chat 已新增 `/api/chat` 本机同源入口，固定使用显式 Base 服务和共享 AgentSession。`desktop/dashboard/chat/` 的源码与官方 AppBridge 由 `scripts/build-chat.mjs` 本地打包，浏览器不加载 CDN。AG-UI 的工具/Subagent/Activity 事件驱动固定工具卡片；A2UI v0.9.1 只渲染 `xiaoba://ui/basic-v1` catalog 的受限原生组件；MCP Apps 通过 Streamable HTTP Connector 与 sandbox iframe 接入。每个工作区固定一段长期主对话，服务端决定其身份，不提供新建、切换或分支入口；旧 Pet API 和 role session 继续保留。Chat 沿用 Dashboard 的主题变量、深色按钮、圆角和共享猫头像，不维护另一套视觉主题。
+
 入口实现已统一归位到 `src/surfaces/`：CLI 组装和 commands、Feishu、Weixin、Pet、Dashboard、Bridge 与 shared 交付适配。`src/index.ts` 只负责调用 CLI 启动入口并处理启动错误；Electron 主入口 `main.js` 与子进程入口 `server-entry.js` 均加载 `dist/surfaces/dashboard/server`。静态前端与 prompt 通过安装目录定位，任务工作区仍拥有自己的 data/logs/memory。Surface 使用 `src/runtime/index.ts` 的会话入口与 `runtime/contracts`；事件接入与 Connector 继续是独立代码层。
 
-当前入口层已经收敛到共享 `AgentSession`，但各入口仍分别维护平台协议、文件语义和服务控制。CLI 的 `evolution sleep` 与 schedule 已进入轻量 Evolution control；manual `evolution promote` 已删除。Channel delivery 的 canonical prompt 集中在 `prompts/surface.md`。Pet/Dashboard 的 role-scoped session key 已绑定到对应 SkillManager / ToolManager，并在 Chat 与桌宠间共享历史和 SSE replay。Pet manifest 与共享 Canvas player 只支持程序化 `grok-cat-v1`；内置 `xiaoba` 使用参考图中的不对称软耳、宽圆身体、粗弯尾和倾斜胶囊眼；身体与尾巴共用连续外轮廓，role theme 的可选描边不穿过尾根。Base 使用炭灰色 `#29343C` 与奶白眼睛 `#FFF8ED`，默认无额外描边；状态驱动表情与 role theme 继续共用此造型。Pet API 同时提供完整已安装 Role inventory；共享确定性分配器保留默认九色，并为自定义 Role 分配当前 inventory 内不重复的 body color，显式撞色也会重新分配，容量耗尽则 fail closed。Pet/Chat 使用动画播放，Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌使用同一 renderer、inventory 和 theme map 的静态首帧；旧 renderer、spritesheet API、内置旧宠物资产、像素猫 PNG 和静态角色头像映射均已删除。Dashboard 只展示、选择、安装或删除当前 Role/Skill package，不再维护 capability lifecycle。macOS Electron 只打包 GuiCat 的固定 Peekaboo driver。入口级文本、文件和 external receipt 由 deterministic Test 覆盖。
+当前入口层已经收敛到共享 `AgentSession`，但各入口仍分别维护平台协议、文件语义和服务控制。CLI 的 `evolution sleep` 与 schedule 已进入轻量 Evolution control；manual `evolution promote` 已删除。Channel delivery 的 canonical prompt 集中在 `prompts/surface.md`。旧 Pet/Dashboard SSE 路径的 role-scoped session key 已绑定到对应 SkillManager / ToolManager，并在 Chat 与桌宠间共享历史和 SSE replay。Pet manifest 与共享 Canvas player 只支持程序化 `grok-cat-v1`；内置 `xiaoba` 使用参考图中的不对称软耳、宽圆身体、粗弯尾和倾斜胶囊眼；身体与尾巴共用连续外轮廓，role theme 的可选描边不穿过尾根。Base 使用炭灰色 `#29343C` 与奶白眼睛 `#FFF8ED`，默认无额外描边；状态驱动表情与 role theme 继续共用此造型。Pet API 同时提供完整已安装 Role inventory；共享确定性分配器保留默认九色，并为自定义 Role 分配当前 inventory 内不重复的 body color，显式撞色也会重新分配，容量耗尽则 fail closed。Pet/Chat 使用动画播放，Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌使用同一 renderer、inventory 和 theme map 的静态首帧；旧 renderer、spritesheet API、内置旧宠物资产、像素猫 PNG 和静态角色头像映射均已删除。Dashboard 只展示、选择、安装或删除当前 Role/Skill package，不再维护 capability lifecycle。macOS Electron 只打包 GuiCat 的固定 Peekaboo driver。入口级文本、文件和 external receipt 由 deterministic Test 覆盖。
 
 ```mermaid
 flowchart LR
     SkillStore["Dashboard store / CLI skill find-add"] --> Distribution["Roles & Skills distribution adapter"]
     Distribution --> SkillsSh["skills.sh directory / snapshots"]
     ConnectorPage["Dashboard Agent connections"] --> LocalAdmin["Loopback / same-origin management"]
-    LocalAdmin --> AppService
-    LocalAdmin --> OAuth["Google OAuth / state / PKCE"]
-    OAuth --> AgentCredentials
-    Session --> NativeTools["Base native Connector tools"]
-    NativeTools --> AppService["Agent connection service / default app access"]
-    AgentCredentials["Agent credentials"] --> AppService
-    GmailHistory["Gmail history poll / opt-in session target"] --> Event
-    Event --> SessionTimer
-    AppService --> AppAPI["Gmail / Notion / GitHub official APIs"]
-    SessionTimer["Persisted session reminders / checks"] --> ScheduledEvents
-    ScheduledEvents --> SessionWake["Existing Surface / AgentSession"]
-    DailyScheduler["Shared Scheduler / one cron tick"] --> ScheduledEvents["Event Dispatcher"]
-    ScheduledEvents --> EvolutionConsumer["Evolution workflow / supervised worker"]
-    ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
-    PetAssets["Pet manifest<br/>grok-cat-v1 / explicit themes"] --> ThemeAllocator["Role-theme allocator<br/>fixed defaults / unique custom colors"]
-    RoleInventory["Installed Role inventory"] --> ThemeAllocator
-    ThemeAllocator --> PetPlayer["Shared procedural Canvas player"]
-    PetPlayer --> PetViews["Pet / Chat animation"]
-    PetPlayer --> DashboardAvatars["Dashboard role avatars<br/>static first frame"]
-    PetViews --> Adapters
-    DashboardAvatars --> Adapters
-    CLI["CLI"] --> Adapters["src/surfaces<br/>commands / protocol / callbacks"]
-    Channels["Feishu / Weixin / Pet / Dashboard / Electron"] --> Adapters
-    Adapters -->|Feishu / Weixin / Pet| Event["Event admission<br/>persist / deduplicate / dispatch"]
-    Event --> Store["FileEventStore<br/>atomic records / exclusive claim"]
-    ChildFeedback["Child completion / input request"] --> TurnQueue["Live lifecycle / idle turn queue"]
-    TurnQueue --> Session
-    Event --> Session["Shared AgentSession<br/>role-scoped services"]
-    Adapters -->|CLI and other control paths| Session
-    Session --> Tools["SecretaryCat tools<br/>schema / confirmation"]
-    Tools --> Connector["Feishu Connector<br/>profile / timeout / cancellation"]
-    Connector --> Lark["official lark-cli / Feishu"]
-    Session --> Delivery["Terminal / IM / SSE<br/>visible delivery evidence"]
-    CLI --> Sleep["schedule / evolution sleep"]
-    Sleep --> Control["Lightweight Evolution control"]
-    Control --> TestEval["shared Test + Eval"]
-    TestEval --> Activation["Atomic activation<br/>capability: new Session<br/>code: next process"]
+    LocalAdmin --> Connector
+    Entry["CLI / IM / Pet / Dashboard"] --> Event["Event admission"]
+    Event --> Runtime["Shared AgentSession / Runner"]
+    Chat["Dashboard Chat<br/>one persistent Main conversation"] --> AGUI["AG-UI adapter"]
+    AGUI --> Event
+    Runtime --> Tools["ToolManager<br/>Role Subagents as tools"]
+    Tools --> Connector["Native / MCP Connectors"]
+    Connector --> Apps["External apps"]
+    Runtime --> Delivery["Channel delivery / visible evidence"]
+    Delivery --> AGUI
+    AGUI --> UI["A2UI catalog / fixed activity cards"]
+    UI -->|validated action| AGUI
+    Chat --> Host["MCP Apps Host / sandbox"]
+    Host --> Connector
+    Delivery --> Entry
 ```
 
 ## Target Architecture
+
+### Dashboard Intelligent Chat
+
+Dashboard Chat 是 personal agent 的一段长期主对话，固定由 Base Main Agent 接收用户输入，不提供新建、切换会话或分支话题入口。八个 Role 只通过 Main Agent 的工具调用执行，不提供角色切换聊天入口。保留现有原生 HTML/JS、共享 AgentSession 和桌宠接口，新增 `/api/chat` 入口及独立前端模块。
+
+- AG-UI 承载文本、工具调用、Subagent 生命周期和 Activity；`parentToolCallId` 关联工具卡片，`TOOL_CALL_END` 只表示参数传输结束。子任务状态来自 Runtime 回调，不从模型文字推断。
+- A2UI v0.9.1 的四类消息通过 AG-UI CUSTOM 传递。客户端只渲染 XiaoBa catalog 中的可信组件；action 校验 surface、组件及会话归属后回到原 Main Agent。前端代码不由模型执行。
+- MCP Apps Host 使用官方 AppBridge，在 sandbox iframe 中展示工具声明的 `ui://` HTML。服务端 Connector 负责 MCP 连接、资源读取和受控工具调用；凭据不进入浏览器。App 工具权限只限所属服务器，写操作仍需明确确认。
+- 每个工作区只有一个 Dashboard 主对话身份，由服务端决定；浏览器存储不决定身份。新工作区使用 `chat:main`；升级时续接最近使用且含用户消息的旧 Chat，保留其他历史文件。使用既有可见事件存储恢复 UI；UI delivery 与 action 进入 Evidence 合同。刷新只恢复视图，不重放有副作用的 action/tool。
+- 新接口维持本机同源边界；协议 SDK 只承担适配，不创建第二个 Agent loop。
+- 前端沿用原 Dashboard 的 CSS 变量和组件风格。MCP App 获得同一套 host theme variables；外部 App 是否使用它们由 App 自身决定。
+- 当前实现支持 Column、Row、Card、Text、TextField、ChoicePicker、CheckBox、Button、Divider、Metric 和 BarChart，不宣称支持完整 Basic Catalog 或客户端函数。未支持的组件/属性会被拒绝。
+- `/api/chat/config` 返回唯一主对话 `threadId`；`message/action/stop/events`、文件和 App 路由只接受该身份，不提供会话列表或创建接口。POST 要求本机同源、JSON 和 `X-Xiaoba-Chat: 1`；action 重新校验服务端 surface、revision、Button action 与声明的输入字段，提交 ID 去重。MCP App message/context 标记为非用户授权。
+- `XIAOBA_MCP_SERVERS` 只存 server URL、可选 tokenEnv 和 allowedTools。模型使用 `mcp_list` / `mcp_read` / `mcp_write`；App RPC 仅调用所属服务器明确只读的工具。写工具复用 Runtime 的即时确认与完整参数绑定。暂不支持 stdio 或自动 OAuth。
+- 恢复最近 2000 个可见协议事件；A2UI snapshot 恢复组件状态，MCP App 引用只读取原资源与结果。遗留未完成 Main run 标记中断，不自动重做副作用。此窗口不是无限历史或 durable execution cursor。
 
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
@@ -100,31 +95,21 @@ flowchart LR
     SkillStore["Dashboard store / CLI skill find-add"] --> Distribution["Roles & Skills distribution adapter"]
     Distribution --> SkillsSh["skills.sh directory / snapshots"]
     ConnectorPage["Dashboard Agent connections"] --> LocalAdmin["Loopback / same-origin management"]
-    LocalAdmin --> AppService["Shared Agent connection service"]
-    LocalAdmin --> OAuth["Google OAuth / state / PKCE"]
-    OAuth --> AgentResources
-    AgentResources["Agent accounts / credentials"] --> AppConnectors["Gmail / Notion / GitHub native Connectors"]
-    AppConnectors --> OfficialAPIs["Official app APIs"]
-    RequestPolicy["Runtime context / confirmed writes"] --> AppConnectors
-    SessionTimer["Persisted session reminders / checks"] --> ScheduledEvents
-    ScheduledEvents --> SessionWake["Existing Surface / AgentSession"]
-    DailyScheduler["Shared Scheduler / one cron tick"] --> ScheduledEvents["Event Dispatcher"]
-    ScheduledEvents --> EvolutionConsumer["Evolution workflow / supervised worker"]
-    ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
-    User["User"] --> Surface["Surface<br/>CLI / IM / Pet / Dashboard"]
-    Surface --> Adapter["Surface event adapter"]
-    Adapter --> Event["EventDispatcher<br/>admission / deduplication / dispatch"]
-    Event --> Store["EventStore<br/>storage / exclusive claim"]
-    Timer["Timer"] --> Event
-    Completion["Runtime completion"] --> Event
-    Apps["External apps"] --> Connector["Connector<br/>app identity / access / invocation"]
-    Connector --> Event
+    LocalAdmin --> Connector
+    User["User"] --> Surface["Surface / one persistent Main Chat"]
+    Surface --> Policy["Surface adapter / Owner identity"]
+    Policy --> Event["Event admission / deduplication"]
     Event --> Runtime["Shared AgentSession / Runner"]
-    Runtime --> Tools["ToolManager / Role tools<br/>visibility / confirmation"]
-    Tools --> Connector
-    Connector --> Apps
-    Runtime --> Delivery["Channel callbacks / visible evidence"]
+    Runtime --> Tools["ToolManager / Role Subagents"]
+    Tools --> Connector["Connector / bounded app access"]
+    Connector --> Apps["External apps"]
+    Apps --> Event
+    Runtime --> Delivery["Visible delivery / Journal / Trace"]
     Delivery --> Surface
+    Surface --> UI["Trusted A2UI / fixed activity cards"]
+    UI -->|validated action| Policy
+    Surface --> Host["MCP Apps Host / sandbox"]
+    Host --> Connector
 ```
 
 ## Skill Store Surface Contract
@@ -193,7 +178,7 @@ source 支持 `surface / connector / timer / runtime`，以便后续接入任务
 - 每个入口的用户输入和实际可见交付必须进入共享 Conversation Journal；未交付 final text、thinking 和 tool internals 不得写入该 Journal。
 - Feishu Surface 配置的 App ID 是 XiaoBa 飞书能力的 canonical application identity。SecretaryCat 使用官方 `lark-cli` 时必须选择 App ID 相同的 profile；`bot` 和 `user` 是同一应用下的 actor identity。XiaoBa 不复制凭据存储，也不隐式切换 `lark-cli` 的全局 active profile。
 - 每个入口的 raw event / route payload 应能归一化为稳定 surface event：surface、event type、event id、session key、channel id、user id、user message、payload type 和必要 metadata。
-- Pet/Dashboard 的 `pet:<petId>:role-<role>` session key，以及 `pet:<petId>:role-<role>:<safe-suffix>` 这类带附加隔离后缀的 session key，必须创建或复用对应角色的 scoped services；`/skills`、skill 激活、tool allowlist、visible history 和 SSE replay 都必须按归一化后的 session key 隔离，`role-base` 归一到默认 `pet:<petId>`。
+- 旧 Pet/Dashboard 协议的 `pet:<petId>:role-<role>` session key，以及 `pet:<petId>:role-<role>:<safe-suffix>` 这类带附加隔离后缀的 session key，必须创建或复用对应角色的 scoped services；`/skills`、skill 激活、tool allowlist、visible history 和 SSE replay 都必须按归一化后的 session key 隔离，`role-base` 归一到默认 `pet:<petId>`。
 - Pet manifest 必须声明 `renderer: "grok-cat-v1"`，并可声明 `roleThemes`。共享 player 消费同一组 PetState 和事件映射；role theme 只改变视觉颜色，不改变 role 权限、session key 或 runtime 行为。缺失或未知 renderer 必须 fail closed；Surface 不提供 spritesheet renderer 或资源端点。
 - Dashboard 的 Role 卡片、当前角色徽标和侧栏品牌必须由同一 `grok-cat-v1` renderer 绘制；Base 与八个默认 Role 使用固定 role theme，用户安装或创建的 Role 必须基于完整已安装 inventory 获得确定性且不与任何当前 Role 重复的 body color；显式 theme 撞色必须重新分配，规范化后的 role key 冲突或分配空间耗尽时 fail closed，不得回退到 Base 配色或读取旧像素猫 PNG / 角色专属静态映射。
 - Arena 可在进程内构造 PetChannel 时设置不可由 HTTP body 覆盖的 `requiredActiveSkillName`；它必须在每条 queued Pet message 前重新激活同一个 subject Skill，缺失时 fail closed。普通 Pet / Dashboard / Base / CLI 不设置该字段，行为保持不变。
