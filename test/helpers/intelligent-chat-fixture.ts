@@ -38,7 +38,7 @@ export class ChatFixtureAI {
   private steps = new Map<string, number>();
   async chatStream(messages: any[], tools: any[] = []) {
     this.requests.push({ messages: structuredClone(messages), tools });
-    const text = String([...messages].reverse().find(message => message.role === 'user')?.content || '');
+    const text = String([...messages].reverse().find(message => message.role === 'user' && !message.__subagentState)?.content || '');
     const step = this.steps.get(text) || 0; this.steps.set(text, step + 1);
     if (text.startsWith('界面操作')) return step === 0 ? call('send_text', { text: '范围已更新，我会按你提交的项目与时间继续分析。' }) : { content: 'done' };
     if (text.startsWith('[子智能体')) return step === 0 ? call('send_text', { text: '检查已经完成，关键结论已核对。' }) : { content: 'done' };

@@ -8,7 +8,7 @@ import { MessageSessionManager } from '../../runtime';
 import { AIService } from '../../runtime/harness/models/ai-service';
 import { SkillManager } from '../../capabilities/skills/skill-manager';
 import { AgentServices, BUSY_MESSAGE, HandleMessageResult } from '../../runtime';
-import { SubAgentManager } from '../../runtime';
+import { SubAgentManager, SubAgentFeedbackNotice } from '../../runtime';
 import { Logger } from '../../runtime/observability/logger';
 import { ChannelCallbacks } from '../../runtime/contracts/tool';
 import { promises as fs } from 'fs';
@@ -235,7 +235,7 @@ export class WeixinBot {
     session.runWithLogContext(() => Logger.info(`[${sessionKey}] 收到消息: ${parsed.text?.slice(0, 50) || '[媒体消息]'}${mediaDesc}...`));
     const channel = journalVisibleChannel(this.withRole(turn), this.buildChannel(msg.to_user_id, sessionKey));
     SubAgentManager.getInstance().refreshPlatformCallbacks(sessionKey, {
-      injectMessage: text => this.handleSubAgentFeedback(sessionKey, msg.to_user_id, text),
+      injectMessage: (text, notice) => this.handleSubAgentFeedback(sessionKey, msg.to_user_id, text, notice),
     }, this.sessionManager);
 
     let userText = parsed.text || '';
@@ -249,14 +249,17 @@ export class WeixinBot {
       userText = userText ? `${userText}\n${attachmentContext}` : `[用户仅上传了附件，暂未给出明确任务]\n${attachmentContext}`;
     }
 
+    const steered = session.isBusy() ? session.steer(userText) : undefined;
+    if (steered && await steered) return;
     await this.sessionManager.enqueueTurn(sessionKey, msg.to_user_id, async current => {
       const result = await current.handleMessage(userText, { channel, surface: 'weixin', traceId: turn.traceId });
       await this.sendFinalResponseIfVisible(channel, result);
     });
   }
 
-  private async handleSubAgentFeedback(sessionKey: string, chatId: string, text: string): Promise<void> {
+  private async handleSubAgentFeedback(sessionKey: string, chatId: string, text: string, notice?: SubAgentFeedbackNotice): Promise<void> {
     await this.sessionManager.enqueueTurn(sessionKey, chatId, async session => {
+      if (notice && !SubAgentManager.getInstance().shouldHandleFeedback(sessionKey, notice)) return;
       const turn = this.createTurnContext(sessionKey);
       const channel = journalVisibleChannel(turn, this.buildChannel(chatId, sessionKey));
       const result = await session.handleMessage(text, { channel, surface: 'weixin', traceId: turn.traceId, internal: true });

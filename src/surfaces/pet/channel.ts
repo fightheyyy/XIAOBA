@@ -8,7 +8,7 @@ import { createRoleAwareToolManager } from '../../capabilities/tools/create-tool
 import { SkillManager } from '../../capabilities/skills/skill-manager';
 import { AgentSession, AgentServices, SessionCallbacks } from '../../runtime';
 import { MessageSessionManager } from '../../runtime';
-import { SubAgentManager } from '../../runtime';
+import { SubAgentManager, SubAgentFeedbackNotice } from '../../runtime';
 import { ChannelCallbacks } from '../../runtime/contracts/tool';
 import {
   extractSurfaceTraceparent,
@@ -491,14 +491,15 @@ export class PetChannel {
 
   private registerSubAgentCallbacks(sessionKey: string, petId: string): void {
     SubAgentManager.getInstance().refreshPlatformCallbacks(sessionKey, {
-      injectMessage: async (text: string) => {
-        await this.handleSubAgentFeedback(sessionKey, petId, text);
+      injectMessage: async (text, notice) => {
+        await this.handleSubAgentFeedback(sessionKey, petId, text, notice);
       },
     }, this.sessionManager);
   }
 
-  private async handleSubAgentFeedback(sessionKey: string, petId: string, text: string): Promise<void> {
+  private async handleSubAgentFeedback(sessionKey: string, petId: string, text: string, notice?: SubAgentFeedbackNotice): Promise<void> {
     await this.enqueueMessage(sessionKey, async () => {
+      if (notice && !SubAgentManager.getInstance().shouldHandleFeedback(sessionKey, notice)) return;
       const session = this.sessionManager.getOrCreate(sessionKey, sessionKey);
       const turn = this.createConversationTurn(sessionKey);
       let streamedVisibleText = '';
@@ -508,13 +509,14 @@ export class PetChannel {
       const channel = journalVisibleChannel(turn, this.buildBackgroundChannel(sessionKey, petId));
       session.runWithLogContext(() => Logger.info(`[${sessionKey}] 收到子智能体反馈: ${text.slice(0, 120)}`));
       try {
-        await session.handleMessage(text, {
+        const result = await session.handleMessage(text, {
           callbacks,
           channel,
           surface: 'pet',
           internal: true,
           traceId: turn.traceId,
         });
+        if (result.failed) throw new Error('SUBAGENT_FEEDBACK_RUN_FAILED');
       } finally {
         if (streamedVisibleText) {
           await recordVisibleAssistant({

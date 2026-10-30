@@ -66,6 +66,7 @@ function identifier(value: any): string {
 function validateComponent(component: any): void {
   if (!plainObject(component)) throw new Error('Invalid UI component');
   identifier(component.id);
+  if (typeof component.component !== 'string') throw new Error('A2UI v0.9.1 requires a flat component: {"id":"title","component":"Text","text":"Hello"}. Do not use component:{"Text":{...}}.');
   const fields = COMPONENT_FIELDS[component.component];
   if (!fields || Object.keys(component).some(key => !['id', 'component', ...fields].includes(key))) throw new Error('Unsupported component or property');
   for (const field of ['value', 'text', 'label']) if (plainObject(component[field])) pointerParts(component[field].path);
@@ -120,7 +121,10 @@ export class A2UIModel {
           for (const child of component.children || (component.child ? [component.child] : [])) walk(child, new Set([...ancestors, id]));
         };
         for (const id of Object.keys(surface.components)) walk(id, new Set());
-      } else surface.data = setData(surface.data, body.path || '/', body.value);
+      } else {
+        if ('data' in body || 'contents' in body) throw new Error('updateDataModel uses {surfaceId,path:"/",value:{...}}, not data or contents.');
+        surface.data = setData(surface.data, body.path || '/', body.value);
+      }
       surface.revision++;
     }
     this.surfaces = staged;
@@ -150,4 +154,4 @@ export class A2UIModel {
   }
 }
 
-export const CATALOG_PROMPT = `富 UI 可用时用 send_ui 交付 A2UI ${A2UI_VERSION}。每个消息包含 version:"${A2UI_VERSION}"。catalogId:"${CATALOG_ID}"。支持 Column/Row(children:ID[])、Card(child:ID,title?)、Text(text,variant?)、TextField(label,value:{path:"/field"},required?)、ChoicePicker(label,value:{path},options:[{label,value}])、CheckBox(label,value:{path})、Button(text 或 child,action:{event:{name,context}})、Divider、Metric(label,value,description?)、BarChart(title,items:[{label,value:0..100}])。先 createSurface，再 updateComponents（必须提供 root），再 updateDataModel；更新同一 surface 不重复 createSurface。只使用实际数据。用户点击 Button 才提交；action 不是写操作授权。需要复杂现成应用时先 mcp_list，再调用 MCP 工具，系统自动嵌入它声明的 UI。`;
+export const CATALOG_PROMPT = `富 UI 可用时用 send_ui 交付 A2UI ${A2UI_VERSION}。每个消息包含 version:"${A2UI_VERSION}"。catalogId:"${CATALOG_ID}"。支持 Column/Row(children:ID[])、Card(child:ID,title?)、Text(text,variant?)、TextField(label,value:{path:"/field"},required?)、ChoicePicker(label,value:{path},options:[{label,value}])、CheckBox(label,value:{path})、Button(text 或 child,action:{event:{name,context}})、Divider、Metric(label,value,description?)、BarChart(title,items:[{label,value:0..100}])。组件必须是扁平对象，例如 {"id":"title","component":"Text","text":"标题"}，不要使用旧版 component:{"Text":{...}}。updateDataModel 使用 value 而非 data。完整最小示例：{"messages":[{"version":"v0.9.1","createSurface":{"surfaceId":"form","catalogId":"xiaoba://ui/basic-v1"}},{"version":"v0.9.1","updateComponents":{"surfaceId":"form","components":[{"id":"root","component":"Column","children":["budget","submit"]},{"id":"budget","component":"TextField","label":"预算","value":{"path":"/budget"}},{"id":"submit","component":"Button","text":"提交","action":{"event":{"name":"update","context":{"budget":{"path":"/budget"}}}}}]}},{"version":"v0.9.1","updateDataModel":{"surfaceId":"form","path":"/","value":{"budget":"1000"}}}]}。先 createSurface，再 updateComponents（必须提供 root），再 updateDataModel；更新同一 surface 不重复 createSurface。只使用实际数据。ChoicePicker、TextField 和 CheckBox 只收集本地输入，不会自动提交或切换其他内容。表单必须配一个带 action.event 的 Button；切换资料优先使用“论文”“项目”等 Button 事件，Main 收到后用 updateComponents/updateDataModel 更新原 surface，并只呈现当前类别。不要生成没有实际提交路径的假切换控件。用户点击 Button 才提交；action 不是写操作授权。需要复杂现成应用时先 mcp_list，再调用 MCP 工具，系统自动嵌入它声明的 UI。`;

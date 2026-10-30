@@ -17,6 +17,8 @@ export interface Message {
   name?: string;
   /** 标记由 injectContext 注入的消息，用于滑动窗口清理 */
   __injected?: boolean;
+  /** Runtime-owned child-state projection, rebuilt after compaction/restore. */
+  __subagentState?: boolean;
 }
 
 export interface ChatConfig {

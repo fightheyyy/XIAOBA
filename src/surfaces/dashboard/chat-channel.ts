@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { EventType, Event as AGUIEvent } from '@ag-ui/core';
 import { EventDispatcher, surfaceAgentEvent } from '../../events';
-import { AgentSession, AgentServices, MessageSessionManager, SubAgentManager } from '../../runtime';
+import { AgentSession, AgentServices, MessageSessionManager, SubAgentManager, SubAgentFeedbackNotice } from '../../runtime';
 import type { SubAgentInfo } from '../../runtime/subagents/sub-agent-session';
 import { AIService } from '../../runtime/harness/models/ai-service';
 import { createRoleAwareToolManager } from '../../capabilities/tools/create-tool-manager';
@@ -138,7 +138,7 @@ export class DashboardChatChannel {
         const since = Number(req.get('Last-Event-ID') || req.query.after || 0);
         for (const event of this.history(threadId)) if (event.id > since) this.write(res, event);
         const set = this.subscribers.get(threadId) || new Set<Response>(); set.add(res); this.subscribers.set(threadId, set);
-        // Polling is unnecessary: runtime state callbacks keep the existing cards current.
+        // Runtime callbacks keep the conversation's aggregate work indicator current.
         const timer = setInterval(() => { if (!res.destroyed) res.write(': keep-alive\n\n'); }, 20_000); timer.unref?.();
         req.on('close', () => { clearInterval(timer); set.delete(res); if (!set.size) this.subscribers.delete(threadId); });
         this.registerCallbacks(threadId);
@@ -234,13 +234,13 @@ export class DashboardChatChannel {
   }
   private registerCallbacks(threadId: string): void {
     SubAgentManager.getInstance().refreshPlatformCallbacks(threadId, {
-      injectMessage: text => this.enqueue(threadId, text, undefined, true),
+      injectMessage: (text, notice) => this.enqueue(threadId, text, undefined, true, notice),
       onStateChange: info => this.childState(threadId, info),
-    }, this.sessions);
+    }, this.sessions, this.options.root || process.cwd());
   }
   private childState(threadId: string, info: SubAgentInfo): void {
     const key = `${threadId}:${info.id}`, previous = this.childStates.get(key);
-    const metadata = { responseId: this.toolOwners.get(`${threadId}:${info.parentToolCallId}`) || '', parentToolCallId: info.parentToolCallId || '', status: info.status };
+    const metadata = { responseId: this.toolOwners.get(`${threadId}:${info.parentToolCallId}`) || '', parentToolCallId: info.parentToolCallId || '', status: info.status, outcomeScope: 'execution' };
     if (!previous || previous === 'waiting_for_input' && info.status === 'running') this.emit(threadId, { type: EventType.SUBAGENT_STARTED, subagentRunId: info.id, name: info.roleName || info.skillName || 'Subagent', description: info.taskDescription, parentToolCallId: info.parentToolCallId, metadata });
     if (previous !== info.status) {
       if (info.status === 'completed' || info.status === 'waiting_for_input') this.emit(threadId, { type: EventType.SUBAGENT_FINISHED, subagentRunId: info.id, outcome: info.status === 'completed' ? { type: 'success' } : { type: 'suspended' }, metadata });
@@ -249,17 +249,23 @@ export class DashboardChatChannel {
     this.childStates.set(key, info.status);
     this.emit(threadId, { type: EventType.ACTIVITY_SNAPSHOT, messageId: `activity:${info.id}`, activityType: 'SUBAGENT', content: {
       subagentRunId: info.id, parentToolCallId: info.parentToolCallId || '', name: info.roleName || info.skillName || 'Subagent', description: info.taskDescription,
-      status: info.status, progress: info.progressLog.slice(-8), pendingQuestion: info.pendingQuestion || '', createdAt: info.createdAt, completedAt: info.completedAt,
+      status: info.status, resultPending: Boolean(info.resultNotice && !info.resultNotice.handledAt), progress: info.progressLog.slice(-8), pendingQuestion: info.pendingQuestion || '', createdAt: info.createdAt, completedAt: info.completedAt,
     }, metadata });
   }
-  private async enqueue(threadId: string, text: string, turn?: ConversationTurnContext, internal = false): Promise<void> {
+  private async enqueue(threadId: string, text: string, turn?: ConversationTurnContext, internal = false, notice?: SubAgentFeedbackNotice): Promise<void> {
+    if (!internal) {
+      const steered = this.sessions.getOrCreate(threadId, threadId).steer(text);
+      if (steered && await steered) return;
+    }
     await this.sessions.enqueueTurn(threadId, threadId, async session => {
+      if (notice && !SubAgentManager.getInstance().shouldHandleFeedback(threadId, notice)) return;
       await this.ready; this.model(threadId); this.registerCallbacks(threadId);
       const context = turn || { surface: 'pet' as const, sessionKey: threadId, traceId: reserveConversationTraceId('pet', threadId), roleName: 'base' };
       const runId = context.traceId || randomUUID(), metadata = { responseId: runId };
       this.activeRuns.add(runId);
       this.emit(threadId, { type: EventType.RUN_STARTED, threadId, runId, metadata });
       const channel = this.channel(threadId, context, metadata);
+      let failureReported = false;
       try {
         const result = await session.handleMessage(text, {
           internal, surface: 'pet', traceId: context.traceId, channel,
@@ -271,16 +277,25 @@ export class DashboardChatChannel {
               this.emit(threadId, { type: EventType.TOOL_CALL_ARGS, toolCallId, delta: JSON.stringify(preview(input)), metadata });
               this.emit(threadId, { type: EventType.TOOL_CALL_END, toolCallId, metadata });
             },
-            onToolEnd: (name, toolCallId, content, facts) => this.emit(threadId, { type: EventType.TOOL_CALL_RESULT, toolCallId, messageId: `result:${toolCallId}`, content: JSON.stringify({ status: facts?.status || 'success', summary: ['send_text', 'send_ui'].includes(name) ? '已交付' : content.slice(0, 1500) }), metadata }),
+            onToolEnd: (name, toolCallId, content, facts) => this.emit(threadId, { type: EventType.TOOL_CALL_RESULT, toolCallId, messageId: `result:${toolCallId}`, content: JSON.stringify({ name, status: facts?.status || 'success', summary: ['send_text', 'send_ui'].includes(name) && (!facts?.status || facts.status === 'success') ? '已交付' : content.slice(0, 1500) }), metadata }),
             onRetry: (attempt, maxRetries) => this.emit(threadId, { type: EventType.ACTIVITY_SNAPSHOT, messageId: `retry:${runId}`, activityType: 'RETRY', content: { attempt, maxRetries }, metadata }),
           },
         });
         if (result.finalResponseVisible && result.text) await channel.reply(threadId, result.text);
-        if (result.failed) this.emit(threadId, { type: EventType.RUN_ERROR, message: '当前请求执行失败，请查看消息或重试。', code: 'RUN_FAILED', metadata });
+        if (result.failed) {
+          failureReported = true;
+          this.emit(threadId, { type: EventType.RUN_ERROR, message: '当前请求执行失败，请查看消息或重试。', code: 'RUN_FAILED', metadata });
+          if (notice) throw new Error('SUBAGENT_FEEDBACK_RUN_FAILED');
+        }
         else this.emit(threadId, { type: EventType.RUN_FINISHED, threadId, runId, metadata });
       } catch (error) {
-        this.emit(threadId, { type: EventType.RUN_ERROR, message: '处理失败，请检查模型配置或重试。', code: 'CHAT_RUN_FAILED', metadata });
-      } finally { this.activeRuns.delete(runId); }
+        if (!failureReported) this.emit(threadId, { type: EventType.RUN_ERROR, message: '处理失败，请检查模型配置或重试。', code: 'CHAT_RUN_FAILED', metadata });
+        if (notice) throw error;
+      } finally {
+        this.activeRuns.delete(runId);
+        // A finished child remains work-in-progress until Main has handled its result.
+        for (const child of SubAgentManager.getInstance().listByParent(threadId, this.options.root || process.cwd())) this.childState(threadId, child);
+      }
     });
   }
   private channel(threadId: string, context: ConversationTurnContext, metadata: any): ChannelCallbacks {

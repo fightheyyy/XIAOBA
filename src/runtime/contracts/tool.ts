@@ -207,6 +207,8 @@ export interface ToolExecutionContext {
   toolCallId?: string;
   abortSignal?: AbortSignal;
   activeSkillName?: string;
+  /** Session-owned snapshot of installed, callable Skills; never populated from model arguments. */
+  availableSkillNames?: readonly string[];
   activeToolsets?: string[];
   roleName?: string;
   /** Parent trace context for tool-owned sub-runs or child processes. */

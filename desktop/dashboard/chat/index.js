@@ -6,11 +6,11 @@ const node = (tag, cls, text) => {
   if (text !== undefined) result.textContent = String(text ?? ''); return result;
 };
 const translations = {
-  zh: { main: 'Main Agent', welcome: '今天想一起做点什么？', introduction: '告诉 XiaoBa 你的目标，进展和结果都会留在这段对话里。', placeholder: '告诉 XiaoBa 你接下来想做什么…', footer: '由 XiaoBa 统一处理 · Enter 发送，Shift + Enter 换行', send: '发送', stop: '停止当前回复', online: '已连接', offline: '正在重连…', tools: '工具调用', running: '执行中', completed: '已完成', waiting_for_input: '等待指示', stopped: '已停止', interrupted: '已中断', failed: '失败', dispatched: '已派遣', success: '已完成', failure: '失败', blocked: '未执行', cancelled: '已取消', timeout: '超时', progress: '执行进度', queued: '已加入对话', retry: '正在重试', missing: '请求失败，请重试', suggestion1: '整理本周项目进展', suggestion2: '帮我分析一份资料', suggestion3: '把想法变成可执行的计划' },
-  en: { main: 'Main Agent', welcome: 'What shall we work on?', introduction: 'Tell XiaoBa your goal. Progress and results stay in this conversation.', placeholder: 'Tell XiaoBa what you want to do next…', footer: 'Handled by XiaoBa · Enter to send, Shift + Enter for a new line', send: 'Send', stop: 'Stop current response', online: 'Connected', offline: 'Reconnecting…', tools: 'Tool calls', running: 'Running', completed: 'Completed', waiting_for_input: 'Waiting for input', stopped: 'Stopped', interrupted: 'Interrupted', failed: 'Failed', dispatched: 'Dispatched', success: 'Completed', failure: 'Failed', blocked: 'Not executed', cancelled: 'Cancelled', timeout: 'Timed out', progress: 'Progress', queued: 'Added to conversation', retry: 'Retrying', missing: 'Request failed. Try again.', suggestion1: 'Review this week’s project progress', suggestion2: 'Help me analyze a document', suggestion3: 'Turn an idea into an actionable plan' },
+  zh: { working: '正在处理你的消息', background: '正在处理', gathering: '正在整理结果', confirming: '正在确认细节', paused: '还没处理完，可以让我继续', continueChat: '你可以继续聊', moreWork: '另有 {count} 件事处理中', submitted: '已提交：', submittedChoice: '已提交选择', deliveryFailed: '这次没能显示内容，请再试一次。', welcome: '今天想一起做点什么？', introduction: '告诉 XiaoBa 你的目标，进展和结果都会留在这段对话里。', placeholder: '告诉 XiaoBa 你接下来想做什么…', footer: '由 XiaoBa 统一处理 · Enter 发送，Shift + Enter 换行', send: '发送', stop: '停止当前回复', online: '已连接', offline: '正在重连…', missing: '请求失败，请重试', suggestion1: '整理本周项目进展', suggestion2: '帮我分析一份资料', suggestion3: '把想法变成可执行的计划' },
+  en: { working: 'Working on your message', background: 'Working on', gathering: 'Putting the results together', confirming: 'Checking a few details', paused: 'There’s more to do. Ask me to continue.', continueChat: 'You can keep chatting', moreWork: '{count} more in progress', submitted: 'Submitted: ', submittedChoice: 'Selection submitted', deliveryFailed: 'I couldn’t display that. Please try again.', welcome: 'What shall we work on?', introduction: 'Tell XiaoBa your goal. Progress and results stay in this conversation.', placeholder: 'Tell XiaoBa what you want to do next…', footer: 'Handled by XiaoBa · Enter to send, Shift + Enter for a new line', send: 'Send', stop: 'Stop current response', online: 'Connected', offline: 'Reconnecting…', missing: 'Request failed. Try again.', suggestion1: 'Review this week’s project progress', suggestion2: 'Help me analyze a document', suggestion3: 'Turn an idea into an actionable plan' },
 };
 class IntelligentChat {
-  turns = new Map(); tools = new Map(); messages = new Map(); apps = new Map(); seen = new Set(); runs = new Set();
+  turns = new Map(); messages = new Map(); apps = new Map(); seen = new Set(); runs = new Set(); work = new Map();
   language = () => document.documentElement.lang.startsWith('zh') ? 'zh' : 'en';
   t = key => translations[this.language()][key] || key;
   async request(path, body) {
@@ -40,7 +40,7 @@ class IntelligentChat {
     this.input.placeholder = this.t('placeholder');
     this.connection.textContent = this.t(this.connected ? 'online' : 'offline');
     if (!this.timeline.children.length) this.empty();
-    for (const tool of this.tools.values()) this.updateTool(tool);
+    this.updateWork();
   }
   async connect() {
     if (this.connecting || this.source) return;
@@ -55,11 +55,12 @@ class IntelligentChat {
   subscribe(threadId) {
     this.threadId = threadId;
     this.timeline.replaceChildren(); this.empty();
-    this.ui = new A2UIView({ mount: owner => this.turn(owner).body, submit: action => this.request('/action', { threadId: this.threadId, eventId: crypto.randomUUID(), action }), language: this.language });
+    this.ui = new A2UIView({ mount: owner => this.turn(owner, true).body, submit: action => this.request('/action', { threadId: this.threadId, eventId: crypto.randomUUID(), action }), language: this.language });
+    this.runs.clear(); this.work.clear();
     this.connected = false; this.updateBusy();
     const source = this.source = new EventSource(`/api/chat/events?threadId=${encodeURIComponent(threadId)}`);
-    source.onopen = () => { if (source !== this.source) return; this.connected = true; this.connection.textContent = this.t('online'); this.connection.classList.add('connected'); };
-    source.onerror = () => { if (source !== this.source) return; this.connected = false; this.connection.textContent = this.t('offline'); this.connection.classList.remove('connected'); };
+    source.onopen = () => { if (source !== this.source) return; this.connected = true; this.connection.textContent = this.t('online'); this.connection.classList.add('connected'); this.updateWork(); };
+    source.onerror = () => { if (source !== this.source) return; this.connected = false; this.connection.textContent = this.t('offline'); this.connection.classList.remove('connected'); this.updateWork(); };
     source.onmessage = message => {
       if (source !== this.source) return;
       try {
@@ -87,10 +88,10 @@ class IntelligentChat {
     welcome.append(this.avatar(), title, introduction, prompts); this.timeline.append(welcome);
   }
   clearEmpty() { document.getElementById('chat-empty')?.remove(); }
-  turn(id) {
+  turn(id, chronological = false) {
     id ||= 'restored';
     let turn = this.turns.get(id);
-    if (!turn) {
+    if (!turn || chronological && turn.element !== this.timeline.lastElementChild) {
       this.clearEmpty();
       const element = node('article', 'chat-turn'); element.dataset.responseId = id;
       const heading = node('header', 'chat-turn-heading'); heading.append(this.avatar(), node('strong', '', 'XiaoBa'));
@@ -98,27 +99,6 @@ class IntelligentChat {
       turn = { element, body }; this.turns.set(id, turn);
     }
     return turn;
-  }
-  tool(id, owner) {
-    let tool = this.tools.get(id);
-    if (!tool) {
-      const turn = this.turn(owner);
-      if (!turn.group) {
-        const group = node('details', 'chat-tools'); group.open = true;
-        const summary = node('summary', '', this.t('tools')); summary.dataset.chatLabel = 'tools'; group.append(summary); turn.body.append(group); turn.group = group;
-      }
-      const element = node('details', 'chat-tool'); element.dataset.toolCallId = id;
-      const summary = node('summary'), mark = node('span', 'chat-tool-mark'), title = node('span', 'chat-tool-title'), status = node('span', 'chat-tool-status');
-      summary.append(mark, title, status);
-      const detail = node('div', 'chat-tool-detail'); element.append(summary, detail); turn.group.append(element);
-      tool = { element, mark, title, status, detail, state: 'running', name: '', owner }; this.tools.set(id, tool);
-    }
-    return tool;
-  }
-  updateTool(tool) {
-    tool.element.dataset.status = tool.state; tool.title.textContent = tool.name;
-    tool.status.textContent = this.t(tool.state);
-    tool.mark.textContent = ['completed', 'success', 'dispatched'].includes(tool.state) ? '✓' : ['failed', 'failure', 'blocked', 'interrupted', 'timeout'].includes(tool.state) ? '!' : tool.state === 'running' ? '' : '–';
   }
   async send() {
     const text = this.input.value.trim(); if (!text || this.sending || !this.threadId) return;
@@ -130,69 +110,78 @@ class IntelligentChat {
     } catch (error) { this.notice(error.message); }
     finally { this.sending = false; document.getElementById('chat-send').disabled = false; this.input.focus(); }
   }
-  updateBusy() { document.getElementById('chat-stop').hidden = this.runs.size === 0; }
+  updateBusy() {
+    document.getElementById('chat-stop').hidden = this.runs.size === 0;
+    this.updateWork();
+  }
+  updateWork() {
+    const status = document.getElementById('chat-work');
+    if (!status) return;
+    const tasks = [...this.work.values()];
+    status.hidden = !this.runs.size && !tasks.length;
+    if (status.hidden) return;
+    const task = tasks.find(item => item.status === 'running') || tasks[0];
+    const paused = !this.connected || this.runFailed && !this.runs.size && !tasks.some(item => item.status === 'running');
+    let label = this.t('working');
+    if (!this.connected) label = this.t('offline');
+    else if (paused) label = this.t('paused');
+    else if (task) {
+      const phase = task.resultPending ? 'gathering' : task.status === 'waiting_for_input' ? 'confirming' : 'background';
+      label = this.t(phase) + (task.description ? ` · ${task.description.slice(0, 64)}` : '');
+    }
+    status.dataset.paused = String(Boolean(paused));
+    document.getElementById('chat-work-label').textContent = label;
+    const hint = tasks.length > 1 ? this.t('moreWork').replace('{count}', tasks.length - 1) : this.t('continueChat');
+    document.getElementById('chat-work-hint').textContent = hint;
+  }
   notice(message, owner) {
     const alert = node('p', 'chat-notice', message); alert.setAttribute('role', 'status');
-    (owner ? this.turn(owner).body : this.timeline).append(alert);
+    (owner ? this.turn(owner, true).body : this.timeline).append(alert);
   }
   event(event) {
     const nearBottom = this.viewport.scrollHeight - this.viewport.scrollTop - this.viewport.clientHeight < 120;
     const owner = event.metadata?.responseId || 'restored';
     if (event.type === 'CUSTOM') {
       if (event.name === 'xiaoba.user.message') {
-        this.clearEmpty(); const message = node('div', 'chat-user-message', event.value.text); message.dataset.eventId = event.value.eventId; this.timeline.append(message);
+        let text = event.value.text;
+        if (event.value.action) {
+          const action = event.value.action, surface = this.ui.model.surfaces.get(action.surfaceId);
+          const button = surface?.components[action.sourceComponentId];
+          const label = button?.text || surface?.components[button?.child]?.text;
+          text = typeof label === 'string' ? `${this.t('submitted')}${label}` : this.t('submittedChoice');
+        }
+        this.clearEmpty(); const message = node('div', 'chat-user-message', text); message.dataset.eventId = event.value.eventId; this.timeline.append(message);
       } else if (event.name === 'a2ui') {
         try { this.ui.apply(event.value.messages, owner); } catch { /* A following snapshot restores a truncated history window. */ }
       } else if (event.name === 'xiaoba.ui.snapshot') this.ui.snapshot(event.value.surfaces, event.value.owners);
       else if (event.name === 'xiaoba.mcp.app' && !this.apps.has(event.value.appId)) {
-        this.apps.set(event.value.appId, new McpAppView({ reference: event.value, threadId: this.threadId, mount: this.turn(owner).body, request: this.request.bind(this), language: this.language }));
+        this.apps.set(event.value.appId, new McpAppView({ reference: event.value, threadId: this.threadId, mount: this.turn(owner, true).body, request: this.request.bind(this), language: this.language }));
       } else if (event.name === 'xiaoba.file') {
         const link = node('a', 'chat-file', `↗ ${event.value.fileName}`);
         if (event.value.fileId) link.href = `/api/chat/files/${encodeURIComponent(event.value.fileId)}?threadId=${encodeURIComponent(this.threadId)}`;
-        link.download = event.value.fileName; this.turn(owner).body.append(link);
+        link.download = event.value.fileName; this.turn(owner, true).body.append(link);
       }
-    } else if (event.type === 'RUN_STARTED') { this.runs.add(event.runId); this.updateBusy(); }
+    } else if (event.type === 'RUN_STARTED') { this.runFailed = false; this.runs.add(event.runId); this.updateBusy(); }
     else if (event.type === 'RUN_FINISHED' || event.type === 'RUN_ERROR') {
+      this.runFailed = event.type === 'RUN_ERROR';
       this.runs.delete(event.runId || owner); this.updateBusy();
       if (event.type === 'RUN_ERROR') this.notice(event.message, owner);
-      const group = this.turns.get(owner)?.group;
-      if (group && ![...this.tools.values()].some(tool => tool.owner === owner && ['running', 'waiting_for_input'].includes(tool.state))) group.open = false;
     } else if (event.type === 'TEXT_MESSAGE_START') {
-      const paragraph = node('div', 'chat-text'); this.turn(owner).body.append(paragraph); this.messages.set(event.messageId, paragraph);
+      const paragraph = node('div', 'chat-text'); this.turn(owner, true).body.append(paragraph); this.messages.set(event.messageId, paragraph);
     } else if (event.type === 'TEXT_MESSAGE_CONTENT') {
       let paragraph = this.messages.get(event.messageId);
-      if (!paragraph) { paragraph = node('div', 'chat-text'); this.turn(owner).body.append(paragraph); this.messages.set(event.messageId, paragraph); }
+      if (!paragraph) { paragraph = node('div', 'chat-text'); this.turn(owner, true).body.append(paragraph); this.messages.set(event.messageId, paragraph); }
       paragraph.textContent += event.delta;
-    } else if (event.type === 'TOOL_CALL_START') {
-      if (!['send_text', 'send_ui'].includes(event.toolCallName)) { const tool = this.tool(event.toolCallId, owner); tool.name = event.toolCallName; this.updateTool(tool); }
-    } else if (event.type === 'TOOL_CALL_ARGS') {
-      const tool = this.tools.get(event.toolCallId);
-      if (tool) {
-        tool.args = (tool.args || '') + event.delta;
-        const pre = tool.input || node('pre'); pre.textContent = tool.args; if (!tool.input) tool.detail.append(pre); tool.input = pre;
-      }
-    } else if (event.type === 'TOOL_CALL_RESULT') {
-      const tool = this.tools.get(event.toolCallId);
-      if (tool) {
-        let result; try { result = JSON.parse(event.content); } catch { result = { status: 'success', summary: event.content }; }
-        if (!tool.subagent) tool.state = result.status || 'success';
-        const paragraph = node('pre', 'chat-muted', result.summary); tool.detail.append(paragraph); this.updateTool(tool);
-      }
-    } else if (event.type === 'SUBAGENT_STARTED') {
-      const id = event.parentToolCallId || event.subagentRunId, tool = this.tool(id, owner);
-      tool.subagent = event.subagentRunId; tool.name = event.name; tool.state = 'running'; this.updateTool(tool);
     } else if (event.type === 'ACTIVITY_SNAPSHOT' && event.activityType === 'SUBAGENT') {
-      const activity = event.content, tool = this.tool(activity.parentToolCallId || activity.subagentRunId, owner);
-      tool.subagent = activity.subagentRunId; tool.name = activity.name; tool.state = activity.status;
-      let progress = tool.progress;
-      if (!progress) { progress = node('div', 'chat-subagent-progress'); tool.detail.append(progress); tool.progress = progress; }
-      progress.replaceChildren(node('p', '', activity.description), ...activity.progress.map(text => node('p', 'chat-muted', text)));
-      if (activity.pendingQuestion) progress.append(node('p', 'chat-pending-question', activity.pendingQuestion));
-      this.updateTool(tool);
-    } else if (event.type === 'SUBAGENT_FINISHED' || event.type === 'SUBAGENT_ERROR') {
-      const tool = [...this.tools.values()].find(tool => tool.subagent === event.subagentRunId);
-      if (tool) { tool.state = event.type === 'SUBAGENT_ERROR' ? (event.code === 'stopped' ? 'stopped' : 'failed') : event.outcome?.type === 'suspended' ? 'waiting_for_input' : 'completed'; this.updateTool(tool); }
-    } else if (event.type === 'ACTIVITY_SNAPSHOT' && event.activityType === 'RETRY') this.notice(`${this.t('retry')} (${event.content.attempt}/${event.content.maxRetries})`, owner);
+      const activity = event.content;
+      if (['running', 'waiting_for_input'].includes(activity.status) || activity.resultPending) this.work.set(activity.subagentRunId, activity);
+      else this.work.delete(activity.subagentRunId);
+      this.updateWork();
+    } else if (event.type === 'TOOL_CALL_RESULT') {
+      let result; try { result = JSON.parse(event.content); } catch { return; }
+      if (['send_text', 'send_ui'].includes(result.name) && result.status !== 'success') this.notice(this.t('deliveryFailed'), owner);
+    }
+
     if (nearBottom) this.viewport.scrollTop = this.viewport.scrollHeight;
   }
 }

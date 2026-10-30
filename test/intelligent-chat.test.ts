@@ -14,6 +14,13 @@ import { McpAppsConnector } from '../src/connectors/mcp-apps';
 import { DashboardChatChannel } from '../src/surfaces/dashboard/chat-channel';
 
 describe('A2UI session model', () => {
+  test('gives actionable feedback for legacy component wrappers and incorrect data envelopes', () => {
+    const model = new A2UIModel();
+    model.apply([{ version: A2UI_VERSION, createSurface: { surfaceId: 'x', catalogId: CATALOG_ID } }]);
+    assert.throws(() => model.apply([{ version: A2UI_VERSION, updateComponents: { surfaceId: 'x', components: [{ id: 'root', component: { Text: { text: 'Hello' } } }] } }]), /flat component/);
+    assert.throws(() => model.apply([{ version: A2UI_VERSION, updateDataModel: { surfaceId: 'x', data: { budget: 300 } } }]), /value.*not data/);
+    assert.deepEqual(model.surfaces.get('x')!.data, {});
+  });
   test('validates and applies a form atomically, deriving action context only from declared inputs', () => {
     const model = new A2UIModel(); model.apply(formMessages());
     const input = { surfaceId: 'scope', sourceComponentId: 'submit', name: 'update_scope', revision: 2, values: { '/project': 'other', '/period': 'month' }, context: { forged: 'not trusted' } };
@@ -47,6 +54,57 @@ describe('A2UI session model', () => {
   });
 });
 
+test('failed UI delivery reports its actual error over AG-UI', async () => {
+  const fixture = await createChatFixture(), threadId = fixture.channel.threadId;
+  let calls = 0;
+  fixture.ai.chatStream = async () => ++calls === 1 ? { content: null, toolCalls: [{ id: randomUUID(), type: 'function', function: { name: 'send_ui', arguments: JSON.stringify({ messages: [{ version: A2UI_VERSION, createSurface: { surfaceId: 'bad', catalogId: 'unsupported' } }] }) } }] } : { content: '' };
+  const store = new PetChatHistoryStore(path.join(fixture.root, 'data/chat/sessions'));
+  try {
+    const response = await fetch(fixture.url + '/api/chat/message', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Xiaoba-Chat': '1' }, body: JSON.stringify({ threadId, eventId: randomUUID(), text: 'render' }) });
+    assert.equal(response.status, 200);
+    await until(() => store.read(threadId, 2000).some((event: any) => event.type === 'RUN_FINISHED'));
+    const event = store.read(threadId, 2000).find((event: any) => event.type === 'TOOL_CALL_RESULT') as any;
+    const result = JSON.parse(event.content);
+    assert.equal(result.name, 'send_ui');
+    assert.equal(result.status, 'failure');
+    assert.match(result.summary, /catalog/);
+    assert.notEqual(result.summary, '已交付');
+  } finally { await fixture.close(); }
+});
+
+test('Dashboard accepts a second user message into the active Main run', async () => {
+  const fixture = await createChatFixture();
+  let release!: (value: any) => void;
+  const held = new Promise<any>(resolve => { release = resolve; });
+  const requests: any[][] = [];
+  fixture.ai.chatStream = async (messages: any[]) => {
+    requests.push(structuredClone(messages));
+    if (requests.length === 1) return held;
+    if (requests.length === 2) {
+      assert.ok(messages.some(message => message.role === 'user' && message.content === '只查北京明天'));
+      return { content: null, toolCalls: [{ id: randomUUID(), type: 'function', function: {
+        name: 'send_text', arguments: JSON.stringify({ text: '收到，改查北京明天。' }),
+      } }] };
+    }
+    return { content: '' };
+  };
+  const post = (text: string) => fetch(fixture.url + '/api/chat/message', { method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Xiaoba-Chat': '1' },
+    body: JSON.stringify({ threadId: fixture.channel.threadId, text, eventId: randomUUID() }) });
+  const events = () => new PetChatHistoryStore(path.join(fixture.root, 'data/chat/sessions')).read(fixture.channel.threadId, 2000) as any[];
+  try {
+    assert.equal((await post('帮我查天气')).status, 200);
+    await until(() => requests.length === 1);
+    assert.equal((await post('只查北京明天')).status, 200);
+    assert.equal(requests.length, 1);
+    release({ content: '旧草稿' });
+    await until(() => events().some(event => event.type === 'RUN_FINISHED'));
+    assert.equal(events().filter(event => event.type === 'RUN_STARTED').length, 1);
+    assert.ok(events().some(event => event.type === 'TEXT_MESSAGE_CONTENT' && event.delta === '收到，改查北京明天。'));
+    assert.ok(!events().some(event => event.type === 'TEXT_MESSAGE_CONTENT' && event.delta === '旧草稿'));
+  } finally { release({ content: '' }); await fixture.close(); }
+});
+
 test('real AgentSession → AG-UI → A2UI action / MCP Apps / asynchronous child lifecycle', async () => {
   const fixture = await createChatFixture(), threadId = fixture.channel.threadId;
   const store = new PetChatHistoryStore(path.join(fixture.root, 'data/chat/sessions'));
@@ -70,6 +128,9 @@ test('real AgentSession → AG-UI → A2UI action / MCP Apps / asynchronous chil
     assert.ok(start.parentToolCallId);
     assert.ok(all.some(event => event.type === 'TOOL_CALL_START' && event.toolCallId === start.parentToolCallId));
     assert.ok(all.some(event => event.type === 'ACTIVITY_SNAPSHOT' && event.content.status === 'running'));
+    const activity = all.filter(event => event.type === 'ACTIVITY_SNAPSHOT' && event.activityType === 'SUBAGENT');
+    assert.ok(activity.some(event => event.content.resultPending === true));
+    assert.equal(activity.at(-1).content.resultPending, false);
     assert.ok(all.some(event => event.type === 'TOOL_CALL_RESULT' && event.toolCallId === start.parentToolCallId));
     assert.ok(!all.some(event => event.type === 'TEXT_MESSAGE_CONTENT' && event.delta.includes('hidden provider final')));
     const originalCount = fixture.ai.requests.length;

@@ -1,10 +1,20 @@
 # Agent Runtime PLAN
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-31
 Owner：Runtime maintainers
 
 ## Current Status
+
+完成唤醒合并（2026-10-31，Owner: Runtime，已实现，持续真实模型验收）：实际使用暴露单靠 prompt 仍会逐项播报。现改为同父会话还有活动 child 时暂存成功结果，最后一项结束刷新待交接；失败/问题即时反馈、普通聊天不受影响，停止最后任务也释放已收材料。构建及相关 63/63 检查通过；同步前扩展检查 100/101，唯一失败是已有 macOS 沙箱产物断言。整仓 736/748，12 项均为先前已知失败（含当前环境缺少 npx 的 3 项），未标记全绿。真实模型一轮验证并行和一次综合汇报；后续一轮出现运行失败，尚不宣称稳定完成端到端验收。证据在 output/test/combined-research。下一步：继续验证模型响应质量和真实运行失败原因。
+
+已收结果保留（2026-10-31，Owner: Runtime，已实现）：已确认结果继续进入现有任务视图，包含结果摘要、产物和 result_pending；确认仅表示内部接收。父会话仍有未完成/待接收工作时延长旧材料保留，全部处理后清理过期结果；不增加任务组或调度器。构建通过，相关 109/109 检查通过；另行生命周期/沙箱检查 17/19，剩余两项为原有 macOS 沙箱路径断言。新增回归验证两项真实 shared-loop child 重叠、首项静默接收、跨普通消息与压缩重建保留、超过 30 分钟仍可综合及完成后清理、只交付一次且不重放通知。真实模型 + Dashboard HTTP + 两个 BrowserCat 联网调研通过：39 次成功页面访问、项目先完成时零分项消息，论文完成后一次主动综合汇报，无额外催问，无替换模型输出。证据在 output/test/combined-research。下一步：持续不同任务组合/模型验证相关性和简洁度；本轮未重跑整仓 gate，原有跨进程执行恢复限制不变。
+
+Main 工具面收敛（2026-10-30，Owner: Runtime，已实现）：默认 Main 保留交付、子任务控制、读取和提醒，隐藏通用修改/搜索/Shell 与 ask_parent；显式已安装并激活的 Base Skill 保留执行兼容。Session 使用已有 Skill 加载结果传递名称快照，不在每次工具筛选时扫描目录；显式 Base 不受全局 active role 污染。无连接器/Skill 的共享 Main 从 18 减至 10 个工具，工具 JSON 从 8756 减至 4636 字符（不含 system prompt）。构建通过，定向 87/88；唯一失败为既有 macOS 沙箱产物断言。真实模型 + Dashboard HTTP 验证普通聊天无多余派工、派工期间插话、steer、单次结果交接和 A2UI 交付，全程 Main 使用精简工具面。证据在 output/test/main-tools。整仓 731/743，9 项与先前失败相同，另 3 项因当前环境缺少 npx；对应 CLI 用本地入口补验通过（contract 9/9、单例 1/1、readiness 正常报告 blocked）。下一步：持续真实任务观察工具选择；未证明响应时延或自然度必然改善，原有沙箱/提醒失败仍待独立修复。
+
+OpenAI-compatible 流式中文完整性（2026-10-30，Owner: Runtime）：真实对话暴露逐 Buffer.toString 造成的中文截断乱码，已改为 StringDecoder。新增逐字节分块回归覆盖中文、emoji 和工具参数；构建及相关 32/32 检查通过。对话策略验收由 Roles & Skills PLAN 持有，未改交付授权或执行状态机。
+
+Main/Sub 状态与异步交接（2026-10-30，Owner: Runtime）：已实现 Map + Journal、按变化追加任务视图、Main/Sub 推理边界插话，以及持久化结果通知和成功处理回执。真实 gpt-5.6-luna + Dashboard/Chromium 验收通过：派工、用户插话、steer_subagent、后台期间继续聊天、Sub 按更新后的约束完成、Main 更新原卡片并确认结果；无遗漏插话或重复结果处理。真实代理 500 暴露的会话重试清空历史问题已修复；故障回归验证保留已消费要求和工具结果，ask_parent 不重放。构建、23/23 定向检查、2/2 Chromium 场景通过；整仓 728/737，9 项失败名称与原提交隔离基线一致。证据在 output/test/live-main-sub。下一步：持续真实任务使用，外部 driver/平台验收按各模块推进。限制：live steer inbox 为进程内状态，插话在推理边界消费；通知跨崩溃为 at-least-once，不自动恢复执行游标，不宣称外部副作用 exactly-once。
 
 Intelligent Chat（2026-10-29，Owner: Runtime）：可选 UI channel callback、Main-only send_ui、parentToolCallId 和只读 Subagent 状态投影已实现；Base prompt/skill 显式选择不受全局角色影响。新增协议/Runtime 集成 6/6 通过，完整回归与 HEAD 基线有相同 9 项失败（详见 Surface PLAN）。下一步为真实模型和原生 Electron 打包验收；不增加 Agent loop 或新的角色调度器。
 

@@ -240,45 +240,9 @@
       line-height: 1.8;
     }
 
-    .sidebar-watermark {
-      display: grid;
-      gap: 2px;
-      padding: 9px 10px;
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 14px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-      color: rgba(255,255,255,0.78);
-    }
 
-    .sidebar-watermark-name {
-      width: max-content;
-      max-width: 100%;
-      color: rgba(255,255,255,0.88);
-      font-family: 'Orbitron', 'SFMono-Regular', Consolas, monospace;
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: 0.02em;
-      line-height: 1.2;
-      text-decoration: none;
-      text-transform: lowercase;
-      transition: filter 0.16s ease, transform 0.16s ease;
-    }
 
-    .sidebar-watermark-name:hover {
-      filter: brightness(0.85);
-      transform: translateX(1px);
-    }
 
-    .sidebar-watermark-version {
-      color: rgba(255,255,255,0.54);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 650;
-      letter-spacing: 0;
-      line-height: 1.2;
-    }
 
     .sidebar-footer-actions {
       display: flex;
@@ -1731,28 +1695,9 @@
         padding: 10px 0 2px;
       }
 
-      .sidebar-watermark {
-        gap: 1px;
-        padding: 7px 3px;
-        text-align: center;
-      }
 
-      .sidebar-watermark-name {
-        font-size: 7px;
-        letter-spacing: 0;
-        overflow-wrap: normal;
-        white-space: nowrap;
-      }
 
-      .sidebar-watermark-version {
-        display: block;
-        font-size: 8px;
-        white-space: nowrap;
-      }
 
-      .sidebar-watermark-product {
-        display: none;
-      }
 
       .sidebar-footer-actions {
         justify-content: center;
@@ -2023,28 +1968,8 @@
       font-weight: 600 !important;
     }
 
-    .sidebar-watermark {
-      padding: 9px 8px;
-      border: 1px solid var(--border-light);
-      border-radius: 8px;
-      background: rgba(255,255,255,0.52);
-      color: var(--text2);
-    }
 
-    .sidebar-watermark-name {
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 800;
-    }
 
-    .sidebar-watermark-version {
-      color: var(--text3);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 650;
-    }
 
     .sidebar-footer-actions {
       margin-top: 8px;
@@ -3380,32 +3305,10 @@
         padding-inline: 2px;
       }
 
-      .sidebar-watermark {
-        gap: 1px;
-        padding: 7px 1px;
-        text-align: center;
-      }
 
-      .sidebar-watermark-product {
-        display: none;
-      }
 
-      .sidebar-watermark-name {
-        font-size: 10px;
-        letter-spacing: 0;
-        transform: none;
-        white-space: nowrap;
-      }
 
-      .sidebar-watermark-name:hover {
-        transform: none;
-      }
 
-      .sidebar-watermark-version {
-        display: block;
-        font-size: 8px;
-        white-space: nowrap;
-      }
 
       .main-wrapper {
         margin-left: 92px;
@@ -3454,25 +3357,9 @@
         display: none;
       }
 
-      .sidebar-watermark {
-        padding: 9px 8px;
-        text-align: left;
-      }
 
-      .sidebar-watermark-name {
-        font-size: 13px;
-        white-space: normal;
-      }
 
-      .sidebar-watermark-version {
-        display: flex;
-        font-size: 10px;
-        white-space: normal;
-      }
 
-      .sidebar-watermark-product {
-        display: inline;
-      }
 
       .sidebar-footer-actions {
         justify-content: flex-start;
@@ -3576,10 +3463,6 @@
       </a>
     </nav>
     <div class="sidebar-footer">
-      <div class="sidebar-watermark" aria-label="XiaoBa CLI by fightheyyy">
-        <a class="sidebar-watermark-name" href="https://fightheyyy.github.io" target="_blank" rel="noopener noreferrer">fightheyyy</a>
-        <span class="sidebar-watermark-version"><span class="sidebar-watermark-product">XiaoBa CLI</span><span id="sidebar-watermark-version">v-</span></span>
-      </div>
       <div class="sidebar-footer-actions">
         <button type="button" class="sidebar-lang-toggle" id="lang-toggle-btn" onclick="toggleLanguage()" aria-label="Language">中 / EN</button>
       </div>
@@ -3626,7 +3509,7 @@
           <header class="chat-header">
             <div class="chat-heading">
               <canvas width="96" height="104" data-xiaoba-role-avatar="base" role="img" aria-label="XiaoBa"></canvas>
-              <div><strong>XiaoBa</strong><small>Main Agent</small></div>
+              <div><strong>XiaoBa</strong></div>
             </div>
             <div class="chat-header-actions">
               <span id="chat-connection" class="chat-connection" role="status">Connecting…</span>
@@ -3634,6 +3517,11 @@
           </header>
           <div id="chat-scroll" class="chat-scroll"><div id="chat-timeline" class="chat-timeline" role="log" aria-label="Conversation" aria-live="polite"></div></div>
           <div class="chat-composer-area">
+            <div id="chat-work" class="chat-work" role="status" aria-live="polite" aria-atomic="true" hidden>
+              <span class="chat-work-orbit" aria-hidden="true"><span></span></span>
+              <span id="chat-work-label" class="chat-work-label"></span>
+              <span id="chat-work-hint" class="chat-work-hint"></span>
+            </div>
             <form id="chat-form" class="chat-composer">
               <textarea id="chat-input" rows="2" maxlength="32000" aria-label="Message XiaoBa" placeholder="Tell XiaoBa what you want to do next…"></textarea>
               <div class="chat-composer-actions">
@@ -4257,10 +4145,6 @@
         latestStatus = data;
         const displayVersion = 'v' + (data.version || '-');
         document.querySelector('.sidebar-brand-ver').textContent = displayVersion;
-        const watermarkVersion = document.getElementById('sidebar-watermark-version');
-        if (watermarkVersion) watermarkVersion.textContent = displayVersion;
-        const watermark = document.querySelector('.sidebar-watermark');
-        if (watermark) watermark.setAttribute('aria-label', 'XiaoBa CLI by fightheyyy version ' + (data.version || '-'));
         renderStatus(data);
         renderServices(data.services || []);
         renderNextActions(data);

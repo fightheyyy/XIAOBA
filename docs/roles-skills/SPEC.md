@@ -1,7 +1,7 @@
 # Roles & Skills SPEC
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-31
 适用范围：Base、八个默认 Role、Role-local Skills、共享 review roles 和 Evolution。
 
 本文是 XiaoBa-CLI `Roles & Skills` 模块的唯一架构真相源。
@@ -40,6 +40,14 @@ Out of scope:
 
 ## Current Architecture
 
+Base 的公开表达由 `prompts/system-prompt.md` 和共享 `prompts/surface.md` 约束：一个 XiaoBa 承接用户的目标、判断与结果，用有上下文的日常语言交流。内部 Role/Subagent 调度、结果转交和消息同步默认不进入对话或 UI 文案；用户明确询问架构/调试时如实说明。不伪装真人、现实同事或个人经历，不编造进展、记忆和完成情况。角色路由与权限仍沿用既有 Runtime 合同。
+
+Base 依据 Runtime 最新子任务视图决定继续交流、回答问题、交付结果或追加工作；无需每轮查询状态。运行中补充要求使用 Main-only steer_subagent，挂起问题继续使用 resume_subagent，停止使用 stop_subagent。八个 Role 及零默认 Base Skill 保持不变；执行与结果交接合同归 Agent Runtime。
+
+Base 默认工具面已收敛到交流交付与后台管理；专业执行由 Role 承担，显式安装的 Base Skill 在激活期间保留通用执行兼容。spawn_subagent schema 只描述调用与交接语义，公开对话和派工策略集中在 Base prompt。
+
+Base prompt 已按交付意图处理连续交办的多项调研：独立执行并行，部分材料先收下；资料齐备后给统一结论，正常聊天继续回应。内部完成反馈不再诱导逐项播报，失败/取消须判断补做或说明缺口；具体保留和通知回执由 Runtime 持有。
+
 Skill 商店改接 skills.sh；目录查询、单项下载与安装归 `src/capabilities/skills/skills-sh.ts`，Dashboard 与 CLI 共用同一实现。`skills/registry.json` 和 `scripts/skill-hub-init/` 是历史自建 Hub 资产，不再作为商店数据源；外部 CLI 依赖清单仍位于 `docs/requirements.txt`。这些文件不作为可执行 Skill 注册。
 
 可执行能力实现已统一归位到 `src/capabilities/tools/`、`src/capabilities/skills/`、`src/capabilities/roles/`。Tools 拥有注册、可见性、确认和具体工具实现；Skills/ Roles 拥有加载、解析、策略及角色适配。根目录 `skills/` 和 `roles/` 继续保存声明式资产。角色与 Skill 的执行合同位于 `runtime/contracts`，所有角色继续复用唯一 runtime loop；不新增角色或生命周期系统。
@@ -68,7 +76,11 @@ flowchart LR
     Directory["skills.sh directory / snapshots"] --> Distribution["Shared Skill distribution adapter"]
     Distribution --> Packages["Explicit installed Skill packages"]
     Packages --> Runtime["one XiaoBa Agent loop"]
-    Runtime --> Execution["Shell / file tools / bounded workers"]
+    Base --> MainTools["Delivery / read / timer / child controls"]
+    Runtime --> Material["Internal research results"]
+    Material --> Base
+    Base --> Report["Context-aware combined delivery"]
+    Runtime --> Execution["Role / active installed Skill execution"]
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Base --> NativeAppTools["Gmail / Notion / GitHub tools"]
     NativeAppTools --> AppService["Agent-owned Connector service"]
@@ -95,6 +107,12 @@ flowchart LR
 
 ## Target Architecture
 
+连续交办的多项调研由 Base 理解交付意图并综合汇报：独立任务并行执行，收到部分结果先消化、允许静默；资料齐备后结合用户最新要求给统一判断。新增任务与修改已有任务由 Main 区分，普通聊天继续即时回应。具体何时交付属于 Base 策略，不通过全局 wait-all、任务组框架或按回调强制发送实现。
+
+Base 默认负责交流、判断、交付与后台协作，通用修改/搜索/Shell 归执行角色；显式安装并激活的 Base Skill 保留现有执行能力。无已安装可调用 Skill 时隐藏 skill，ask_parent 只供 child；工具面执行合同由 Agent Runtime 持有，八个角色和零默认 Skill 不变。
+
+Main/Sub 沿用上述已实现边界；消息消费、任务视图及结果回执的统一合同由 Agent Runtime SPEC 持有。
+
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
 Role 只拥有策略与工件生成；控制 DAG 只编排已经存在的 Test、Eval 和激活动作。
@@ -104,6 +122,10 @@ flowchart LR
     Directory["skills.sh directory / snapshots"] --> Distribution["Shared Skill distribution adapter"]
     Distribution --> Packages["Explicit installed Skill packages"]
     Packages --> Runtime["one XiaoBa Agent loop"]
+    Base --> MainTools["Delivery / read / timer / child controls"]
+    Runtime --> Material["Internal research results"]
+    Material --> Base
+    Base --> Report["Context-aware combined delivery"]
     Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Sandbox --> Native["Seatbelt on macOS / Bubblewrap on Linux"]
     Base["Base Main Agent"] --> AppTools["Native app tools"]

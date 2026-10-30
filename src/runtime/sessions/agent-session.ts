@@ -11,7 +11,8 @@ import {
   upsertSkillSystemMessage,
 } from '../../capabilities/skills/skill-activation-protocol';
 import { ConversationRunner, RunnerCallbacks, RunToolResult } from '../harness/loop/conversation-runner';
-import { SubAgentManager } from '../subagents/sub-agent-manager';
+import { SubAgentManager, SubAgentFeedbackNotice } from '../subagents/sub-agent-manager';
+import { syncSubAgentContext } from '../subagents/sub-agent-context';
 import { PromptManager } from '../harness/context/prompt-manager';
 import { RoleResolver } from '../../capabilities/roles/role-resolver';
 import { Logger } from '../observability/logger';
@@ -154,6 +155,8 @@ export class AgentSession {
   private interruptRequested = false;
   private requestAbortController?: AbortController;
   private readonly idleWaiters = new Set<() => void>();
+  private acceptingSteers = false;
+  private pendingSteers: Array<{ message: Message; consumed: boolean; resolve: (consumed: boolean) => void }> = [];
   lastActiveAt: number = Date.now();
   private sessionTurnLogger: SessionTurnLogger;
   private compressor: ContextCompressor;
@@ -386,6 +389,8 @@ export class AgentSession {
       this.interruptRequested = false;
       this.requestAbortController = new AbortController();
       this.lastActiveAt = Date.now();
+      const observedResults = new Map<string, SubAgentFeedbackNotice>();
+      let processedSuccessfully = false;
 
       // 检查是否需要压缩上下文
       if (this.compressor.needsCompaction(this.messages)) {
@@ -416,43 +421,6 @@ export class AgentSession {
           if (memory) contextMessages.splice(contextMessages.length - 1, 0, memory);
         } catch (error: any) {
           Logger.warning(`[会话 ${this.key}] memory 读取失败，继续当前请求: ${error.code || 'MEMORY_READ_FAILED'}`);
-        }
-
-        // 注入后台子智能体状态（临时上下文，不持久化）
-        const subAgentManager = SubAgentManager.getInstance();
-        const subAgents = subAgentManager.listByParent(this.key,this.services.toolManager?.getWorkingDirectory?.() || process.cwd());
-        if (subAgents.length > 0) {
-          const activeCount = subAgents.filter(s => (
-            s.status === 'running' || s.status === 'waiting_for_input'
-          )).length;
-          const statusLines = subAgents.map(s => {
-            const statusLabel = s.status === 'interrupted' ? '已中断（先核对产物与外部结果，再派遣剩余工作）' : s.status === 'running'
-              ? '运行中'
-              : s.status === 'waiting_for_input'
-                ? '等待输入'
-                : s.status === 'completed'
-                  ? '已完成'
-                  : s.status === 'failed'
-                    ? '失败'
-                    : '已停止';
-            const latest = s.progressLog[s.progressLog.length - 1] ?? '';
-            const summary = s.status === 'completed' && s.resultSummary ? `\n  结果: ${s.resultSummary.slice(0, 200)}` : '';
-            const pending = s.status === 'waiting_for_input' && s.pendingQuestion
-              ? `\n  待回复问题: ${s.pendingQuestion.slice(0, 500)}`
-              : '';
-            return `- [${s.id}] ${s.taskDescription} (${statusLabel}) ${latest}${pending}${summary}`;
-          }).join('\n');
-          const retainedCount = subAgents.length - activeCount;
-          const statusSummary = `当前有 ${activeCount} 个活跃后台子任务`
-            + (retainedCount > 0 ? `，另保留 ${retainedCount} 个已结束任务记录` : '');
-
-          const subagentStatusMsg: Message = {
-            role: 'system',
-            content: `${TRANSIENT_SUBAGENT_STATUS_PREFIX}\n${statusSummary}：\n${statusLines}\n\n用户如果询问任务进度，请基于以上信息回答。等待输入的任务应使用 resume_subagent 回复；用户如果要求停止任务，使用 stop_subagent。`,
-          };
-          // 插入到最后一条用户消息之前
-          const lastUserIdx = contextMessages.length - 1;
-          contextMessages.splice(lastUserIdx, 0, subagentStatusMsg);
         }
 
         // 动态注入当前可用 skills 列表（临时上下文，不持久化）
@@ -493,6 +461,7 @@ export class AgentSession {
             shouldContinue: () => !this.interruptRequested,
             toolExecutionContext: {
               sessionId: this.key,
+              availableSkillNames: skills.map(skill => skill.metadata.name),
               surface,
               permissionProfile: 'strict',
               abortSignal: this.requestAbortController.signal,
@@ -503,6 +472,20 @@ export class AgentSession {
             observabilityMetricMode: 'mirror_only',
             deliveryFallbackFinalReply,
             onContextCompaction: event => this.sessionTurnLogger.logContextCompaction(event),
+            readPendingMessages: () => {
+              const pending = this.pendingSteers.filter(item => !item.consumed);
+              for (const item of pending) item.consumed = true;
+              return pending.map(item => item.message);
+            },
+            prepareMessages: messages => {
+              const children = SubAgentManager.getInstance().listByParent(this.key, this.getWorkingDirectory());
+              syncSubAgentContext(messages, children);
+              for (const child of children) if (child.resultNotice && !child.resultNotice.handledAt) {
+                observedResults.set(child.resultNotice.id, {
+                  id: child.resultNotice.id, subagentId: child.id, workingDirectory: this.getWorkingDirectory(),
+                });
+              }
+            },
           },
         );
         const runnerCallbacks: RunnerCallbacks = {
@@ -513,7 +496,12 @@ export class AgentSession {
           onRetry: callbacks?.onRetry,
         };
 
-        const result = await runner.run(contextMessages, runnerCallbacks);
+        this.acceptingSteers = true;
+        const result = await runner.run(contextMessages, runnerCallbacks).finally(() => {
+          this.acceptingSteers = false;
+          // Preserve inputs already read, including when a later provider request fails.
+          this.messages = this.removeTransientMessages(contextMessages);
+        });
         this.providerFailureCounts.clear();
         const persistedMessages = this.removeTransientMessages(result.messages);
         this.messages = [...persistedMessages];
@@ -616,11 +604,13 @@ export class AgentSession {
         observability.recordLog('xiaoba.session.completed', completionAttrs, 'INFO', sessionSpan.context);
         finishSessionSpan('ok', completionAttrs);
 
+        processedSuccessfully = !result.exhausted;
         return {
           text: result.finalResponseVisible ? (result.response || '[无回复]') : '',
           visibleToUser,
           finalResponseVisible: result.finalResponseVisible,
           newMessages: result.newMessages,
+          ...(result.exhausted && { failed: true }),
         };
       } catch (err: any) {
         if (isCancellation(err) || this.requestAbortController?.signal.aborted) {
@@ -710,13 +700,21 @@ export class AgentSession {
 
         return { text: errorReply, visibleToUser: true, finalResponseVisible: true, failed: true };
       } finally {
+        this.acceptingSteers = false;
         finishSessionSpan('error', {
           ...baseObservabilityAttrs,
           'xiaoba.error_code': 'SESSION_ABORTED',
         }, 'Session ended before completion evidence was recorded.');
-        try { this.saveRestorableContext(); }
+        try {
+          this.saveRestorableContext();
+          if (processedSuccessfully) for (const notice of observedResults.values()) {
+            SubAgentManager.getInstance().acknowledgeResult(this.key, notice);
+          }
+        }
         finally {
           this.busy = false;
+          const steers = this.pendingSteers.splice(0);
+          for (const item of steers) item.resolve(item.consumed);
           this.requestAbortController = undefined;
           for (const wake of [...this.idleWaiters]) wake();
         }
@@ -1190,6 +1188,15 @@ ${conversationText}`;
 
   isBusy(): boolean {
     return this.busy;
+  }
+
+  /** Returns undefined if idle/closing; callers then use ordinary serialized admission. */
+  steer(text: string | import('../contracts').ContentBlock[], internal = false): Promise<boolean> | undefined {
+    if (!this.busy || !this.acceptingSteers || this.interruptRequested || this.pendingSteers.length >= 20) return undefined;
+    this.lastActiveAt = Date.now();
+    return new Promise(resolve => {
+      this.pendingSteers.push({ message: { role: 'user', content: text, ...(internal ? { __injected: true } : {}) }, consumed: false, resolve });
+    });
   }
 
   /** Wait for completion without timer polling or a fixed feedback expiry. */

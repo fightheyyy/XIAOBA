@@ -1,4 +1,4 @@
-import { getRoleSpecificToolsForRole } from '../roles/runtime-role-registry';
+import { getRoleSpecificToolsForResolvedRole } from '../roles/runtime-role-registry';
 import { ToolManager } from './tool-manager';
 import { ToolExecutionContext } from '../../runtime/contracts/tool';
 import { RoleResolver } from '../roles/role-resolver';
@@ -26,8 +26,8 @@ export function createRoleAwareToolManager(
 
   return new ToolManager(
     workingDirectory,
-    { ...contextDefaults, ...(effectiveRoleName ? { roleName: effectiveRoleName } : {}) },
-    getRoleSpecificToolsForRole(effectiveRoleName),
+    { ...contextDefaults, roleName: effectiveRoleName || 'base' },
+    getRoleSpecificToolsForResolvedRole(effectiveRoleName),
     {
       inheritBaseTools: roleConfig?.inheritBaseTools,
       baseToolAllowlist: roleConfig?.baseToolAllowlist,

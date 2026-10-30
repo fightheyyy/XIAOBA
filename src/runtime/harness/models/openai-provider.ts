@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { StringDecoder } from 'node:string_decoder';
 import { sandboxAxiosProxy } from './sandbox-proxy';
 import { Message, ChatConfig, ChatResponse, ContentBlock } from '../../contracts';
 import { ToolDefinition } from '../../contracts/tool';
@@ -41,9 +42,12 @@ export class OpenAIProvider implements AIProvider {
    */
   private buildRequestBody(messages: Message[], tools?: ToolDefinition[], stream = false): any {
     const sanitizedMessages = messages.map(message => {
+      const wire = { ...message };
+      delete wire.__injected;
+      delete wire.__subagentState;
       if (Array.isArray(message.content)) {
         return {
-          ...message,
+          ...wire,
           content: message.content.map(block =>
             block.type === 'text'
               ? { type: 'text', text: block.text }
@@ -51,7 +55,7 @@ export class OpenAIProvider implements AIProvider {
           )
         };
       }
-      return { ...message, content: message.content ?? '' };
+      return { ...wire, content: message.content ?? '' };
     });
 
     const body: any = {
@@ -143,9 +147,10 @@ export class OpenAIProvider implements AIProvider {
       let streamUsage: ChatResponse['usage'] = undefined;
 
       const stream = response.data;
+      const decoder = new StringDecoder('utf8');
 
       stream.on('data', (chunk: Buffer) => {
-        buffer += chunk.toString();
+        buffer += decoder.write(chunk);
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 

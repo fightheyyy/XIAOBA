@@ -1,10 +1,12 @@
 # Observability & Evidence PLAN
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-30
 Owner：Runtime / evidence maintainers
 
 ## Current Status
+
+Subagent 结果交接（2026-10-30，Owner: Runtime / Evidence）：现有 Journal 增加可选通知 ID/处理时间；未处理结果保留，重开路由可重试。原子确认保留执行 owner；不宣称跨进程事务或外部副作用 exactly-once。新增 11 项验证通过；整仓 725/734，9 项与原提交隔离复测一致。证据在 output/test/main-sub-collaboration，下一步为真实使用观察。
 
 Intelligent Chat UI evidence（2026-10-29，Owner: Evidence / Surface）：可见 UI 引用、action 输入和 session 内 UI snapshot 已实现，复用既有事件存储。新增 Runtime/协议 6/6 与浏览器 1/1 验证 Journal 不包含 HTML/隐藏 final，跨 session action/App 访问被拒绝，刷新恢复不重执行工具。恢复窗口为最近 2000 个事件，不宣称无限历史或自动恢复执行游标。完整回归与基线限制见 Surface PLAN。
 

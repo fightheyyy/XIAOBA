@@ -1,7 +1,7 @@
 # Observability & Evidence SPEC
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-30
 
 本文是顶层架构模块中的 **Observability & Evidence / 观测证据层** spec。它以本地 trace JSONL、durable state 和 artifact evidence 为事实源；当前实现可显式启用一个脱敏 OTLP trace 投影，但不会在本地 trace/log 写入前做清洗。
 
@@ -37,6 +37,8 @@ Out of scope:
 - benchmark source admission；需要进入 benchmark source 时，由对应 benchmark owner 重新整理 case。
 
 ## Current Architecture
+
+现有 `data/subagents` Journal 的子任务信息可包含 `resultNotice={id,handledAt?}` 和未送达补充要求；执行状态与父会话结果交接分开。未确认结果不被普通终态 TTL 隐藏，确认采用原子文件替换并保留原执行 owner；仍不提供跨进程并发写入或自动执行游标恢复。模型上下文视图属于 Runtime 投影，不进入用户可见 Conversation。
 
 Intelligent Chat 已扩展 `DeliveryEvidence.delivery_type=ui` 和 Conversation 的 `{type:ui,format:a2ui|mcp,ref,title?}` 引用内容。完整 UI 消息和可见工具状态使用既有 `data/chat/sessions` 事件存储按 chat session 恢复；Journal 只记录成功交付的 UI 引用和用户提交动作，不记录 App HTML 或私有凭据。刷新不重放原 action/tool，未完成 Main run 标记中断。
 
@@ -137,6 +139,8 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 和独占锁。当前以 sessionKey 为身份与记忆范围，不做跨入口同一人绑定；语义冲突判定与自动事件跟进仍是后续工作。
 
 ## Target Architecture
+
+Main/Sub 沿用上述已实现边界；消息消费、任务视图及结果回执的统一合同由 Agent Runtime SPEC 持有。
 
 Dashboard Intelligent Chat 扩展可见交付的 `ui` 内容项，记录用户看到的 A2UI 或 MCP App 的交付引用；UI action 作为可见用户输入记录，工具内部数据仍只在 Trace。既有 Chat 事件存储保留协议事件供按 sessionKey 恢复界面；恢复不执行 action、不调用 MCP 写工具，也不把 App 的 HTML 或私有凭据写入 Conversation。Subagent 的状态属于可见工具活动，最终结论由 Main Agent 交付。
 

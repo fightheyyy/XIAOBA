@@ -144,11 +144,17 @@ export class McpAppsConnector {
     return this.clean(await (await this.client(app.server)).callTool({ name: tool.name, arguments: params.arguments || {} }, undefined, { timeout: 30_000 }));
   }
   createTools(): Tool[] {
+    const isAvailable = (context: Partial<ToolExecutionContext>) => {
+      if (!context.channel?.sendUI || context.parentSessionId || context.sessionId?.startsWith('subagent:')) return false;
+      try { return Object.keys(this.config()).length > 0; } catch { return false; }
+    };
     const tools: Tool[] = [{
       definition: { name: 'mcp_list', description: '列出已配置的 MCP 服务器和模型可用工具（含参数 schema 与 UI 声明）。', parameters: { type: 'object', properties: {} } },
+      isAvailable,
       execute: async () => { try { return toolSuccess(JSON.stringify(await this.list())); } catch { return toolFailure('MCP discovery failed. Check server configuration.', 'MCP_DISCOVERY_FAILED'); } },
     }];
     for (const write of [false, true]) tools.push({
+      isAvailable,
       definition: { name: write ? 'mcp_write' : 'mcp_read', description: write ? '执行用户已明确确认的 MCP 写操作。先用 send_text 展示 server、tool、arguments 完整 JSON 提案，等待用户确认。' : '调用标记为只读的 MCP 工具；有 UI 声明时自动嵌入当前对话。先 mcp_list 取得工具 schema。',
         ...(write ? { requiresConfirmation: true, confirmationPayloadKeys: ['server', 'tool', 'arguments'] } : {}),
         parameters: { type: 'object', properties: { server: { type: 'string' }, tool: { type: 'string' }, arguments: { type: 'object' }, ...(write ? { confirmed: { type: 'boolean' } } : {}) }, required: ['server', 'tool', 'arguments'] } },

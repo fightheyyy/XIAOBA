@@ -12,7 +12,7 @@ import { AIService } from '../../runtime/harness/models/ai-service';
 import { SkillManager } from '../../capabilities/skills/skill-manager';
 import { AgentServices, BUSY_MESSAGE, ERROR_MESSAGE } from '../../runtime';
 import { Logger } from '../../runtime/observability/logger';
-import { SubAgentManager } from '../../runtime';
+import { SubAgentManager, SubAgentFeedbackNotice } from '../../runtime';
 import { BridgeServer, GroupMessage } from '../bridge/bridge-server';
 import { BridgeClient } from '../bridge/bridge-client';
 import { ChimeInJudge } from '../bridge/chime-in-judge';
@@ -333,8 +333,8 @@ export class FeishuBot {
     // 子智能体完成后通过 injectMessage 通知主 Agent
     const subAgentManager = SubAgentManager.getInstance();
     subAgentManager.refreshPlatformCallbacks(key, {
-      injectMessage: async (text: string) => {
-        await this.handleSubAgentFeedback(key, msg.chatId, msg.senderId, text);
+      injectMessage: async (text, notice) => {
+        await this.handleSubAgentFeedback(key, msg.chatId, msg.senderId, text, notice);
       },
     }, this.sessionManager);
 
@@ -415,6 +415,10 @@ export class FeishuBot {
     }
 
     // 并发保护：忙时消息静默入队，空闲后自动处理
+    if (session.isBusy() && !this.isInterruptMessage(userText)) {
+      const steered = session.steer(userText);
+      if (steered && await steered) return;
+    }
     if (session.isBusy()) {
       if (this.isInterruptMessage(userText)) {
         session.requestInterrupt();
@@ -466,8 +470,10 @@ export class FeishuBot {
     chatId: string,
     senderId: string,
     text: string,
+    notice?: SubAgentFeedbackNotice,
   ): Promise<void> {
     await this.sessionManager.enqueueTurn(sessionKey, chatId, async session => {
+      if (notice && !SubAgentManager.getInstance().shouldHandleFeedback(sessionKey, notice)) return;
       const turn = this.createTurnContext(sessionKey);
       const channel = journalVisibleChannel(turn, this.buildChannel(chatId, { sessionKey, senderId }));
       try {

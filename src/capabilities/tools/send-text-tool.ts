@@ -9,14 +9,14 @@ import { toolBlocked, toolFailure, toolSuccess } from '../../runtime/contracts/t
 export class SendTextTool implements Tool {
   definition: ToolDefinition = {
     name: 'send_text',
-    description: '发送一条用户可见文本消息。消息会话中，所有要让用户看到的文本都必须通过此工具发送；短消息也用它。内容超过 150 字时分多段多次调用，每段 50-150 字。',
+    description: '发送一条用户可见文本消息。消息会话中，所有要让用户看到的文本都必须通过此工具发送；短消息也用它。按内容自然分段，不为字数强行拆分消息。',
     transcriptMode: 'outbound_message',
     parameters: {
       type: 'object',
       properties: {
         text: {
           type: 'string',
-          description: '要发送的文本内容。建议每条 50-150 字，保持语义完整。',
+          description: '要发送的文本内容。保持语义完整，按实际需要决定长度。',
         },
       },
       required: ['text'],

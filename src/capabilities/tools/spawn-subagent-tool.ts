@@ -17,26 +17,7 @@ import { toolFailure, toolSuccess } from '../../runtime/contracts/tool-result';
 export class SpawnSubagentTool implements Tool {
   definition: ToolDefinition = {
     name: 'spawn_subagent',
-    description: `派遣一个子智能体在后台独立执行某个 skill 任务、指定 role 后让子智能体自行选择 role-local skill，或不预设 skill 直接执行后台任务。
-
-调用后立即返回，不会阻塞当前对话。子智能体完成后会通知你（主 agent），并附上产出文件列表。
-由你决定是否将结果和文件转发给用户。
-
-使用场景：
-- 用户要求执行耗时较长的 skill（如论文精读、文献综述等）
-- 你判断任务需要大量工具调用轮次（>10轮），不适合在当前对话中同步执行
-- 用户可能还有其他事情要聊，你不想让他等
-- 当前 role 有明确后台 skill 时，传 skill_name
-- 需要切到另一个 role 时，只传 role_name，让子智能体自己用 skill 工具选择该 role 的 skill
-- 没有合适 skill 且不需要切 role 时，不传 role_name / skill_name，子智能体会无预设 skill 直接执行
-- role_name 和 skill_name 互斥，可以都不传，但不要同时传
-
-注意：
-- 每个会话最多同时运行 3 个子任务
-- 子智能体不会直接给用户发消息或文件
-- 任务完成后你会收到包含结果摘要和产出文件路径的通知
-- 你可以用 check_subagent 查看进度，用 stop_subagent 停止任务
-- 收到完成通知后，请用 reply 告知用户结果，用 send_file 发送相关文件`,
+    description: '启动独立后台任务并立即返回 ID；每会话最多并行 3 个。role_name 与 skill_name 互斥，可都省略；跨角色只传 role_name，目标角色自行选择 Skill。完成或需要输入时自动通知 Main，包含结果与产物路径。Sub 不直接向用户交付；运行中补充要求用 steer_subagent，回答挂起问题用 resume_subagent。',
     parameters: {
       type: 'object',
       properties: {
@@ -50,7 +31,7 @@ export class SpawnSubagentTool implements Tool {
         },
         task_description: {
           type: 'string',
-          description: '任务的简短描述，用于进度通知（如"精读 attention is all you need"）',
+          description: '用户能理解的简短工作名，如“调整面试计划”。不要含 Role、工具名、派工或内部检查流程；详细执行要求写在 user_message。',
         },
         user_message: {
           type: 'string',
@@ -135,7 +116,7 @@ export class SpawnSubagentTool implements Tool {
       `Skill: ${formatSubAgentSkillLabel(requestedSkillName, allowSkillSelection)}`,
       `状态: running`,
       ``,
-      `子智能体完成后会通知你结果和产出文件列表。届时判断是否值得告知；channel 会话用 send_text/send_file 交付，CLI 正常回复。不要向用户照搬子任务 ID 和 Role 日志。`,
+      `以上均为内部状态，不是给用户的消息。结果返回后由你结合整体交付意图判断何时汇报，允许先静默收下。实际交付时 channel 用 send_text/send_file，CLI 正常回复。默认不提子智能体、后台同事、派工、内部转交或消息同步，用户明确问架构/调试时除外。`,
       `派工后释放当前对话，不轮询等待。用户询问进度时用 check_subagent；要求停止时用 stop_subagent。`,
     ].join('\n'));
   }

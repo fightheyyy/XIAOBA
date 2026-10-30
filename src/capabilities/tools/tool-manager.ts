@@ -33,6 +33,7 @@ import { SpawnSubagentTool } from './spawn-subagent-tool';
 import { CheckSubagentTool } from './check-subagent-tool';
 import { StopSubagentTool } from './stop-subagent-tool';
 import { ResumeSubagentTool } from './resume-subagent-tool';
+import { SteerSubagentTool } from './steer-subagent-tool';
 import { AskParentTool } from './ask-parent-tool';
 import { buildCanonicalToolResult, normalizeToolExecutionOutputFacts } from '../../runtime/contracts/tool-result';
 import { RoleResolver } from '../roles/role-resolver';
@@ -63,6 +64,13 @@ export interface ToolManagerOptions {
 
 const CHANNEL_SURFACES = new Set(['feishu', 'weixin', 'pet', 'dashboard']);
 const DEFAULT_TOOL_VISIBILITY_MODE = 'all';
+const MAIN_BASE_TOOLS = new Set([
+  'read_file', 'spawn_subagent', 'check_subagent', 'steer_subagent',
+  'resume_subagent', 'stop_subagent', 'schedule_reminder', 'skill',
+  'connector_describe', 'gmail_read', 'gmail_write_confirmed',
+  'notion_read', 'notion_write_confirmed', 'github_read', 'github_write_confirmed',
+]);
+const MAIN_SKILL_EXECUTION_TOOLS = new Set(['write_file', 'edit_file', 'glob', 'grep', 'execute_shell']);
 const CONFIRMATION_PAYLOAD_MISMATCH = 'TOOL_CONFIRMATION_PAYLOAD_MISMATCH';
 const CONFIRMATION_NEGATION_PATTERN = /(^|\b)(no|not|never|cancel|stop|reject|denied|deny|don't|do not|dont|hold off|wait)(\b|$)|(?:不确认|不可以|不同意|不要|不用|别|先别|暂时别|取消|撤回|停止|拒绝)/i;
 const CONFIRMATION_AFFIRMATIVE_PATTERN = /(^|\b)(confirm|confirmed|approve|approved|yes|ok|okay|go ahead|do it|looks good|ship it|send it|delete it|create it|update it)(\b|$)|(?:确认|可以|同意|批准|照做|就这样|没问题|按这个|按这样|发吧|发送吧|删吧|删除吧|创建吧|更新吧|执行吧)/i;
@@ -170,6 +178,7 @@ export class ToolManager implements ToolExecutor {
     this.registerBaseTool(new CheckSubagentTool());
     this.registerBaseTool(new StopSubagentTool());
     this.registerBaseTool(new ResumeSubagentTool());
+    this.registerBaseTool(new SteerSubagentTool());
     this.registerBaseTool(new AskParentTool());
 
     // Skill 调用 (1)
@@ -1267,10 +1276,23 @@ export class ToolManager implements ToolExecutor {
 
   private isBaseToolVisible(toolName: string, context: Partial<ToolExecutionContext>): boolean {
     const policy = this.resolveBaseToolPolicy(context.roleName);
-    if (policy.inheritBaseTools) {
-      return !policy.baseToolDenylist.has(toolName);
+    const allowed = policy.inheritBaseTools
+      ? !policy.baseToolDenylist.has(toolName)
+      : policy.baseToolAllowlist.has(toolName);
+    if (!allowed) return false;
+
+    // Explicit Base composition is the user-facing Main. Unscoped harnesses and
+    // child sessions retain their existing role policies and execution capabilities.
+    const isMain = ['base', 'default', 'none'].includes(normalizeRoleName(context.roleName))
+      && !context.parentSessionId && !context.sessionId?.startsWith('subagent:');
+    if (isMain) {
+      if (toolName === 'skill') return Boolean(context.availableSkillNames?.length);
+      if (MAIN_SKILL_EXECUTION_TOOLS.has(toolName)) {
+        return Boolean(context.activeSkillName && context.availableSkillNames?.includes(context.activeSkillName));
+      }
+      return MAIN_BASE_TOOLS.has(toolName);
     }
-    return policy.baseToolAllowlist.has(toolName);
+    return true;
   }
 
   private resolveBaseToolPolicy(roleName?: string): {

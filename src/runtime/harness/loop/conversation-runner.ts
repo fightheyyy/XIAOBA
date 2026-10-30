@@ -79,6 +79,7 @@ export interface RunnerCallbacks {
  */
 export interface RunResult {
   cancelled?: boolean;
+  exhausted?: boolean;
   /** 最终文本回复 */
   response: string;
   /** 最终文本是否代表用户可见输出 */
@@ -120,6 +121,10 @@ export type ObservabilityMetricMode = 'local_and_mirror' | 'mirror_only';
 
 /** ConversationRunner 构造选项 */
 export interface RunnerOptions {
+  /** Called at legal transcript boundaries before each provider request, including after compaction. */
+  prepareMessages?: (messages: Message[]) => void;
+  /** Inbox snapshot; only the running loop may append these messages to its transcript. */
+  readPendingMessages?: () => Message[];
   maxTurns?: number;
   maxContextTokens?: number;
   /** false 时用 aiService.chat() 代替 chatStream()（默认 true） */
@@ -166,6 +171,8 @@ export class ConversationRunner {
   private observabilityMetricMode: ObservabilityMetricMode;
   private deliveryFallbackFinalReply: boolean;
   private onContextCompaction?: (event: ContextCompactionLogInput) => void;
+  private prepareMessages?: (messages: Message[]) => void;
+  private readPendingMessages?: () => Message[];
 
   /** 截断字符串用于日志输出，避免日志过大 */
   private static truncateForLog(text: any, maxLen = 200): string {
@@ -194,6 +201,8 @@ export class ConversationRunner {
     this.observabilityMetricMode = options?.observabilityMetricMode || 'local_and_mirror';
     this.deliveryFallbackFinalReply = options?.deliveryFallbackFinalReply === true;
     this.onContextCompaction = options?.onContextCompaction;
+    this.prepareMessages = options?.prepareMessages;
+    this.readPendingMessages = options?.readPendingMessages;
 
     this.maxPromptTokens = this.resolvePromptBudget(options?.maxContextTokens);
     this.sessionLabel = this.toolExecutionContext?.sessionId
@@ -228,6 +237,10 @@ export class ConversationRunner {
       }
 
       this.replaceMessages(messages, this.sanitizeToolTranscript(messages));
+      const incoming = this.readPendingMessages?.() || [];
+      messages.push(...incoming);
+      newMessages.push(...incoming);
+      this.prepareMessages?.(messages);
       let activeTools = this.resolveActiveTools(messages);
 
       if (this.enableCompression) {
@@ -292,6 +305,8 @@ export class ConversationRunner {
         }
       }
 
+      // Compaction may have removed the last projection. Rebuild from runtime, not model memory.
+      this.prepareMessages?.(messages);
       activeTools = this.resolveActiveTools(messages);
       const toolDefinitions = new Map(activeTools.map(tool => [tool.name, tool]));
       const visibilitySnapshot = this.resolveToolVisibilitySnapshot(activeTools, messages);
@@ -383,6 +398,14 @@ export class ConversationRunner {
       }
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
+        // An input may have arrived while the provider was answering. Read it before ending.
+        const lateInput = turns < this.maxTurns ? this.readPendingMessages?.() || [] : [];
+        if (lateInput.length) {
+          const superseded: Message = { role: 'assistant', content: response.content || null };
+          messages.push(superseded, ...lateInput);
+          newMessages.push(superseded, ...lateInput);
+          continue;
+        }
         Logger.info(`[${this.sessionLabel}Turn ${turns}] AI最终回复: ${ConversationRunner.truncateForLog(response.content || '', 300)}`);
 
         if (this.usesChannelDelivery()) {
@@ -685,6 +708,7 @@ export class ConversationRunner {
     }
     Logger.warning(`达到最大工具调用轮次 (${this.maxTurns})`);
     return {
+      exhausted: true,
       response: this.usesChannelDelivery() ? '' : '[达到最大工具调用轮次，请继续对话]',
       finalResponseVisible: !this.usesChannelDelivery(),
       messages,

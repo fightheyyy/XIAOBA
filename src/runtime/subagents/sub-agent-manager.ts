@@ -8,10 +8,17 @@ import { randomUUID } from 'crypto';
 // ─── 平台回调注册 ───────────────────────────────────────
 
 export interface PlatformCallbacks {
-  /** 向主会话投递消息，触发主 agent 新一轮推理 */
-  injectMessage: (text: string) => Promise<void>;
+  /** Promise resolves after parent handling, not merely queue acceptance; reject on failure. */
+  injectMessage: (text: string, notice?: SubAgentFeedbackNotice) => Promise<void>;
   /** Read-only activity projection; cannot grant execution authority. */
   onStateChange?: (info: SubAgentInfo) => void;
+}
+
+export interface SubAgentFeedbackNotice {
+  id: string;
+  subagentId: string;
+  workingDirectory: string;
+  question?: string;
 }
 
 export type StopSubAgentResult = 'stopped' | 'not_found' | 'forbidden' | 'not_running';
@@ -34,6 +41,8 @@ export class SubAgentManager {
   /** 持久化的平台回调，key = 父会话 sessionKey */
   private platformCallbacks = new Map<string, PlatformCallbacks>();
   private callbackOwners = new Map<string, object>();
+  private readonly deliveringResults = new Set<string>();
+  private readonly childPlatforms = new Map<string, PlatformCallbacks>();
 
   private static readonly MAX_CONCURRENT_PER_SESSION = 3;
   /** 完成后保留信息的时间（ms） */
@@ -58,22 +67,24 @@ export class SubAgentManager {
    * 注册平台回调。消息入口在创建/获取 session 时调用一次，
    * 不随 handleMessage 结束而注销，保证子智能体完成后能通知主 Agent。
    */
-  registerPlatformCallbacks(sessionKey: string, callbacks: PlatformCallbacks): void {
+  registerPlatformCallbacks(sessionKey: string, callbacks: PlatformCallbacks, root = process.cwd()): void {
     this.platformCallbacks.set(sessionKey, callbacks);
     this.callbackOwners.delete(sessionKey);
+    this.retryPendingResults(sessionKey, root);
   }
 
   /** New message in the SAME live Surface: keep child ownership, refresh its route. */
-  refreshPlatformCallbacks(sessionKey: string, callbacks: PlatformCallbacks, owner?: object): void {
+  refreshPlatformCallbacks(sessionKey: string, callbacks: PlatformCallbacks, owner?: object, root = process.cwd()): void {
     const current = this.platformCallbacks.get(sessionKey);
     if (current && this.callbackOwners.get(sessionKey) === owner) {
       current.injectMessage = callbacks.injectMessage;
       current.onStateChange = callbacks.onStateChange;
     }
     else {
-      this.registerPlatformCallbacks(sessionKey, callbacks);
+      this.registerPlatformCallbacks(sessionKey, callbacks, root);
       if (owner) this.callbackOwners.set(sessionKey, owner);
     }
+    this.retryPendingResults(sessionKey, root);
   }
 
   unregisterPlatformCallbacksForOwner(sessionKey: string, owner: object): void {
@@ -153,7 +164,9 @@ export class SubAgentManager {
       notifyParent: async (subAgentId, taskDesc, question) => {
         const msg = `[子智能体 ${subAgentId} 反馈]\n任务：${taskDesc}\n需要你的指示：${question}`;
         if(this.platformCallbacks.get(parentSessionKey)!==platform) throw new Error('Parent callback is no longer registered.');
-        await platform.injectMessage(msg);
+        await platform.injectMessage(msg, {
+          id: `question:${subAgentId}`, subagentId: subAgentId, workingDirectory, question,
+        });
       },
     };
 
@@ -161,28 +174,23 @@ export class SubAgentManager {
     recordState(session.getInfo());
     this.subAgents.set(id, session);
     this.parentMap.set(id, parentSessionKey);
+    this.childPlatforms.set(id, platform);
 
     // fire-and-forget
     session.run().finally(() => {
+      if (session.status !== 'stopped') session.resultNotice = { id: `result:${id}` };
       recordState(session.getInfo());
-      // 通知主 agent 子智能体已完成（stopped 不通知）
-      if (session.status !== 'stopped' && this.platformCallbacks.get(parentSessionKey)===platform) {
-        const info = session.getInfo();
-        const statusLabel = info.status === 'completed' ? '已完成' : '失败';
-        const fileList = info.outputFiles.length > 0
-          ? `\n产出文件：\n${info.outputFiles.map(f => `- ${f}`).join('\n')}`
-          : '';
-        const msg = `[子智能体 ${id} ${statusLabel}]\n任务：${taskDescription}\n结果：${info.resultSummary || '（无结果）'}${fileList}`;
-        platform.injectMessage(msg).catch(err => {
-          Logger.warning(`[SubAgentManager] 通知主 agent 失败: ${err.message}`);
-        });
+      // Coalesce successful completion wakeups while this parent's other work is
+      // still executing. Questions/failures remain immediate; chat never waits.
+      // Even a stopped final child must release previously collected results.
+      if (this.platformCallbacks.get(parentSessionKey)===platform) {
+        this.retryPendingResults(parentSessionKey, workingDirectory);
       }
 
       // 完成后保留一段时间供查询，然后清理
       const retentionTimer = setTimeout(() => {
-        this.subAgents.delete(id);
-        this.parentMap.delete(id);
-        journal.remove(id);
+        if (session.resultNotice && !session.resultNotice.handledAt) return;
+        this.cleanupReceivedResults(parentSessionKey, workingDirectory);
       }, SubAgentManager.RETENTION_MS);
       retentionTimer.unref?.();
     }).catch(error => Logger.warning(`[SubAgentManager] 子任务结束记录失败: ${error.message}`));
@@ -190,6 +198,76 @@ export class SubAgentManager {
     const skillLabel = skillName || (options.allowSkillSelection ? 'role-selected skill' : 'no skill');
     Logger.info(`[SubAgentManager] 派遣 ${id} 执行 "${skillLabel}"${options.roleName ? ` as ${options.roleName}` : ''} (父会话: ${parentSessionKey})`);
     return session.getInfo();
+  }
+
+  /** Retain failed/offline notifications in the existing journal; no second scheduler. */
+  retryPendingResults(parent: string, root = process.cwd()): void {
+    const platform = this.platformCallbacks.get(parent);
+    if (!platform) return;
+    for (const info of this.listByParent(parent, root)) {
+      if (this.childPlatforms.has(info.id) && this.childPlatforms.get(info.id) !== platform) continue;
+      if (info.resultNotice && !info.resultNotice.handledAt) {
+        void this.deliverResult(parent, info, root, platform);
+      }
+    }
+  }
+
+  isResultPending(parent: string, notice: SubAgentFeedbackNotice): boolean {
+    const info = this.getInfoForParent(parent, notice.subagentId, notice.workingDirectory);
+    return info?.resultNotice?.id === notice.id && !info.resultNotice.handledAt;
+  }
+
+  shouldHandleFeedback(parent: string, notice: SubAgentFeedbackNotice): boolean {
+    if (notice.question === undefined) return this.isResultPending(parent, notice);
+    const info = this.getInfoForParent(parent, notice.subagentId, notice.workingDirectory);
+    return info?.status === 'waiting_for_input' && info.pendingQuestion === notice.question;
+  }
+
+  acknowledgeResult(parent: string, notice: SubAgentFeedbackNotice): void {
+    if (!this.isResultPending(parent, notice)) return;
+    const journal = new SubAgentJournal(notice.workingDirectory);
+    if (!journal.acknowledge(parent, notice.subagentId, notice.id)) return;
+    const session = this.subAgents.get(notice.subagentId);
+    if (session?.resultNotice?.id === notice.id) session.resultNotice.handledAt = Date.now();
+    this.cleanupReceivedResults(parent, notice.workingDirectory);
+  }
+
+  private cleanupReceivedResults(parent: string, root: string): void {
+    const children = this.listByParent(parent, root);
+    if (children.some(info => SubAgentManager.isActiveStatus(info.status)
+      || info.status === 'interrupted' || info.resultNotice && !info.resultNotice.handledAt)) return;
+    const journal = new SubAgentJournal(root);
+    for (const [id, child] of this.subAgents) {
+      if (this.parentMap.get(id) !== parent || !child.completedAt
+        || Date.now() - child.completedAt < SubAgentManager.RETENTION_MS) continue;
+      this.subAgents.delete(id);
+      this.parentMap.delete(id);
+      this.childPlatforms.delete(id);
+      journal.remove(id);
+    }
+  }
+
+  private async deliverResult(parent: string, info: SubAgentInfo, root: string, platform: PlatformCallbacks): Promise<void> {
+    if (!info.resultNotice || info.resultNotice.handledAt) return;
+    if (info.status === 'completed' && this.listByParent(parent, root).some(other => other.id !== info.id
+      && (SubAgentManager.isActiveStatus(other.status)
+        || ['completed', 'failed'].includes(other.status) && !other.resultNotice))) return;
+    const key = `${root}:${info.resultNotice.id}`;
+    if (this.deliveringResults.has(key)) return;
+    this.deliveringResults.add(key);
+    const notice = { id: info.resultNotice.id, subagentId: info.id, workingDirectory: root };
+    try {
+      if (this.platformCallbacks.get(parent) !== platform || !this.isResultPending(parent, notice)) return;
+      const files = info.outputFiles.length ? `\n产出文件：\n${info.outputFiles.map(file => `- ${file}`).join('\n')}` : '';
+      const missed = info.undeliveredMessages?.length ? `\n未送达补充要求：${JSON.stringify(info.undeliveredMessages)}` : '';
+      const text = `[子智能体 ${info.id} ${info.status === 'completed' ? '执行已结束' : info.status}]\n通知：${notice.id}\n任务：${info.taskDescription}\n结果：${info.resultSummary || '（无结果）'}${files}${missed}`;
+      await platform.injectMessage(text, notice);
+      if (this.platformCallbacks.get(parent) === platform) this.acknowledgeResult(parent, notice);
+    } catch (error: any) {
+      Logger.warning(`[SubAgentManager] 结果交接未完成，已保留: ${error.message}`);
+    } finally {
+      this.deliveringResults.delete(key);
+    }
   }
 
   /**
@@ -244,6 +322,13 @@ export class SubAgentManager {
 
     Logger.info(`[SubAgentManager] 已恢复 ${subAgentId} (父会话: ${parentSessionKey})`);
     return 'resumed';
+  }
+
+  steerForParent(parent: string, id: string, text: string): 'accepted' | 'not_found' | 'forbidden' | 'not_running' {
+    const owner = this.parentMap.get(id);
+    if (!owner) return 'not_found';
+    if (owner !== parent) return 'forbidden';
+    return this.subAgents.get(id)?.steer(text) ? 'accepted' : 'not_running';
   }
 
   /**

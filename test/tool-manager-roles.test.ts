@@ -113,6 +113,14 @@ describe('ToolManager role-specific tools', () => {
     assert.strictEqual(manager.getTool('analyze_log'), undefined);
   });
 
+  test('explicit Base never imports tools from a globally active role', () => {
+    RoleResolver.activateRole('inspector-cat');
+    const manager = createRoleAwareToolManager(testRoot, {}, 'base');
+    assert.strictEqual(manager.getTool('analyze_log'), undefined);
+    assert.ok(manager.getToolDefinitions().some(tool => tool.name === 'spawn_subagent'));
+    assert.ok(!manager.getToolDefinitions().some(tool => tool.name === 'execute_shell'));
+  });
+
   test('inspector-cat 角色通过组合层注册 analyze_log', () => {
     RoleResolver.activateRole('inspector-cat');
     const manager = createRoleAwareToolManager();

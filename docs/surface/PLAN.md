@@ -1,16 +1,22 @@
 # Surface PLAN
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-31
 Owner：Surface maintainers
 
 ## Current Status
 
+交互复核（2026-10-31，Owner: Surface，验收中）：真实模型曾生成无提交按钮的 ChoicePicker，选择不会自动切换。已补充 catalog 指令，明确本地输入需 Button 提交，资料切换由 Main 更新原卡片；最新构建通过，相关协议检查通过，真实模型的新一轮运行失败，按钮切换仍待完整验收。未修改协议或渲染器。
+
+Main MCP 工具发现（2026-10-30，Owner: Surface，已实现）：未配置、非法配置、缺少 Main UI 能力及 child 隐藏 MCP schema；保留已配置服务的发现、调用、审批与 iframe 交付。配置切换、硬调阻断、现有 AgentSession→AG-UI→A2UI/MCP/child 闭环通过；真实模型 Dashboard HTTP 验收派工、插话、结果回执和 A2UI 卡片通过。详细测试计数与已知失败由 Agent Runtime PLAN 持有。下一步：用户自己的 MCP 服务与原生 Electron 包验收。
+
+Main/Sub 协作（2026-10-30，Owner: Surface）：Dashboard/Feishu/Weixin 支持运行中普通消息，结果回调传播失败并跳过失效通知。Chat 保持一个 XiaoBa 的消息、文件和交互卡片；输入框上方一条聚合工作提示覆盖后台执行、结果整理、多个工作和暂停状态，Main 处理完结果后撤去，支持减少动态效果。任务事实使用既有 resultNotice/resultPending 投影，不显示执行链、Role/任务 ID 或重试日志，不新增任务状态机或轮询。构建、20/20 定向、3/3 Chromium 场景通过，涵盖后台期间聊天、刷新恢复、结果确认前不消失、移动布局和减少动态效果。真实模型轨迹复核通过等待澄清后 resume、采用每天1小时的新约束、Sub 完成前回答其他问题及结果确认；临时 live 脚本原断言仅接受 running steer，已修正为接受等待输入恢复分支但尚未重跑，实际轨迹复核见 output/test/work-indicator/live/verification.json。上次整仓 728/737，9 项与隔离基线一致。下一步：用户自己的 MCP 服务及原生 Electron 包验收；插话在推理边界消费，进程内 inbox 不自动跨进程恢复。
+
 Dashboard 商店已改接 skills.sh，提供热门、搜索、分页、来源详情及单项安装；沿用现有卡片和中英文样式，CLI 共用分发能力。
 
-Personal Agent 主对话收敛（2026-10-29，Owner: Surface）：已完成一个工作区、一段长期 Main Agent 对话；新建、切换及分支入口已移除。前后端由服务端确定唯一身份，升级续接最近使用且含用户消息的旧 Chat。构建、73/73 定向检查和 1/1 Chromium 场景通过：刷新和独立浏览器上下文恢复同一主对话、拒绝自选新身份、重启续接且保留旧记录。下一步为真实模型和用户使用验收；最近 2000 个事件的 UI 恢复窗口仍是现有限制。
+Personal Agent 主对话收敛（2026-10-29，Owner: Surface）：已完成一个工作区、一段长期 Main Agent 对话；新建、切换及分支入口已移除。前后端由服务端确定唯一身份，升级续接最近使用且含用户消息的旧 Chat。构建、73/73 定向检查和 1/1 Chromium 场景通过：刷新和独立浏览器上下文恢复同一主对话、拒绝自选新身份、重启续接且保留旧记录。真实模型验收见上文；下一步为用户使用验收，最近 2000 个事件的 UI 恢复窗口仍是现有限制。
 
-Dashboard Intelligent Chat（2026-10-29，Owner: Surface / Runtime / Evidence）：本地实现和确定性协议/浏览器闭环已完成。单一 Base Main Agent、AG-UI 工具/Subagent 状态、受限 A2UI catalog 与 MCP Apps iframe 已接入；原 Pet 入口保持兼容。用户指出独立视觉风格偏离后，Chat 已改回 Dashboard 共享主题、按钮和头像体系。浏览器覆盖表单提交、实际 AppBridge/MCP 通信、刷新无重执行、其他会话身份拒绝，以及 390×844 / 844×390 输入区可见性。真实模型行为、用户自己的 MCP 服务和原生 Electron 发行构建尚未验收。
+Dashboard Intelligent Chat（2026-10-29，Owner: Surface / Runtime / Evidence）：本地实现和确定性协议/浏览器闭环已完成。单一 Base Main Agent、AG-UI 工具/Subagent 状态、受限 A2UI catalog 与 MCP Apps iframe 已接入；原 Pet 入口保持兼容。用户指出独立视觉风格偏离后，Chat 已改回 Dashboard 共享主题、按钮和头像体系。浏览器覆盖表单提交、实际 AppBridge/MCP 通信、刷新无重执行、其他会话身份拒绝，以及 390×844 / 844×390 输入区可见性。真实模型 A2UI/本地 MCP SDK 服务与异步行为验收见上文；用户自己的 MCP 服务和原生 Electron 发行构建尚未验收。
 
 根目录资源迁移已实现；路径与兼容行为见配套 SPEC，验证结果统一记录在仓库 PLAN。
 

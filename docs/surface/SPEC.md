@@ -1,7 +1,7 @@
 # Surfaces SPEC
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-30
 适用范围：XiaoBa 的用户入口层，包括 `src/surfaces/cli/commands`、`src/surfaces/feishu`、`src/surfaces/weixin`、`src/surfaces/pet`、`src/surfaces/dashboard`、`src/events`、`src/connectors` 和 `desktop`。
 
 本文件是顶层架构模块之一的入口层 spec，也是 Dashboard、Electron 和 packaging 资源的唯一架构文档。
@@ -37,9 +37,13 @@ Out of scope:
 
 ## Current Architecture
 
+Chat 的 MCP schema 现在只对有效已配置服务与持有 Main UI callback 的会话开放；无配置或 child 隐藏，执行时复查；已有 MCP/A2UI 交付和确认逻辑保持原合同。共享 Main 工具边界见 Agent Runtime SPEC。
+
+Dashboard/Feishu/Weixin 普通输入在 Main 忙时可进入共享 Runner 的安全推理边界；命令/取消沿用原入口规则。子任务反馈带可信来源与可选通知标识，实际处理前跳过已处理结果和已解决问题；处理失败向 Runtime 传播，不能把入队当成已完成交接。Chat 的 completed 显示为“已结束”，不推断用户目标成功。执行合同由 Agent Runtime SPEC 持有。
+
 Dashboard Skill 商店改接 skills.sh，Surface 只负责搜索、分页、安装动作和用户反馈；目录与安装能力委托 Roles & Skills 的共享分发适配器。旧 `skills/registry.json`、`skill-registry.json` 和 Electron 的兼容资源同步不再决定商店内容。
 
-Dashboard Chat 已新增 `/api/chat` 本机同源入口，固定使用显式 Base 服务和共享 AgentSession。`desktop/dashboard/chat/` 的源码与官方 AppBridge 由 `scripts/build-chat.mjs` 本地打包，浏览器不加载 CDN。AG-UI 的工具/Subagent/Activity 事件驱动固定工具卡片；A2UI v0.9.1 只渲染 `xiaoba://ui/basic-v1` catalog 的受限原生组件；MCP Apps 通过 Streamable HTTP Connector 与 sandbox iframe 接入。每个工作区固定一段长期主对话，服务端决定其身份，不提供新建、切换或分支入口；旧 Pet API 和 role session 继续保留。Chat 沿用 Dashboard 的主题变量、深色按钮、圆角和共享猫头像，不维护另一套视觉主题。
+Dashboard Chat 已新增 `/api/chat` 本机同源入口，固定使用显式 Base 服务和共享 AgentSession。`desktop/dashboard/chat/` 的源码与官方 AppBridge 由 `scripts/build-chat.mjs` 本地打包，浏览器不加载 CDN。AG-UI 的工具/Subagent/Activity 事件保留后端观测与协议语义，聊天界面只呈现 XiaoBa 交付的消息、文件与交互卡片；A2UI v0.9.1 只渲染 `xiaoba://ui/basic-v1` catalog 的受限原生组件；MCP Apps 通过 Streamable HTTP Connector 与 sandbox iframe 接入。每个工作区固定一段长期主对话，服务端决定其身份，不提供新建、切换或分支入口；旧 Pet API 和 role session 继续保留。Chat 沿用 Dashboard 的主题变量、深色按钮、圆角和共享猫头像，不维护另一套视觉主题。
 
 入口实现已统一归位到 `src/surfaces/`：CLI 组装和 commands、Feishu、Weixin、Pet、Dashboard、Bridge 与 shared 交付适配。`src/index.ts` 只负责调用 CLI 启动入口并处理启动错误；Electron 主入口 `main.js` 与子进程入口 `server-entry.js` 均加载 `dist/surfaces/dashboard/server`。静态前端与 prompt 通过安装目录定位，任务工作区仍拥有自己的 data/logs/memory。Surface 使用 `src/runtime/index.ts` 的会话入口与 `runtime/contracts`；事件接入与 Connector 继续是独立代码层。
 
@@ -60,20 +64,29 @@ flowchart LR
     Connector --> Apps["External apps"]
     Runtime --> Delivery["Channel delivery / visible evidence"]
     Delivery --> AGUI
-    AGUI --> UI["A2UI catalog / fixed activity cards"]
+    AGUI --> UI["Conversation / A2UI / work indicator"]
     UI -->|validated action| AGUI
     Chat --> Host["MCP Apps Host / sandbox"]
     Host --> Connector
     Delivery --> Entry
 ```
 
+Chat 的新交付按可见事件顺序追加：用户插话后的回复位于该输入之后，已有 UI 继续原位更新。前端展示 XiaoBa 的交付消息、文件、交互界面，以及输入框上方的一条聚合工作提示，不渲染工具调用链、参数、各 Subagent 状态面板或重试日志，也不因内部事件创建空白回复。Main run 与现有 SUBAGENT Activity 驱动同一提示：Main 结束回复不清除仍在后台的任务；返回结果后显示整理结果，Main 处理成功才撤下。切换话题和刷新保留工作事实；多任务汇总、断线/处理失败时暂停动画，支持减少动态效果。A2UI catalog 提供 v0.9.1 扁平组件与 value 数据更新的完整示例；旧格式返回可纠正的错误。交付失败保留真实状态和错误，聊天只显示简短的交付失败提示，不露出协议或执行细节。表单提交使用按钮标签，不展示内部 action 名。
+
 ## Target Architecture
+
+Catalog 明确区分本地输入与服务端交互：ChoicePicker/TextField/CheckBox 不隐式提交；需搭配 Button。资料切换通过 Button 事件由 Main 更新原 surface，只呈现当前类别，避免外观可切换而实际无动作的控件。
+
+Chat 仅在配置至少一个有效 MCP server 且持有 Main UI callback 时暴露 MCP 发现/调用工具；未配置或 child 不显示空入口。共享 Main 工具面由 Agent Runtime 筛选，不新增前端工具模式或调度协议。
+
+Main/Sub 沿用上述已实现边界；消息消费、任务视图及结果回执的统一合同由 Agent Runtime SPEC 持有。
 
 ### Dashboard Intelligent Chat
 
 Dashboard Chat 是 personal agent 的一段长期主对话，固定由 Base Main Agent 接收用户输入，不提供新建、切换会话或分支话题入口。八个 Role 只通过 Main Agent 的工具调用执行，不提供角色切换聊天入口。保留现有原生 HTML/JS、共享 AgentSession 和桌宠接口，新增 `/api/chat` 入口及独立前端模块。
 
-- AG-UI 承载文本、工具调用、Subagent 生命周期和 Activity；`parentToolCallId` 关联工具卡片，`TOOL_CALL_END` 只表示参数传输结束。子任务状态来自 Runtime 回调，不从模型文字推断。
+- AG-UI 继续传输文本、工具调用、Subagent 生命周期和 Activity；执行事件用于后端观测、协议兼容和前端聚合工作提示，不渲染执行链或逐个 Subagent 面板。只交付 Main 选择发送的消息、文件和可信 UI；`TOOL_CALL_END` 只表示参数传输结束。
+- SUBAGENT Activity 的 `resultPending` 由 Runtime 既有 resultNotice 事实推导；Main run 收尾后重发当前快照，只有结果已处理才撤去整理提示，不把执行结束当成用户目标完成。普通进度不转成新聊天消息；不估算百分比、不制造演示延迟。
 - A2UI v0.9.1 的四类消息通过 AG-UI CUSTOM 传递。客户端只渲染 XiaoBa catalog 中的可信组件；action 校验 surface、组件及会话归属后回到原 Main Agent。前端代码不由模型执行。
 - MCP Apps Host 使用官方 AppBridge，在 sandbox iframe 中展示工具声明的 `ui://` HTML。服务端 Connector 负责 MCP 连接、资源读取和受控工具调用；凭据不进入浏览器。App 工具权限只限所属服务器，写操作仍需明确确认。
 - 每个工作区只有一个 Dashboard 主对话身份，由服务端决定；浏览器存储不决定身份。新工作区使用 `chat:main`；升级时续接最近使用且含用户消息的旧 Chat，保留其他历史文件。使用既有可见事件存储恢复 UI；UI delivery 与 action 进入 Evidence 合同。刷新只恢复视图，不重放有副作用的 action/tool。
@@ -106,7 +119,7 @@ flowchart LR
     Apps --> Event
     Runtime --> Delivery["Visible delivery / Journal / Trace"]
     Delivery --> Surface
-    Surface --> UI["Trusted A2UI / fixed activity cards"]
+    Surface --> UI["Conversation / A2UI / work indicator"]
     UI -->|validated action| Policy
     Surface --> Host["MCP Apps Host / sandbox"]
     Host --> Connector

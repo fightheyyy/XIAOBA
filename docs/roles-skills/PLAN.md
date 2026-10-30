@@ -1,10 +1,16 @@
 # Roles & Skills PLAN
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-31
 Owner：Policy maintainers
 
 ## Current Status
+
+多任务综合交付（2026-10-31，Owner: Policy，已实现）：Base prompt 区分新增任务、原需求补充、内部材料接收和公开交付；连续交办的相关调研默认消化完再一次综合汇报，普通聊天继续，失败/取消不无限等待。策略位于 prompts/system-prompt.md，Surface 交付提示与 spawn 返回提示仅保持语义一致，不把人格策略塞进 schema。真实模型同时调研 RSI 原文与 personal agent GitHub 项目，项目先完成保持静默；临时 AG-UI/A2UI 问题正常回答，两项齐后主动给出一份含取舍与来源的综合结论。运行证据及工程测试计数由 Agent Runtime PLAN 持有。下一步：继续观察泛化和表达简洁度；提示词不保证每种模型都始终遵守，不将本次通过当作论文事实准确率评分。
+
+Main 工具边界（2026-10-30，Owner: Policy，已实现）：spawn_subagent 说明收敛到调用与结果交接，Base prompt 集中承担对话/派工策略；默认专业执行交给 Role，显式 Base Skill 继续兼容。默认工具、硬调阻断、Skill 热安装/激活/删除及全局角色隔离检查通过；八个 Role、原有 allowlist 和唯一 loop 保持不变。构建、真实模型派工/改要求/交付已通过，完整计数与遗留失败由 Agent Runtime PLAN 持有。下一步：按真实用户任务评估误派工和对话自然度。
+
+Main/Sub 协作策略（2026-10-30，Owner: Policy）：Base 使用最新 Runtime 任务视图和 Main-only steer_subagent；挂起回答/停止沿用既有工具，Sub 不直接调度或向用户交付。Main 提示词已改为一个 XiaoBa 的连续对话与结果责任，不默认介绍后台同事、Role、派工或内部消息同步；卡片/按钮/工作名按用户目标命名。用户明确问架构时如实解释，不冒充真人或编造经历。共享 Surface prompt、spawn 工具说明及返回提示、缺失资产的 fallback 与此一致，避免工具结果诱导汇报口吻。构建和 32/32 定向回归通过；真实模型复核 Main/Sub 派工及改要求后，默认文本与 UI 的内部角色暴露检查均为 0，确认消息静默，明确架构提问如实解释。最新提示词另通过冷启动三轮纯聊复验：四十分钟的时间取舍、情绪承接和确认静默，显式回答都经 send_text 送达且无中文替换字符。证据在 output/test/main-persona（verification2.json / social.json）；首轮临时脚本把“长思考一定派工”当作前提而超时，不作为产品回归失败或能力证明。下一步：按真实对话判断自然度；提示词不保证所有模型输出始终一致。
 
 skills.sh 目录与单项安装已接入共享 Skill 分发适配器；保留旧包和手动 GitHub 安装，不再从自建 Hub 读取商店目录。默认 Base Skill 仍为零。
 

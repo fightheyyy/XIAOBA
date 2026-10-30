@@ -10,5 +10,6 @@ export type {
 } from './sessions/agent-session';
 export { MessageSessionManager } from './sessions/message-session-manager';
 export { SubAgentManager } from './subagents/sub-agent-manager';
+export type { SubAgentFeedbackNotice } from './subagents/sub-agent-manager';
 export { AIService } from './harness/models/ai-service';
 export type { AIServiceOptions } from './harness/models/ai-service';

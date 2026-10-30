@@ -10,7 +10,7 @@ import { styles } from '../../../runtime/observability/colors';
 import { SkillManager } from '../../../capabilities/skills/skill-manager';
 import { AgentSession, AgentServices, SessionCallbacks } from '../../../runtime';
 import { RoleResolver } from '../../../capabilities/roles/role-resolver';
-import { SubAgentManager } from '../../../runtime';
+import { SubAgentManager, SubAgentFeedbackNotice } from '../../../runtime';
 import { shutdownObservability } from '../../../runtime/observability';
 import {
   ConversationTurnContext,
@@ -134,7 +134,7 @@ export function registerCliSubAgentCallbacks(
   let feedbackQueue: Promise<void> = Promise.resolve();
   let feedbackGeneration = 0;
   let disposed = false;
-  const enqueue = (text: string, propagateFailure = false): Promise<void> => {
+  const enqueue = (text: string, propagateFailure = false, notice?: SubAgentFeedbackNotice): Promise<void> => {
     if (disposed) return propagateFailure ? Promise.reject(new Error('REMINDER_CLI_CLOSED')) : Promise.resolve();
     feedbackGeneration += 1;
     const current = feedbackQueue.then(async () => {
@@ -142,6 +142,7 @@ export function registerCliSubAgentCallbacks(
         await new Promise(resolve => setTimeout(resolve, 25));
       }
       if (disposed) { if (propagateFailure) throw new Error('REMINDER_CLI_CLOSED'); return; }
+      if (notice && !SubAgentManager.getInstance().shouldHandleFeedback(session.key, notice)) return;
       await renderFeedback(session, text);
     });
     feedbackQueue = current.catch(error => {
@@ -150,10 +151,11 @@ export function registerCliSubAgentCallbacks(
     return propagateFailure ? current : feedbackQueue;
   };
 
+  const enqueueResult = (text: string, notice?: SubAgentFeedbackNotice) => enqueue(text, true, notice);
   const platformCallbacks = {
-    injectMessage: enqueue,
+    injectMessage: (text: string, notice?: SubAgentFeedbackNotice) => enqueueResult(text, notice),
   };
-  SubAgentManager.getInstance().registerPlatformCallbacks(session.key, platformCallbacks);
+  SubAgentManager.getInstance().registerPlatformCallbacks(session.key, platformCallbacks, session.getWorkingDirectory?.() || process.cwd());
 
   const root = session.getWorkingDirectory?.() || process.cwd();
   const unregisterReminder = registerReminderRoute(root, 'cli', {

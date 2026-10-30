@@ -7,6 +7,9 @@ export function createConnectorTools(service: AgentConnectorService): Tool[] {
   const catalog: Tool = {
     definition: { name: 'connector_describe', description: '查看 Agent 自有 Gmail、Notion、GitHub 的操作和参数契约。账户属于 Agent，不属于聊天对象；不会返回凭据。不指定 operation 时返回操作摘要，指定 app 和 operation 后返回参数 schema。',
       parameters: { type: 'object', properties: { app: { type: 'string', enum: ['gmail','notion','github'] }, operation: { type: 'string' } } } },
+    isAvailable(context) {
+      return (['gmail', 'notion', 'github'] as const).some(app => service.available(app, 'read', context) || service.available(app, 'write', context));
+    },
     async execute(args) {
       if (args?.app !== undefined && !['gmail','notion','github'].includes(args.app)) return toolFailure('Unsupported app.', 'CONNECTOR_VALIDATION_ERROR');
       if (args?.operation !== undefined && (typeof args.operation !== 'string' || !args.app)) return toolFailure('Specify app and operation.', 'CONNECTOR_VALIDATION_ERROR');

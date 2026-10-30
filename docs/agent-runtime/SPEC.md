@@ -1,7 +1,7 @@
 # Agent Runtime SPEC
 
 状态：Active
-最后更新：2026-10-29
+最后更新：2026-10-31
 适用范围：XiaoBa 的核心 agent harness runtime，包括 `src/runtime`、`src/runtime/harness/models`、`src/capabilities/tools`、`src/runtime/contracts/tool.ts` 和 runtime-facing harness docs。
 
 本文是顶层架构模块之一的 Agent Runtime spec。它定义 agent loop、provider transcript、tool boundary 和 session lifecycle；入口、角色策略、观测证据、评测和 Arena 分别由各自模块 spec 维护。
@@ -29,6 +29,14 @@ Out of scope:
 - Test、Case Replay、Verifier、Reviewer Judge 和 EvaluationResult 归 [`../evaluation/SPEC.md`](../evaluation/SPEC.md)。
 
 ## Current Architecture
+
+收到并确认的终态结果继续保留在现有任务视图中，result_pending 区分内部待接收状态，不能当成用户交付回执。普通保留期内可重建已收材料；同一父会话还有未完成工作或待接收结果时，过期已收材料延后清理，待全部处理后恢复清理。同一父会话仍有活动子任务时，成功完成只留存结果，不逐项唤醒 Main；最后一项结束（包括停止）刷新待交接结果，由既有串行队列和回执去重。问题与失败仍立即反馈，普通用户消息不受此合并规则影响；Main 继续决定最终内容和交付意图，不新增任务组状态机。
+
+Base Main 工具面已按 Target 下述合同收敛；默认 Dashboard 无连接器/Skill/MCP 时为 10 个工具。工具隐藏与硬调阻断共用 ToolManager，Session 传递现成的 Skill 名称快照；无角色 child 保留完整执行工具。显式 Base 组装不会重新回退到全局 active role 的工具注册。
+
+OpenAI-compatible SSE 使用跨网络 chunk 的 UTF-8 解码后再解析事件，文本和工具参数不因汉字或 emoji 被拆成多段而损坏；交付仍遵循显式 channel 工具合同。
+
+Main/Sub 已沿用 Map + Journal 实现按变化追加的任务视图。共享 Runner 在每次模型请求前及压缩后同步；用户对 Main 的插话与 Main 的 steer_subagent 共用安全边界。Sub 终态结果持久化通知 ID，Main 成功处理后确认；失败、取消或轮次耗尽不确认，允许静默处理。回调排队执行前检查当前问题/结果是否仍需处理，避免重复通知。Sub 遇到可重试 provider 错误时保留已有 transcript、已消费的插话、活动 Skill 和产物，只继续失败处；不清空会话重跑原任务。完整合同与限制见下文。
 
 Intelligent Chat 已实现可选 `ChannelCallbacks.sendUI`、Main-only `send_ui`、结构化 UI delivery evidence 与可信 parentToolCallId。SubAgentManager 在现有 journal 回调之后投影状态，Session/Runner 的工具结束回调可附带 canonical ToolResult；默认渠道的回调签名保持兼容。Dashboard 显式 Base prompt/skill/tool policy 不再回退到进程全局角色。每请求 `transientContext` 承载 catalog 与明确标记的 App 数据，不写作真实用户消息或长期授权。
 
@@ -62,6 +70,8 @@ Current addendum：显式配置 `allowedWriteRoot` 的窄 SubAgent workflow 现�
 flowchart LR
     Tools --> UIChannel["Optional Main UI delivery"]
     Subagent --> Activity["Parent tool identity / state callback"]
+    MainTools["Base Main / delivery / child controls / read / timer"] --> ToolManager
+    ChildTools["Role execution / installed active Skill"] --> Execution
     Tools --> Execution["Shell / file tools / bounded workers"]
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     ToolManager --> AppTools["App tools / exact write confirmation"]
@@ -109,7 +119,10 @@ flowchart LR
     EvolutionTrigger --> EvolutionControl
     EvolutionControl --> Subagent
     Session --> Subagent
-    Subagent --> Feedback["Live callback ownership / per-session turn queue"]
+    Subagent --> Custody["Map + Journal / received results / pending receipts"]
+    Custody --> Feedback["Live callback ownership / per-session turn queue"]
+    Custody --> StateView["Changed child-state / collected material"]
+    StateView --> Runner
     Feedback --> Session
     Subagent --> ChildJournal["Durable child inspection / interrupted metadata"]
     Subagent --> WriteBoundary
@@ -158,6 +171,14 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 
 ## Target Architecture
 
+已被 Main 收下的近期终态结果继续进入有界任务视图，包含结果摘要、产物与 result_pending；这样在后续消息或压缩后仍可综合多份材料。普通保留窗口仍为 30 分钟；同一父会话还有未完成或未接收结果时保留先前材料，全部处理后清理过期已收结果。通知确认表示 Main 已处理内部反馈，不表示已向用户交付。Runtime 保持独立 child 并行，合并同一父会话的成功完成唤醒，不阻塞用户交互、问题或失败；交付内容归 Base prompt，不新增任务组/工具/调度器。
+
+Base Main 的默认工具面收敛为读取文件、显式交付、子任务创建/查询/插话/回答/停止和 session 提醒。通用文件修改、搜索与 Shell 由执行 Role 使用；显式安装并激活的 Base Skill 可在原有权限范围内临时使用这些工具。Session 将已加载 Skill 名称快照传入现有 ToolExecutionContext，不在工具筛选时扫描磁盘。ask_parent 属于 child；未配置的 Connector/MCP 不暴露空入口。工具发现与执行共用同一可见性判断，不增加工具路由器或第二套循环。
+
+Main/Sub 协作沿用一个 Base Main、完整 Role Subagent 和共享 Runner。SubAgentManager 的 Map 与现有 Journal 是子任务事实源，不引入 SQLite 或第二套任务调度。Runner 每次 provider request 前本地生成确定性的子任务视图；只有语义变化才追加到模型历史，压缩/恢复后按事实重建。普通进度仅供查询和 UI，不反复注入或唤醒 Main。执行结束不等于用户目标完成。
+
+子任务执行状态与结果交接分开：终态结果先写入 Journal，使用稳定通知 ID 投递到父会话；父会话成功处理（允许静默）才确认，失败保留待交接记录，不能被普通 TTL 清理。用户输入和 Main 对 Sub 的补充要求在共享 loop 的安全边界读取；停止沿用取消路径，Sub 不直接向用户发送消息。
+
 Dashboard Intelligent Chat 仍使用 Base 的同一 AgentSession / ConversationRunner。可选 channel UI callback 使 `send_ui` 仅在支持富 UI 的 Main session 可见；Subagent 不直接交付 UI。SubAgentManager 将可信 parent tool-call identity 与状态变化提供给 Surface，Surface 决定 AG-UI 投影，Runtime 不依赖浏览器协议。MCP 工具调用通过注入的 Connector 能力执行，并保留既有 role/surface/confirmed gate。
 
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
@@ -166,6 +187,8 @@ Dashboard Intelligent Chat 仍使用 Base 的同一 AgentSession / ConversationR
 
 ```mermaid
 flowchart LR
+    MainTools["Base Main / delivery / child controls / read / timer"] --> ToolManager
+    ChildTools["Role execution / installed active Skill"] --> Execution
     Tools --> UIChannel["Optional Main UI delivery"]
     Subagent --> Activity["Parent tool identity / state callback"]
     Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
@@ -233,6 +256,9 @@ flowchart LR
     EvolutionControl --> Activation
     Session --> Trace
     Session --> Subagent
+    Subagent --> ChildFacts["Map + Journal / received results / pending receipts"]
+    ChildFacts --> StateView["Changed task view / collected material / safe input"]
+    StateView --> Runner
     Subagent --> Trace
     Subagent --> WriteBoundary
     WriteBoundary --> Tools
@@ -364,8 +390,10 @@ Arena/Evolution use `anthropic_sdk` and `launch.sandbox_policy_path` pointing to
 
 ## Interrupted child inspection
 
-Existing SubAgentManager children persist bounded progress/role/skill/status/question/output metadata under `data/subagents` before launch, on progress and at termination. On a new process, the same parent session can inspect locally terminated owners as `interrupted` through its existing transient status/check_subagent path. Live/unknown-host owners are not adopted; records do not merge sessions. Recovery is explicit remaining-work dispatch after artifact/effect review, not automatic transcript resume or replay. Full durable tool cursors/pending action recovery remains future work.
+Existing SubAgentManager children persist bounded progress/role/skill/status/question/output metadata under `data/subagents` before launch, on progress and at termination. On a new process, the same parent session can inspect locally terminated owners as `interrupted` through its changed-state context/check_subagent path. Live/unknown-host owners are not adopted; records do not merge sessions. Recovery is explicit remaining-work dispatch after artifact/effect review, not automatic transcript resume or replay. Full durable tool cursors/pending action recovery remains future work.
 
 ## Asynchronous conversation direction
 
-Within a live Surface lifecycle, refreshed message callbacks retain ownership of existing children. A replacement/closed lifecycle revokes that authority. IM child feedback serializes per original session and waits for actual idle notification, not a fixed retry deadline; shutdown cancels queued feedback. Base may acknowledge long work before execution, delegates through existing role tools, releases the conversation and later judges whether results/questions deserve explicit delivery. No second Agent loop or new task framework.
+Within a live Surface lifecycle, refreshed message callbacks retain ownership of existing children. A replacement/closed lifecycle revokes that authority. User input can steer an active Dashboard/Feishu/Weixin Main at the next safe inference boundary. Child feedback serializes per original session and waits for actual idle notification, not a fixed retry deadline; shutdown cancels queued feedback. Base may acknowledge long work before execution, delegates through existing role tools, releases the conversation and later judges whether results/questions deserve explicit delivery. No second Agent loop or new task framework.
+
+Subagent result custody: existing `data/subagents` rows carry optional `resultNotice={id,handledAt?}` separately from execution status. Registering a route retries pending results from the original workspace; a successful Main run that saw a result can acknowledge it before queued feedback runs. In-flight delivery is deduplicated locally, stale questions/results are skipped, and ordinary terminal TTL never hides unhandled results. Delivery is at-least-once across crash windows; external effects are not exactly-once. Runtime-owned context is marked non-authorizing and omitted from provider wire metadata. Live steer inboxes remain process-local; this change does not automatically resume a crashed child or replay user work.

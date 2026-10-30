@@ -31,10 +31,6 @@ describe('release version consistency', () => {
     assert.ok(readText('README.md').includes(expectedTag));
     assert.ok(readText('docs/README.en.md').includes(expectedTag));
     assert.ok(!/sidebar-brand-ver">v\d/.test(html));
-    assert.ok(!/sidebar-watermark-version[^\n]*>v\d/.test(html));
-    assert.ok(html.includes('id="sidebar-watermark-version">v-</span>'));
-    assert.ok(html.includes("watermarkVersion.textContent = displayVersion"));
-    assert.ok(html.includes("watermark.setAttribute('aria-label'"));
   });
 
   test('declares the macOS Preview architecture and external Node policy', () => {

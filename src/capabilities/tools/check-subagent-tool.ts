@@ -54,7 +54,7 @@ export class CheckSubagentTool implements Tool {
   private formatInfo(info: any): string {
     const statusMap: Record<string, string> = {
       running: '🔄 运行中',
-      completed: '✅ 已完成',
+      completed: '已结束（由 Main 判断任务结果）',
       failed: '❌ 失败',
       stopped: '⏹️ 已停止',
       interrupted: '⚠️ 已中断',

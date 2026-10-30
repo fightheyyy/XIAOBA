@@ -498,7 +498,7 @@ describe('SubAgentSession status lifecycle', () => {
     assert.strictEqual(manager.getInfoForParent(parentSessionKey, spawned.id)?.status, 'stopped');
   });
 
-  test('parent transient context labels waiting tasks and includes their pending question', async () => {
+  test('parent runtime state includes waiting tasks and their pending question', async () => {
     const manager = SubAgentManager.getInstance();
     const parentSessionKey = `waiting-context-parent-${Math.random().toString(16).slice(2)}`;
     manager.registerPlatformCallbacks(parentSessionKey, {
@@ -527,13 +527,13 @@ describe('SubAgentSession status lifecycle', () => {
     await parentSession.handleMessage('show task status', { surface: 'cli' });
 
     const transient = parentAI.requests[0].messages.find(message => (
-      message.role === 'system'
+      message.__subagentState
       && typeof message.content === 'string'
-      && message.content.startsWith('[transient_subagent_status]')
+      && message.content.startsWith('[subagent_state]')
     ));
     assert.ok(transient && typeof transient.content === 'string');
-    assert.match(transient.content, /当前有 1 个活跃后台子任务/);
-    assert.match(transient.content, /等待输入/);
+    assert.match(transient.content, /waiting context task/);
+    assert.match(transient.content, /waiting_for_input/);
     assert.match(transient.content, /Should this BrowserCat task continue\?/);
     assert.doesNotMatch(transient.content, /waiting context task \(已停止\)/);
 

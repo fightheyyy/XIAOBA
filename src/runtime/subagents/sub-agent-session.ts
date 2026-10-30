@@ -45,6 +45,9 @@ export interface SubAgentInfo {
   pendingQuestion?: string;
   /** 子智能体执行期间创建的产出文件路径 */
   outputFiles: string[];
+  /** Result custody is separate from execution status. A silent parent can acknowledge it. */
+  resultNotice?: { id: string; handledAt?: number };
+  undeliveredMessages?: string[];
 }
 
 export interface SubAgentSpawnOptions {
@@ -81,6 +84,7 @@ const SUB_AGENT_ALWAYS_HIDDEN_TOOLS = new Set([
   'check_subagent',
   'stop_subagent',
   'resume_subagent',
+  'steer_subagent',
   'send_text',
   'send_file',
   'send_ui',
@@ -278,8 +282,10 @@ export class SubAgentSession {
   resultSummary?: string;
   createdAt = Date.now();
   completedAt?: number;
+  resultNotice?: SubAgentInfo['resultNotice'];
 
   private messages: Message[] = [];
+  private readonly pendingSteers: Message[] = [];
   private stopped = false;
   /** 子智能体执行期间创建的文件路径（用于自动发送产出） */
   private outputFiles: string[] = [];
@@ -338,7 +344,8 @@ export class SubAgentSession {
         return;
       }
 
-      // 重试前：等待 + 重置状态
+      // Retry the failed request with the existing transcript, including consumed steers
+      // and completed tool effects. Rebuilding the task would silently lose both.
       if (attempt > 0) {
         const delay = SubAgentSession.SESSION_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
         Logger.warning(`[SubAgent ${this.id}] 第 ${attempt} 次重试，${delay}ms 后开始`);
@@ -350,8 +357,6 @@ export class SubAgentSession {
           this.recordStoppedTrace();
           return;
         }
-        this.messages = [];
-        this.outputFiles = [];
       }
 
       try {
@@ -403,6 +408,17 @@ export class SubAgentSession {
    * 单次执行核心逻辑（不含重试）
    */
   private async _executeOnce(): Promise<void> {
+    this.captureSelectedSkill(this.messages);
+    const activeSkillName = this.selectedSkillName || this.skillName;
+    const skill = activeSkillName ? this.skillManager.getSkill(activeSkillName) : undefined;
+    if (this.skillName && !skill) throw new Error(`Skill "${this.skillName}" 未找到`);
+    if (!this.messages.length) await this.initializeMessages(skill);
+
+    // Create an executor per attempt; the transcript and artifacts remain session-owned.
+    await this.executeConversation(skill);
+  }
+
+  private async initializeMessages(skill: ReturnType<SkillManager['getSkill']>): Promise<void> {
     // 1. 构建独立的 system prompt
     const systemPrompt = await PromptManager.buildSystemPrompt({ roleName: this.options.roleName });
     this.messages.push({ role: 'system', content: systemPrompt });
@@ -414,11 +430,6 @@ export class SubAgentSession {
     }
 
     // 2. 注入预选 skill；role-only dispatch 可让目标 role 子智能体自行选择。
-    const skill = this.skillName ? this.skillManager.getSkill(this.skillName) : undefined;
-    if (this.skillName && !skill) {
-      throw new Error(`Skill "${this.skillName}" 未找到`);
-    }
-
     if (skill) {
       const invocationContext: SkillInvocationContext = {
         skillName: this.skillName!,
@@ -438,7 +449,9 @@ export class SubAgentSession {
 
     // 3. 注入用户消息
     this.messages.push({ role: 'user', content: this.options.userMessage });
+  }
 
+  private async executeConversation(skill: ReturnType<SkillManager['getSkill']>): Promise<void> {
     // 4. 创建独立的 ToolManager
     const toolExecutor = createSubAgentToolExecutor(
       this.options.workingDirectory,
@@ -457,10 +470,11 @@ export class SubAgentSession {
     // 创建独立的 ConversationRunner（不注入 channel，子智能体不直接和用户通信）
     const runner = new ConversationRunner(this.aiService, toolExecutor, {
       maxTurns: this.options.maxTurns ?? skill?.metadata.maxTurns ?? 100,
-      initialSkillName: this.skillName,
+      initialSkillName: this.selectedSkillName || this.skillName,
       initialSkillToolsets: skill?.metadata.toolsets,
       enableCompression: true,
       shouldContinue: () => !this.stopped,
+      readPendingMessages: () => this.pendingSteers.splice(0),
       toolExecutionContext: {
         sessionId: `subagent:${this.id}`,
         surface: 'agent',
@@ -494,10 +508,11 @@ export class SubAgentSession {
     // 8. 完成（不直接发文件，由主 Agent 根据 outputFiles 决定）
     this.status = 'completed';
     this.completedAt = Date.now();
-    this.resultSummary = runResult.response;
+    this.resultSummary = runResult.exhausted
+      ? `执行达到轮次上限，需要 Main 判断剩余工作。\n${runResult.response}` : runResult.response;
 
     this.sessionTurnLogger.logRuntimeEvent('session_completed', {
-      ...this.lifecycleEvidence('success'),
+      ...this.lifecycleEvidence(runResult.exhausted ? 'incomplete' : 'success'),
       duration_ms: Math.max(0, this.completedAt - this.runStartedAt),
       tool_call_count: runResult.toolResults.length,
     });
@@ -542,6 +557,13 @@ export class SubAgentSession {
     this.status = 'running';
     this.reportProgress(`收到回复，继续执行`);
     resolve(answer);
+    return true;
+  }
+
+  /** Acceptance only: the current tool is allowed to finish before the loop reads this. */
+  steer(text: string): boolean {
+    if (this.stopped || this.status !== 'running' || !text.trim() || this.pendingSteers.length >= 20) return false;
+    this.pendingSteers.push({ role: 'user', content: text.trim(), __injected: true });
     return true;
   }
 
@@ -601,6 +623,8 @@ export class SubAgentSession {
       resultSummary: this.resultSummary,
       pendingQuestion: this.pendingQuestion ?? undefined,
       outputFiles: [...this.outputFiles],
+      ...(this.resultNotice && { resultNotice: { ...this.resultNotice } }),
+      ...(this.pendingSteers.length && { undeliveredMessages: this.pendingSteers.map(message => String(message.content)) }),
     };
   }
 
