@@ -1,7 +1,7 @@
 # Surfaces SPEC
 
 状态：Active
-最后更新：2026-10-30
+最后更新：2026-10-31
 适用范围：XiaoBa 的用户入口层，包括 `src/surfaces/cli/commands`、`src/surfaces/feishu`、`src/surfaces/weixin`、`src/surfaces/pet`、`src/surfaces/dashboard`、`src/events`、`src/connectors` 和 `desktop`。
 
 本文件是顶层架构模块之一的入口层 spec，也是 Dashboard、Electron 和 packaging 资源的唯一架构文档。
@@ -36,6 +36,8 @@ Out of scope:
 - Unit、integration、deterministic smoke、Replay 和 Live Agent Eval 的语义，属于 [`../evaluation/SPEC.md`](../evaluation/SPEC.md)。
 
 ## Current Architecture
+
+共享 `prompts/surface.md` 仅约定已选择交付的文本/文件/UI 如何送达；发消息或静默的判断归 Base，不要求每次输入或执行都回应。静默直接结束本轮，无专用工具或标记，隐藏最终文本仍不能代替实际交付。
 
 Chat 的 MCP schema 现在只对有效已配置服务与持有 Main UI callback 的会话开放；无配置或 child 隐藏，执行时复查；已有 MCP/A2UI 交付和确认逻辑保持原合同。共享 Main 工具边界见 Agent Runtime SPEC。
 
@@ -85,7 +87,7 @@ Main/Sub 沿用上述已实现边界；消息消费、任务视图及结果回�
 
 Dashboard Chat 是 personal agent 的一段长期主对话，固定由 Base Main Agent 接收用户输入，不提供新建、切换会话或分支话题入口。八个 Role 只通过 Main Agent 的工具调用执行，不提供角色切换聊天入口。保留现有原生 HTML/JS、共享 AgentSession 和桌宠接口，新增 `/api/chat` 入口及独立前端模块。
 
-- AG-UI 继续传输文本、工具调用、Subagent 生命周期和 Activity；执行事件用于后端观测、协议兼容和前端聚合工作提示，不渲染执行链或逐个 Subagent 面板。只交付 Main 选择发送的消息、文件和可信 UI；`TOOL_CALL_END` 只表示参数传输结束。
+- AG-UI 继续传输文本、工具调用、Subagent 生命周期和 Activity；执行事件用于后端观测、协议兼容和前端聚合工作提示，不渲染执行链或逐个 Subagent 面板。只交付 Main 选择发送的消息、文件和可信 UI；Main 可静默结束，Surface 不追加确认消息或要求固定回复。`TOOL_CALL_END` 只表示参数传输结束。
 - SUBAGENT Activity 的 `resultPending` 由 Runtime 既有 resultNotice 事实推导；Main run 收尾后重发当前快照，只有结果已处理才撤去整理提示，不把执行结束当成用户目标完成。普通进度不转成新聊天消息；不估算百分比、不制造演示延迟。
 - A2UI v0.9.1 的四类消息通过 AG-UI CUSTOM 传递。客户端只渲染 XiaoBa catalog 中的可信组件；action 校验 surface、组件及会话归属后回到原 Main Agent。前端代码不由模型执行。
 - MCP Apps Host 使用官方 AppBridge，在 sandbox iframe 中展示工具声明的 `ui://` HTML。服务端 Connector 负责 MCP 连接、资源读取和受控工具调用；凭据不进入浏览器。App 工具权限只限所属服务器，写操作仍需明确确认。

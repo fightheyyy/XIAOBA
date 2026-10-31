@@ -6,6 +6,8 @@ Owner：Surface maintainers
 
 ## Current Status
 
+交付与回应分离（2026-10-31，Owner: Surface / Policy，已实现）：共享 Surface prompt 删除“能立即回答就发送”及限制静默场景的规则，只规定 Main 选择发送后的 send_text/send_file/send_ui 路径；不发送时直接结束，不自动补确认。fallback 与此一致，现有 loop 无需新增静默机制。构建、相关 29/29 回归和真实模型静默/交付复核通过；Dashboard 空闲重启后页面及配置接口均返回 200，仍为 chat:main，未清空历史。真实表达质量及后续使用复核由 Roles & Skills PLAN 持有。
+
 交互复核（2026-10-31，Owner: Surface，验收中）：真实模型曾生成无提交按钮的 ChoicePicker，选择不会自动切换。已补充 catalog 指令，明确本地输入需 Button 提交，资料切换由 Main 更新原卡片；最新构建通过，相关协议检查通过，真实模型的新一轮运行失败，按钮切换仍待完整验收。未修改协议或渲染器。
 
 Main MCP 工具发现（2026-10-30，Owner: Surface，已实现）：未配置、非法配置、缺少 Main UI 能力及 child 隐藏 MCP schema；保留已配置服务的发现、调用、审批与 iframe 交付。配置切换、硬调阻断、现有 AgentSession→AG-UI→A2UI/MCP/child 闭环通过；真实模型 Dashboard HTTP 验收派工、插话、结果回执和 A2UI 卡片通过。详细测试计数与已知失败由 Agent Runtime PLAN 持有。下一步：用户自己的 MCP 服务与原生 Electron 包验收。
