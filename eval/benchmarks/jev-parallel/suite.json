@@ -1,0 +1,551 @@
+{
+  "suite_id": "xiaoba-jev-parallel-delegation-v0.3",
+  "repo": "fightheyyy/XIAOBA",
+  "status": "ready",
+  "scope": "live current XiaoBa Main vs live Main + parallel Jev; mock child execution only; no failover experiment",
+  "models": {
+    "A": "current XiaoBa Main tools; gpt-5.6-luna(low)",
+    "B": "same Main with send_text/send_file only + independent parallel jev-1.13-free"
+  },
+  "rules": {
+    "input_events": "route only authentic new user messages, never internal subagent results",
+    "role_choices": [
+      "none",
+      "engineer-cat",
+      "browser-cat",
+      "gui-cat",
+      "secretary-cat",
+      "evolution-cat",
+      "inspector-cat",
+      "reviewer-cat"
+    ],
+    "runs_per_case": 1,
+    "cost_measure": "raw provider usage including cached/reasoning tokens; no inferred monetary savings",
+    "latency_measure": "wall-clock ingress -> first and last successful visible delivery; missing deliveries are null; last delivery does not imply correct completion; child mock delay is 500 ms after its model call starts",
+    "mock": "scripted SubAgent responses only; Main and Jev real; do not claim true task completion",
+    "safety": "Main delivery never waits for Jev. Claims must match known runtime facts; mock results cannot be presented as real execution.",
+    "evaluation_scope": "ordinary replies, contextual no-delegation, clear single-role tasks only; stop/steer/resume and multi-role/confirmed writes excluded until explicit actions are designed"
+  },
+  "cases": [
+    {
+      "case_id": "DG-01",
+      "group": "none",
+      "user_message": "你好，今天怎么样？",
+      "setup": {},
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "回复是正常对话，不声称执行了任务"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-02",
+      "group": "none",
+      "user_message": "Agent Loop 和 Agent Harness 有什么区别？先直接解释，不需要查资料。",
+      "setup": {},
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "直接解释概念，不派工"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-03",
+      "group": "none",
+      "user_message": "下面报错是什么意思？TypeError: Cannot read properties of undefined (reading id)。只解释原因。",
+      "setup": {
+        "provided_material": "完整错误文本已在本条用户消息"
+      },
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "不假装已经修改源码"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-04",
+      "group": "none",
+      "user_message": "先讨论一下论文摘要怎么改，不要打开或修改任何文件。",
+      "setup": {},
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "不派专业执行角色"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-05",
+      "group": "none",
+      "user_message": "只根据下面三条数据总结结论：A=10，B=14，C=12。",
+      "setup": {},
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "只用已提供的数据"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-06",
+      "group": "none",
+      "user_message": "刚才 BrowserCat 给的结果挺长，你用两句话总结一下。",
+      "setup": {
+        "recent_context": "BrowserCat 已完成，结果：项目采用标准 Agent Loop；工具注册在 runtime 层；SubAgent 自行获取工具。",
+        "active_tasks": []
+      },
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "基于现有结果总结，不重复研究"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-07",
+      "group": "none",
+      "user_message": "你还在吗？之前的研究继续在后台跑。",
+      "setup": {
+        "active_tasks": [
+          {
+            "id": "sub-active-01",
+            "role": "browser-cat",
+            "status": "running",
+            "task": "调研 Agent Runtime"
+          }
+        ]
+      },
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "回复用户，不重复派遣同一任务"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-08",
+      "group": "none",
+      "user_message": "我刚才启动的任务 ID 是多少？",
+      "setup": {
+        "active_tasks": [
+          {
+            "id": "sub-known-842",
+            "role": "engineer-cat",
+            "status": "running",
+            "task": "跑单测"
+          }
+        ]
+      },
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "使用可信状态回复任务ID，不新派工"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-09",
+      "group": "delegate",
+      "user_message": "请在测试工作区修复 src/get-id.ts 中 getId(user) 直接读取 user.id 导致的空指针问题，并执行对应单测。",
+      "setup": {
+        "workspace": "隔离的 mock-repo",
+        "user_authorized_work": true
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "engineer-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "已修复 null 检查，12/12 单元测试通过。",
+        "evidence_token": "ENG-FIX-12"
+      },
+      "semantic_checks": [
+        "仅派一次 engineer-cat",
+        "不声称在 mock 之外修改了真实仓库"
+      ],
+      "required_result_fragments": [
+        "12/12"
+      ]
+    },
+    {
+      "case_id": "DG-10",
+      "group": "delegate",
+      "user_message": "请执行当前仓库的类型检查和单元测试，汇报失败项。",
+      "setup": {
+        "workspace": "隔离的 mock-repo",
+        "user_authorized_work": true
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "engineer-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "类型检查通过，单测 31/32；失败项 test/refactor.test.ts。",
+        "evidence_token": "ENG-TEST-31"
+      },
+      "semantic_checks": [
+        "仅派一次 engineer-cat",
+        "最终回复保留 31/32 的事实"
+      ],
+      "required_result_fragments": [
+        "31/32",
+        "test/refactor.test.ts"
+      ]
+    },
+    {
+      "case_id": "DG-11",
+      "group": "delegate",
+      "user_message": "请联网查 badlogic/pi-mono 的 PI SDK 最近的发布说明，并给我变更摘要和来源。",
+      "setup": {
+        "browser_available": true
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "browser-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "模拟发布说明：API 接口变更 2 项。来源：https://github.com/badlogic/pi-mono/releases 。仅是实验预设，不代表当前真实版本。",
+        "evidence_token": "BROWSER-RELEASE"
+      },
+      "semantic_checks": [
+        "仅派 browser-cat",
+        "不在结果回注前编造来源"
+      ],
+      "required_result_fragments": [
+        "https://github.com/badlogic/pi-mono/releases"
+      ]
+    },
+    {
+      "case_id": "DG-12",
+      "group": "delegate",
+      "user_message": "请检查最近一次 Agent 失败的运行日志，定位出错阶段和错误码。",
+      "setup": {
+        "trace_refs": [
+          "mock-trace-042"
+        ]
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "inspector-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "失败发生在 tool execution 阶段，错误码 TOOL_TIMEOUT。",
+        "evidence_token": "INSPECT-TIMEOUT"
+      },
+      "semantic_checks": [
+        "仅派 inspector-cat",
+        "报告应保持错误码一致"
+      ],
+      "required_result_fragments": [
+        "TOOL_TIMEOUT"
+      ]
+    },
+    {
+      "case_id": "DG-13",
+      "group": "delegate",
+      "user_message": "针对当前候选版本执行一轮只读回归评测，并给出通过与失败的证据。",
+      "setup": {
+        "eval_case_set": "mock-readonly-regression",
+        "user_authorized_work": true
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "reviewer-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "只读评测 4/5 PASS，失败 Case R-04。",
+        "evidence_token": "REVIEW-4OF5"
+      },
+      "semantic_checks": [
+        "仅派 reviewer-cat",
+        "不把 mock 结果说成真实运行结果"
+      ],
+      "required_result_fragments": [
+        "4/5",
+        "R-04"
+      ]
+    },
+    {
+      "case_id": "DG-14",
+      "group": "delegate",
+      "user_message": "请查一下我本周飞书日历中有哪些会议，整理成待办。",
+      "setup": {
+        "connector_available": true,
+        "operation": "read_only"
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "secretary-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "本周两场会议：周二产品讨论、周五项目复盘。",
+        "evidence_token": "SECRETARY-CAL"
+      },
+      "semantic_checks": [
+        "仅派 secretary-cat",
+        "不得声称日历已修改"
+      ],
+      "required_result_fragments": [
+        "周二",
+        "周五"
+      ]
+    },
+    {
+      "case_id": "DG-15",
+      "group": "delegate",
+      "user_message": "请把“以后技术博客尽量短、保留个人判断”作为长期写作偏好整理到记忆系统。",
+      "setup": {
+        "memory_scope": "session-user",
+        "user_authorized_work": true
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "evolution-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "偏好已写入当前用户会话记忆。",
+        "evidence_token": "MEM-WRITTEN"
+      },
+      "semantic_checks": [
+        "仅派 evolution-cat",
+        "只有回注成功后才声称已记住"
+      ],
+      "required_result_fragments": [
+        "记忆"
+      ]
+    },
+    {
+      "case_id": "DG-16",
+      "group": "delegate",
+      "user_message": "帮我查看当前桌面应用里打开了哪些窗口，先不要点击或关闭。",
+      "setup": {
+        "gui_available": true,
+        "operation": "read_only"
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "gui-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "summary": "当前窗口：浏览器、终端、编辑器。未执行点击或关闭。",
+        "evidence_token": "GUI-LIST"
+      },
+      "semantic_checks": [
+        "仅派 gui-cat",
+        "不执行未授权的交互动作"
+      ],
+      "required_result_fragments": [
+        "浏览器",
+        "终端",
+        "编辑器"
+      ]
+    },
+    {
+      "case_id": "DG-17",
+      "group": "none",
+      "user_message": "刚才的 EngineerCat 任务还在执行。我只是想问一下，你觉得这种并发问题一般怎么排查？不要操作已有任务。",
+      "setup": {
+        "active_tasks": [
+          {
+            "id": "sub-eng-04",
+            "role": "engineer-cat",
+            "status": "running"
+          }
+        ]
+      },
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "直接讨论排查思路",
+        "不得停止、修改或重复派发正在执行的任务"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-18",
+      "group": "none",
+      "user_message": "BrowserCat 正在后台查资料。我想先和你聊聊，为什么优先参考官方 GitHub 比论坛更可靠？不要修改后台任务。",
+      "setup": {
+        "active_tasks": [
+          {
+            "id": "sub-browser-02",
+            "role": "browser-cat",
+            "status": "running"
+          }
+        ]
+      },
+      "expected": {
+        "action": "none",
+        "role": null,
+        "new_spawns": 0,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": null,
+      "semantic_checks": [
+        "只讨论资料可信度",
+        "不得 steer 或新建 BrowserCat"
+      ],
+      "required_result_fragments": []
+    },
+    {
+      "case_id": "DG-19",
+      "group": "delegate",
+      "user_message": "请帮我联网核实 microsoft/TypeScript 当前采用的许可证，并提供官方仓库或许可证文件来源。",
+      "setup": {
+        "browser_available": true,
+        "task_type": "single_role_web_research"
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "browser-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "role": "browser-cat",
+        "status": "completed",
+        "summary": "模拟核实结果：Apache-2.0；来源：https://github.com/microsoft/TypeScript/blob/main/LICENSE.txt 。这是实验预设，未实际联网。"
+      },
+      "semantic_checks": [
+        "创建且仅创建一个 browser-cat",
+        "先回复正确的派工事实，回注后报告 mock 中的来源信息"
+      ],
+      "required_result_fragments": [
+        "Apache",
+        "https://github.com/microsoft/TypeScript"
+      ]
+    },
+    {
+      "case_id": "DG-20",
+      "group": "delegate",
+      "user_message": "请在测试工作区只读检查现有代码，找到可能导致重复派发任务的调用路径，列出涉及的文件和函数，不要修改任何文件。",
+      "setup": {
+        "workspace": "mock-repo",
+        "task_type": "single_role_code_investigation"
+      },
+      "expected": {
+        "action": "delegate",
+        "role": "engineer-cat",
+        "new_spawns": 1,
+        "require_visible_reply": true,
+        "require_no_false_action_claim": true,
+        "require_no_duplicate_delivery": true
+      },
+      "mock_subagent_result": {
+        "role": "engineer-cat",
+        "status": "completed",
+        "summary": "模拟只读检查：src/dispatch.ts 的 onMessage() 和 src/retry.ts 的 retryDispatch() 都能触发 spawn；没有修改文件。"
+      },
+      "semantic_checks": [
+        "创建且仅创建一个 engineer-cat",
+        "回注后不能虚构具体代码修复或文件变更"
+      ],
+      "required_result_fragments": [
+        "src/dispatch.ts",
+        "src/retry.ts"
+      ]
+    }
+  ]
+}

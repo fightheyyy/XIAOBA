@@ -1,0 +1,4469 @@
+{
+  "suite_id": "xiaoba-jev-parallel-delegation-v0.3",
+  "date": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "scope": "Exploratory single-valid-run comparison; real Main and Jev; mock SubAgent execution and existing-task state; no real task-completion evaluation or Jev failover.",
+  "models": {
+    "main": "gpt-5.6-luna(low)",
+    "main_provider": "CLIProxyAPI",
+    "jev": "jev-1.13-free"
+  },
+  "mock_child_delay_ms": 500,
+  "source_provenance": {
+    "base_commit": "49bad622399f7b63d704280ad2daafa1e84ecde2",
+    "runtime_tree_clean": false,
+    "note": "Measurements used a working tree with uncommitted Runtime changes. Their patch was not frozen with this experiment; a clean checkout can rerun the harness but is not the exact measured Runtime snapshot."
+  },
+  "measurement_contract": {
+    "first_reply_ms": "First successful visible delivery since ingress; null when none.",
+    "final_reply_ms": "Legacy field name for LAST successful visible delivery, not semantic completion.",
+    "first_model_response_ms": "Completion of the first Main model call, including tool-call decisions.",
+    "total_tokens": "Sum of actual Main provider total_tokens and Jev input/output tokens; mock child tokens are zero. Cached input and reasoning tokens are included, not added twice. No monetary cost claim.",
+    "percentiles": "Nearest rank within the case group, not repeated measurements of one case.",
+    "reply_review": "Assistant inspection of visible responses, not an independent semantic Judge or production defect verdict."
+  },
+  "confounders": [
+    "B has an additional Runtime routing responsibility prompt; the original Base routing prompt was retained. Dynamic clock text also differs.",
+    "Chat delivery rates differ: A 4/10 and B 8/10. Extra send_text follow-up model calls confound full-run chat token comparisons.",
+    "Single valid observation per arm/case; no stability or significance conclusion.",
+    "AB/BA alternation was partially disrupted by fixture repair and resume.",
+    "Last visible response and required text fragments do not prove correctness; mock provenance issues are recorded per observation.",
+    "Cache state and provider timing vary; baseline and treatment share an account."
+  ],
+  "excluded_observations": [
+    {
+      "case_id": "DG-07",
+      "arm": "A",
+      "reason": "Existing-task context disagreed with Runtime list/ID queries; repaired before valid measurement."
+    },
+    {
+      "case_id": "DG-07",
+      "arm": "B",
+      "reason": "Existing-task context disagreed with Runtime list/ID queries; repaired before valid measurement."
+    },
+    {
+      "case_id": "DG-08",
+      "arm": "B",
+      "reason": "Existing-task context disagreed with Runtime list/ID queries; repaired before valid measurement."
+    },
+    {
+      "case_id": "DG-08",
+      "arm": "A",
+      "reason": "Existing-task context disagreed with Runtime list/ID queries; repaired before valid measurement."
+    }
+  ],
+  "interrupted_observations": [
+    {
+      "case_id": "DG-11",
+      "arm": "B",
+      "reason": "Interrupted during fixture repair; no completed observation retained."
+    }
+  ],
+  "observations": [
+    {
+      "case_id": "DG-01",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 1665.4467089999998,
+      "settled_ms": 1668.8383749999998,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 5324,
+        "output": 5,
+        "cached": 0,
+        "reasoning": 0,
+        "total": 5329
+      },
+      "jev_tokens": 0,
+      "total_tokens": 5329,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.199916999999971,
+          "finished_ms": 1665.4467089999998,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 5,
+            "total_tokens": 5329,
+            "prompt_tokens": 5324,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-01",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 2104.960333,
+      "final_reply_ms": 2104.960333,
+      "first_model_response_ms": 2102.456583,
+      "settled_ms": 3976.3128750000005,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 8827,
+        "output": 55,
+        "cached": 4224,
+        "reasoning": 13,
+        "total": 8882
+      },
+      "jev_tokens": 778,
+      "total_tokens": 9660,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 12.621875000000045,
+          "finished_ms": 2102.456583,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 51,
+            "total_tokens": 4440,
+            "prompt_tokens": 4389,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 13
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 2108.0290830000004,
+          "finished_ms": 3973.064125,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4442,
+            "prompt_tokens": 4438,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.4886659999999665,
+        "finished_ms": 841.901458,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 688,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 688,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-02",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 5735.4452089999995,
+      "settled_ms": 5738.974667,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 5336,
+        "output": 251,
+        "cached": 0,
+        "reasoning": 17,
+        "total": 5587
+      },
+      "jev_tokens": 0,
+      "total_tokens": 5587,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.9075839999986783,
+          "finished_ms": 5735.4452089999995,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 251,
+            "total_tokens": 5587,
+            "prompt_tokens": 5336,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 17
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-02",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 5941.653416,
+      "final_reply_ms": 5941.653416,
+      "first_model_response_ms": 5939.898625000001,
+      "settled_ms": 7331.30525,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 9050,
+        "output": 260,
+        "cached": 4224,
+        "reasoning": 19,
+        "total": 9310
+      },
+      "jev_tokens": 797,
+      "total_tokens": 10107,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 4.50275000000056,
+          "finished_ms": 5939.898625000001,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 256,
+            "total_tokens": 4657,
+            "prompt_tokens": 4401,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 19
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 5943.496708,
+          "finished_ms": 7328.303208,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4653,
+            "prompt_tokens": 4649,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.7212910000007469,
+        "finished_ms": 424.97420800000054,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 707,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 707,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-03",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 2683.0456250000025,
+      "settled_ms": 2684.297916000003,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 5353,
+        "output": 67,
+        "cached": 0,
+        "reasoning": 13,
+        "total": 5420
+      },
+      "jev_tokens": 0,
+      "total_tokens": 5420,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.2822500000002037,
+          "finished_ms": 2683.0456250000025,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 67,
+            "total_tokens": 5420,
+            "prompt_tokens": 5353,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 13
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-03",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 3101.5834579999973,
+      "final_reply_ms": 3101.5834579999973,
+      "first_model_response_ms": 3100.6020409999983,
+      "settled_ms": 4437.865415999997,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 8929,
+        "output": 101,
+        "cached": 4224,
+        "reasoning": 15,
+        "total": 9030
+      },
+      "jev_tokens": 815,
+      "total_tokens": 9845,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.5624579999966954,
+          "finished_ms": 3100.6020409999983,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 97,
+            "total_tokens": 4515,
+            "prompt_tokens": 4418,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 15
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3102.7865409999977,
+          "finished_ms": 4435.2905409999985,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4515,
+            "prompt_tokens": 4511,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.32074999999895226,
+        "finished_ms": 744.3132909999986,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 725,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 725,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-04",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 2995.1398750000008,
+      "settled_ms": 2997.339250000001,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 5334,
+        "output": 95,
+        "cached": 0,
+        "reasoning": 24,
+        "total": 5429
+      },
+      "jev_tokens": 0,
+      "total_tokens": 5429,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.466541000001598,
+          "finished_ms": 2995.1398750000008,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 95,
+            "total_tokens": 5429,
+            "prompt_tokens": 5334,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 24
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-04",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 2594.999,
+      "settled_ms": 2597.3076250000013,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 4399,
+        "output": 77,
+        "cached": 0,
+        "reasoning": 19,
+        "total": 4476
+      },
+      "jev_tokens": 795,
+      "total_tokens": 5271,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.374833000001672,
+          "finished_ms": 2594.999,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 77,
+            "total_tokens": 4476,
+            "prompt_tokens": 4399,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 19
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.6455000000023574,
+        "finished_ms": 383.6656660000008,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 705,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 705,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-05",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 2715.8443330000046,
+      "settled_ms": 2718.578375000001,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 5341,
+        "output": 74,
+        "cached": 0,
+        "reasoning": 33,
+        "total": 5415
+      },
+      "jev_tokens": 0,
+      "total_tokens": 5415,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.39862500000163,
+          "finished_ms": 2715.8443330000046,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 74,
+            "total_tokens": 5415,
+            "prompt_tokens": 5341,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 33
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-05",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 3016.4630839999954,
+      "final_reply_ms": 3016.4630839999954,
+      "first_model_response_ms": 3015.2731669999994,
+      "settled_ms": 4583.988624999998,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 8879,
+        "output": 103,
+        "cached": 4224,
+        "reasoning": 43,
+        "total": 8982
+      },
+      "jev_tokens": 799,
+      "total_tokens": 9781,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.2969169999996666,
+          "finished_ms": 3015.2731669999994,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 99,
+            "total_tokens": 4505,
+            "prompt_tokens": 4406,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 43
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3017.8409589999937,
+          "finished_ms": 4581.058916999995,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4477,
+            "prompt_tokens": 4473,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.5637089999945601,
+        "finished_ms": 832.3802919999944,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 709,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 709,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-06",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 2791.4969159999964,
+      "final_reply_ms": 2791.4969159999964,
+      "first_model_response_ms": 2790.8406659999964,
+      "settled_ms": 4349.147915999994,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 10807,
+        "output": 75,
+        "cached": 5248,
+        "reasoning": 15,
+        "total": 10882
+      },
+      "jev_tokens": 0,
+      "total_tokens": 10882,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.2559159999946132,
+          "finished_ms": 2790.8406659999964,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 71,
+            "total_tokens": 5441,
+            "prompt_tokens": 5370,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 15
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 2792.527415999997,
+          "finished_ms": 4344.293458,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 5441,
+            "prompt_tokens": 5437,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-06",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 3420.881333000005,
+      "final_reply_ms": 3420.881333000005,
+      "first_model_response_ms": 3419.5150830000057,
+      "settled_ms": 4945.380750000004,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 8943,
+        "output": 84,
+        "cached": 4352,
+        "reasoning": 18,
+        "total": 9027
+      },
+      "jev_tokens": 842,
+      "total_tokens": 9869,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.7053330000053393,
+          "finished_ms": 3419.5150830000057,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 80,
+            "total_tokens": 4515,
+            "prompt_tokens": 4435,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 18
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3422.4868750000023,
+          "finished_ms": 4941.960667000007,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4512,
+            "prompt_tokens": 4508,
+            "prompt_tokens_details": {
+              "cached_tokens": 4352,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.6807500000068103,
+        "finished_ms": 402.83200000000215,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 752,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 752,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-07",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 2411.125,
+      "final_reply_ms": 2411.125,
+      "first_model_response_ms": 2409.065709,
+      "settled_ms": 4005.9247499999997,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 10830,
+        "output": 83,
+        "cached": 5248,
+        "reasoning": 28,
+        "total": 10913
+      },
+      "jev_tokens": 0,
+      "total_tokens": 10913,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.0661249999999995,
+          "finished_ms": 2409.065709,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 67,
+            "total_tokens": 5452,
+            "prompt_tokens": 5385,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 18
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 2414.411792,
+          "finished_ms": 4000.2149590000004,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 16,
+            "total_tokens": 5461,
+            "prompt_tokens": 5445,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 10
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-07",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 2833.246209,
+      "final_reply_ms": 2833.246209,
+      "first_model_response_ms": 2831.5315419999997,
+      "settled_ms": 4580.282417,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 8954,
+        "output": 89,
+        "cached": 4352,
+        "reasoning": 40,
+        "total": 9043
+      },
+      "jev_tokens": 815,
+      "total_tokens": 9858,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 15.32012499999928,
+          "finished_ms": 2831.5315419999997,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 75,
+            "total_tokens": 4525,
+            "prompt_tokens": 4450,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 32
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 2835.2512499999993,
+          "finished_ms": 4578.087708999999,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 14,
+            "total_tokens": 4518,
+            "prompt_tokens": 4504,
+            "prompt_tokens_details": {
+              "cached_tokens": 4352,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 8
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.37554199999976845,
+        "finished_ms": 825.4476669999995,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 725,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 725,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-08",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 2265.195541000001,
+      "final_reply_ms": 2265.195541000001,
+      "first_model_response_ms": 2263.756000000001,
+      "settled_ms": 5644.967041000002,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 10804,
+        "output": 46,
+        "cached": 5248,
+        "reasoning": 13,
+        "total": 10850
+      },
+      "jev_tokens": 0,
+      "total_tokens": 10850,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.141125000000102,
+          "finished_ms": 2263.756000000001,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 42,
+            "total_tokens": 5424,
+            "prompt_tokens": 5382,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 13
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 2267.089750000001,
+          "finished_ms": 5642.382541000001,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 5426,
+            "prompt_tokens": 5422,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-08",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 1159.9629160000004,
+      "settled_ms": 1162.7111249999998,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 4447,
+        "output": 4,
+        "cached": 0,
+        "reasoning": 0,
+        "total": 4451
+      },
+      "jev_tokens": 815,
+      "total_tokens": 5266,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.758332999999766,
+          "finished_ms": 1159.9629160000004,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4451,
+            "prompt_tokens": 4447,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.47179099999993923,
+        "finished_ms": 439.4355000000014,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 725,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 725,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-09",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "engineer-cat",
+      "routes": [
+        "engineer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 12063.763624999992,
+      "final_reply_ms": 12063.763624999992,
+      "first_model_response_ms": 3443.1489999999903,
+      "settled_ms": 13871.644249999998,
+      "child_completed_ms": 3961.558791999996,
+      "main_tokens": {
+        "input": 23715,
+        "output": 441,
+        "cached": 11264,
+        "reasoning": 197,
+        "total": 24156
+      },
+      "jev_tokens": 0,
+      "total_tokens": 24156,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.203416999996989,
+          "finished_ms": 3443.1489999999903,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 137,
+            "total_tokens": 5506,
+            "prompt_tokens": 5369,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 10
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3459.217875000002,
+          "finished_ms": 8033.360166999992,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 155,
+            "total_tokens": 5978,
+            "prompt_tokens": 5823,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 128
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 8036.544582999995,
+          "finished_ms": 12062.778374999994,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 145,
+            "total_tokens": 6358,
+            "prompt_tokens": 6213,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 59
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 12066.622208,
+          "finished_ms": 13869.099833,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6314,
+            "prompt_tokens": 6310,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-09",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "engineer-cat",
+      "routes": [
+        "engineer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 3095.465083999996,
+      "final_reply_ms": 6442.568667,
+      "first_model_response_ms": 3093.9377499999973,
+      "settled_ms": 8232.707167,
+      "child_completed_ms": 1369.2320419999887,
+      "main_tokens": {
+        "input": 13965,
+        "output": 235,
+        "cached": 8960,
+        "reasoning": 124,
+        "total": 14200
+      },
+      "jev_tokens": 834,
+      "total_tokens": 15034,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.5938749999913853,
+          "finished_ms": 3093.9377499999973,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 108,
+            "total_tokens": 4542,
+            "prompt_tokens": 4434,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 67
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3097.4002089999994,
+          "finished_ms": 6441.396833999999,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 123,
+            "total_tokens": 4850,
+            "prompt_tokens": 4727,
+            "prompt_tokens_details": {
+              "cached_tokens": 4352,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 57
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 6444.72379199999,
+          "finished_ms": 8228.963124999995,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4808,
+            "prompt_tokens": 4804,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.4214169999904698,
+        "finished_ms": 855.1961249999877,
+        "status": 200,
+        "route": "engineer-cat",
+        "usage": {
+          "input_tokens": 741,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 741,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "将固定 mock 修复与测试结果表述为真实完成，未说明模拟来源。"
+      ]
+    },
+    {
+      "case_id": "DG-10",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "engineer-cat",
+      "routes": [
+        "engineer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 9848.123000000007,
+      "final_reply_ms": 9848.123000000007,
+      "first_model_response_ms": 3961.8508750000037,
+      "settled_ms": 11411.277167000007,
+      "child_completed_ms": 4479.077541999999,
+      "main_tokens": {
+        "input": 23637,
+        "output": 312,
+        "cached": 11264,
+        "reasoning": 77,
+        "total": 23949
+      },
+      "jev_tokens": 0,
+      "total_tokens": 23949,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.554042000003392,
+          "finished_ms": 3961.8508750000037,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 123,
+            "total_tokens": 5476,
+            "prompt_tokens": 5353,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 9
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3977.3095840000024,
+          "finished_ms": 5726.864874999999,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 31,
+            "total_tokens": 5821,
+            "prompt_tokens": 5790,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 25
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 5731.102500000008,
+          "finished_ms": 9847.326249999998,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 154,
+            "total_tokens": 6340,
+            "prompt_tokens": 6186,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 43
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 9850.337209000005,
+          "finished_ms": 11408.321959000008,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6312,
+            "prompt_tokens": 6308,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-10",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "engineer-cat",
+      "routes": [
+        "engineer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 5220.236749999996,
+      "final_reply_ms": 8178.1527919999935,
+      "first_model_response_ms": 5219.184416999997,
+      "settled_ms": 9743.531999999992,
+      "child_completed_ms": 1207.945041999992,
+      "main_tokens": {
+        "input": 13907,
+        "output": 327,
+        "cached": 8832,
+        "reasoning": 207,
+        "total": 14234
+      },
+      "jev_tokens": 813,
+      "total_tokens": 15047,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.5461669999931473,
+          "finished_ms": 5219.184416999997,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 217,
+            "total_tokens": 4635,
+            "prompt_tokens": 4418,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 169
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 5221.857999999993,
+          "finished_ms": 8177.4654579999915,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 106,
+            "total_tokens": 4811,
+            "prompt_tokens": 4705,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 38
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 8179.068874999997,
+          "finished_ms": 9739.224749999994,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4788,
+            "prompt_tokens": 4784,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.843458000003011,
+        "finished_ms": 695.054667000004,
+        "status": 200,
+        "route": "engineer-cat",
+        "usage": {
+          "input_tokens": 720,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 720,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "将固定 mock 类型检查和测试结果表述为真实检查结果。"
+      ]
+    },
+    {
+      "case_id": "DG-11",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "browser-cat",
+      "routes": [
+        "browser-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 13761.058500000014,
+      "final_reply_ms": 13761.058500000014,
+      "first_model_response_ms": 4118.210500000016,
+      "settled_ms": 16028.041415999993,
+      "child_completed_ms": 4640.3943750000035,
+      "main_tokens": {
+        "input": 23700,
+        "output": 426,
+        "cached": 17024,
+        "reasoning": 157,
+        "total": 24126
+      },
+      "jev_tokens": 0,
+      "total_tokens": 24126,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.6026249999995343,
+          "finished_ms": 4118.210500000016,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 134,
+            "total_tokens": 5482,
+            "prompt_tokens": 5348,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 14
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 4138.347666000016,
+          "finished_ms": 7814.432415999996,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 73,
+            "total_tokens": 5861,
+            "prompt_tokens": 5788,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 29
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 7818.806624999997,
+          "finished_ms": 13759.919666000002,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 176,
+            "total_tokens": 6403,
+            "prompt_tokens": 6227,
+            "prompt_tokens_details": {
+              "cached_tokens": 5632,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 77
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 13763.891915999993,
+          "finished_ms": 16024.210625000007,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 43,
+            "total_tokens": 6380,
+            "prompt_tokens": 6337,
+            "prompt_tokens_details": {
+              "cached_tokens": 6144,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 37
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-11",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "browser-cat",
+      "routes": [
+        "browser-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 9714.431084,
+      "final_reply_ms": 9714.431084,
+      "first_model_response_ms": 5095.653749999998,
+      "settled_ms": 11595.126124999999,
+      "child_completed_ms": 1315.7018749999988,
+      "main_tokens": {
+        "input": 14423,
+        "output": 303,
+        "cached": 0,
+        "reasoning": 184,
+        "total": 14726
+      },
+      "jev_tokens": 808,
+      "total_tokens": 15534,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.4315419999984442,
+          "finished_ms": 5095.653749999998,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 116,
+            "total_tokens": 4529,
+            "prompt_tokens": 4413,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 110
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 5101.054166999998,
+          "finished_ms": 9712.995625,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 162,
+            "total_tokens": 5108,
+            "prompt_tokens": 4946,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 55
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 9716.817708999999,
+          "finished_ms": 11591.813209,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 25,
+            "total_tokens": 5089,
+            "prompt_tokens": 5064,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 19
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.44833399999879475,
+        "finished_ms": 786.6027089999989,
+        "status": 200,
+        "route": "browser-cat",
+        "usage": {
+          "input_tokens": 717,
+          "output_tokens": 91,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 717,
+              "output": 91,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-12",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "inspector-cat",
+      "routes": [
+        "inspector-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 9700.068375000003,
+      "final_reply_ms": 9700.068375000003,
+      "first_model_response_ms": 3597.556792000003,
+      "settled_ms": 11233.424791999998,
+      "child_completed_ms": 4114.879166999999,
+      "main_tokens": {
+        "input": 23491,
+        "output": 282,
+        "cached": 11264,
+        "reasoning": 79,
+        "total": 23773
+      },
+      "jev_tokens": 0,
+      "total_tokens": 23773,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.2635000000009313,
+          "finished_ms": 3597.556792000003,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 127,
+            "total_tokens": 5475,
+            "prompt_tokens": 5348,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 14
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3614.6069169999973,
+          "finished_ms": 5515.4390829999975,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 23,
+            "total_tokens": 5799,
+            "prompt_tokens": 5776,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 17
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 5520.179375,
+          "finished_ms": 9698.654917,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 128,
+            "total_tokens": 6266,
+            "prompt_tokens": 6138,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 48
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 9702.043582999999,
+          "finished_ms": 11229.774250000002,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6233,
+            "prompt_tokens": 6229,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-12",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "inspector-cat",
+      "routes": [
+        "inspector-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 6329.838583000001,
+      "final_reply_ms": 9156.698207999998,
+      "first_model_response_ms": 6328.178041000003,
+      "settled_ms": 10494.907583000004,
+      "child_completed_ms": 1275.3110000000015,
+      "main_tokens": {
+        "input": 13877,
+        "output": 363,
+        "cached": 8832,
+        "reasoning": 255,
+        "total": 14240
+      },
+      "jev_tokens": 811,
+      "total_tokens": 15051,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.430000000000291,
+          "finished_ms": 6328.178041000003,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 274,
+            "total_tokens": 4686,
+            "prompt_tokens": 4412,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 218
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 6331.895207999998,
+          "finished_ms": 9155.191415999998,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 85,
+            "total_tokens": 4788,
+            "prompt_tokens": 4703,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 37
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 9159.046124999997,
+          "finished_ms": 10490.321416000003,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4766,
+            "prompt_tokens": 4762,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.5509999999994761,
+        "finished_ms": 752.3819160000021,
+        "status": 200,
+        "route": "inspector-cat",
+        "usage": {
+          "input_tokens": 718,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 718,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "将 mock 错误码表述为实际运行失败诊断。"
+      ]
+    },
+    {
+      "case_id": "DG-13",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "reviewer-cat",
+      "routes": [
+        "reviewer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 10748.941791999998,
+      "final_reply_ms": 10748.941791999998,
+      "first_model_response_ms": 4431.981916999997,
+      "settled_ms": 12274.298999999999,
+      "child_completed_ms": 4953.608500000002,
+      "main_tokens": {
+        "input": 23893,
+        "output": 411,
+        "cached": 11392,
+        "reasoning": 76,
+        "total": 24304
+      },
+      "jev_tokens": 0,
+      "total_tokens": 24304,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 1.9252919999998994,
+          "finished_ms": 4431.981916999997,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 186,
+            "total_tokens": 5546,
+            "prompt_tokens": 5360,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 18
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 4450.650625000002,
+          "finished_ms": 6174.114542000003,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 40,
+            "total_tokens": 5897,
+            "prompt_tokens": 5857,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 34
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 6180.284041999999,
+          "finished_ms": 10747.485500000003,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 181,
+            "total_tokens": 6435,
+            "prompt_tokens": 6254,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 24
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 10751.041917000002,
+          "finished_ms": 12270.993625000003,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6426,
+            "prompt_tokens": 6422,
+            "prompt_tokens_details": {
+              "cached_tokens": 6144,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-13",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "reviewer-cat",
+      "routes": [
+        "reviewer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 5341.139624999996,
+      "final_reply_ms": 10387.681959000009,
+      "first_model_response_ms": 5339.719624999998,
+      "settled_ms": 11580.677458999999,
+      "child_completed_ms": 1326.984875000002,
+      "main_tokens": {
+        "input": 14004,
+        "output": 429,
+        "cached": 8832,
+        "reasoning": 261,
+        "total": 14433
+      },
+      "jev_tokens": 824,
+      "total_tokens": 15257,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 4.3758750000051805,
+          "finished_ms": 5339.719624999998,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 236,
+            "total_tokens": 4661,
+            "prompt_tokens": 4425,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 172
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 5343.071041999996,
+          "finished_ms": 10386.251042000004,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 189,
+            "total_tokens": 4923,
+            "prompt_tokens": 4734,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 89
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 10389.597167,
+          "finished_ms": 11576.724375000005,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4849,
+            "prompt_tokens": 4845,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.6955000000016298,
+        "finished_ms": 810.5473750000019,
+        "status": 200,
+        "route": "reviewer-cat",
+        "usage": {
+          "input_tokens": 731,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 731,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "将 mock 回归结果表述为实际本轮评测结论。"
+      ]
+    },
+    {
+      "case_id": "DG-14",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "secretary-cat",
+      "routes": [
+        "secretary-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 11059.415792,
+      "final_reply_ms": 11059.415792,
+      "first_model_response_ms": 4835.4565,
+      "settled_ms": 12420.11112500001,
+      "child_completed_ms": 5355.827917000002,
+      "main_tokens": {
+        "input": 23715,
+        "output": 375,
+        "cached": 11264,
+        "reasoning": 124,
+        "total": 24090
+      },
+      "jev_tokens": 0,
+      "total_tokens": 24090,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 1.7784170000086306,
+          "finished_ms": 4835.4565,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 197,
+            "total_tokens": 5545,
+            "prompt_tokens": 5348,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 46
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 4853.184375000012,
+          "finished_ms": 6859.9199170000065,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 23,
+            "total_tokens": 5853,
+            "prompt_tokens": 5830,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 17
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 6865.148292000013,
+          "finished_ms": 11059.051833000005,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 151,
+            "total_tokens": 6369,
+            "prompt_tokens": 6218,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 61
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 11060.243500000011,
+          "finished_ms": 12417.49833300001,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6323,
+            "prompt_tokens": 6319,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-14",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "secretary-cat",
+      "routes": [
+        "secretary-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 3303.4948749999894,
+      "final_reply_ms": 8935.59775,
+      "first_model_response_ms": 3301.359958000001,
+      "settled_ms": 10605.102749999991,
+      "child_completed_ms": 1287.762957999992,
+      "main_tokens": {
+        "input": 13927,
+        "output": 297,
+        "cached": 8832,
+        "reasoning": 133,
+        "total": 14224
+      },
+      "jev_tokens": 805,
+      "total_tokens": 15029,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 4.114916999998968,
+          "finished_ms": 3301.359958000001,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 107,
+            "total_tokens": 4520,
+            "prompt_tokens": 4413,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 60
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3305.7610419999983,
+          "finished_ms": 8933.951625000002,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 186,
+            "total_tokens": 4881,
+            "prompt_tokens": 4695,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 73
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 8937.670499999993,
+          "finished_ms": 10601.201625000002,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4823,
+            "prompt_tokens": 4819,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.63916700000118,
+        "finished_ms": 759.7211249999964,
+        "status": 200,
+        "route": "secretary-cat",
+        "usage": {
+          "input_tokens": 712,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 712,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "将 mock 会议表述为实际日历查询结果。"
+      ]
+    },
+    {
+      "case_id": "DG-15",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "evolution-cat",
+      "routes": [
+        "evolution-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 8924.536582999994,
+      "final_reply_ms": 8924.536582999994,
+      "first_model_response_ms": 3617.872332999992,
+      "settled_ms": 10740.51787499999,
+      "child_completed_ms": 4140.070124999998,
+      "main_tokens": {
+        "input": 23512,
+        "output": 271,
+        "cached": 11264,
+        "reasoning": 83,
+        "total": 23783
+      },
+      "jev_tokens": 0,
+      "total_tokens": 23783,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.1257909999985714,
+          "finished_ms": 3617.872332999992,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 118,
+            "total_tokens": 5477,
+            "prompt_tokens": 5359,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 11
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3637.4847499999887,
+          "finished_ms": 5444.3218329999945,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 23,
+            "total_tokens": 5804,
+            "prompt_tokens": 5781,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 17
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 5449.148249999998,
+          "finished_ms": 8923.350707999998,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 103,
+            "total_tokens": 6249,
+            "prompt_tokens": 6146,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 34
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 8926.782624999993,
+          "finished_ms": 10737.782290999996,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 27,
+            "total_tokens": 6253,
+            "prompt_tokens": 6226,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 21
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-15",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "evolution-cat",
+      "routes": [
+        "evolution-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 6364.734624999997,
+      "final_reply_ms": 10378.831040999998,
+      "first_model_response_ms": 6363.347790999993,
+      "settled_ms": 11771.211333,
+      "child_completed_ms": 1295.030040999991,
+      "main_tokens": {
+        "input": 13921,
+        "output": 439,
+        "cached": 8832,
+        "reasoning": 319,
+        "total": 14360
+      },
+      "jev_tokens": 822,
+      "total_tokens": 15182,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.780457999993814,
+          "finished_ms": 6363.347790999993,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 285,
+            "total_tokens": 4709,
+            "prompt_tokens": 4424,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 233
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 6367.123082999999,
+          "finished_ms": 10378.339582999994,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 150,
+            "total_tokens": 4861,
+            "prompt_tokens": 4711,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 86
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 10379.873124999998,
+          "finished_ms": 11770.24270799999,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4790,
+            "prompt_tokens": 4786,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.4491249999991851,
+        "finished_ms": 777.203874999992,
+        "status": 200,
+        "route": "evolution-cat",
+        "usage": {
+          "input_tokens": 729,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 729,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-16",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "gui-cat",
+      "routes": [
+        "gui-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 8614.622667000003,
+      "final_reply_ms": 8614.622667000003,
+      "first_model_response_ms": 3094.847958000013,
+      "settled_ms": 9752.775708000016,
+      "child_completed_ms": 3613.561333000005,
+      "main_tokens": {
+        "input": 23399,
+        "output": 248,
+        "cached": 11264,
+        "reasoning": 98,
+        "total": 23647
+      },
+      "jev_tokens": 0,
+      "total_tokens": 23647,
+      "main_calls": 4,
+      "required_facts_present": false,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 1.9799170000042068,
+          "finished_ms": 3094.847958000013,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 96,
+            "total_tokens": 5444,
+            "prompt_tokens": 5348,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 17
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3111.5621250000113,
+          "finished_ms": 5463.241167000015,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 41,
+            "total_tokens": 5784,
+            "prompt_tokens": 5743,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 35
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 5467.1143330000195,
+          "finished_ms": 8613.609792000017,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 107,
+            "total_tokens": 6225,
+            "prompt_tokens": 6118,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 46
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 8616.896332999997,
+          "finished_ms": 9749.499292000008,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6194,
+            "prompt_tokens": 6190,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "未在结果返回后的可见回复中包含全部约定片段。"
+      ]
+    },
+    {
+      "case_id": "DG-16",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "gui-cat",
+      "routes": [
+        "gui-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 5098.4667920000065,
+      "final_reply_ms": 8346.619791999998,
+      "first_model_response_ms": 5097.019958000004,
+      "settled_ms": 9962.365375000008,
+      "child_completed_ms": 1199.5844999999972,
+      "main_tokens": {
+        "input": 13872,
+        "output": 276,
+        "cached": 8832,
+        "reasoning": 176,
+        "total": 14148
+      },
+      "jev_tokens": 807,
+      "total_tokens": 14955,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 1.4653330000001006,
+          "finished_ms": 5097.019958000004,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 159,
+            "total_tokens": 4572,
+            "prompt_tokens": 4413,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 121
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 5101.340333,
+          "finished_ms": 8346.171583000003,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 113,
+            "total_tokens": 4808,
+            "prompt_tokens": 4695,
+            "prompt_tokens_details": {
+              "cached_tokens": 4224,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 55
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 8348.179791999995,
+          "finished_ms": 9959.592333000008,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4768,
+            "prompt_tokens": 4764,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.18454200000269338,
+        "finished_ms": 687.838917000001,
+        "status": 200,
+        "route": "gui-cat",
+        "usage": {
+          "input_tokens": 716,
+          "output_tokens": 91,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 716,
+              "output": 91,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-17",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": null,
+      "final_reply_ms": null,
+      "first_model_response_ms": 12683.431042000011,
+      "settled_ms": 12684.799583999993,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 5397,
+        "output": 640,
+        "cached": 0,
+        "reasoning": 31,
+        "total": 6037
+      },
+      "jev_tokens": 0,
+      "total_tokens": 6037,
+      "main_calls": 1,
+      "required_facts_present": true,
+      "visible_reply": false,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.584625000017695,
+          "finished_ms": 12683.431042000011,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 640,
+            "total_tokens": 6037,
+            "prompt_tokens": 5397,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 31
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "没有成功用户可见交付；不计为零延迟。"
+      ]
+    },
+    {
+      "case_id": "DG-17",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 10757.399958000024,
+      "final_reply_ms": 10757.399958000024,
+      "first_model_response_ms": 10756.068166000012,
+      "settled_ms": 12122.457208000007,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 9403,
+        "output": 509,
+        "cached": 4352,
+        "reasoning": 35,
+        "total": 9912
+      },
+      "jev_tokens": 841,
+      "total_tokens": 10753,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.703791000007186,
+          "finished_ms": 10756.068166000012,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 495,
+            "total_tokens": 4957,
+            "prompt_tokens": 4462,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 27
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 10759.578000000009,
+          "finished_ms": 12120.347458000004,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 14,
+            "total_tokens": 4955,
+            "prompt_tokens": 4941,
+            "prompt_tokens_details": {
+              "cached_tokens": 4352,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 8
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.6868330000143033,
+        "finished_ms": 764.5083330000052,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 751,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 751,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-18",
+      "group": "none",
+      "arm": "A",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 5961.203166000021,
+      "final_reply_ms": 5961.203166000021,
+      "first_model_response_ms": 5960.077750000026,
+      "settled_ms": 7535.722791000007,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 11012,
+        "output": 261,
+        "cached": 5248,
+        "reasoning": 48,
+        "total": 11273
+      },
+      "jev_tokens": 0,
+      "total_tokens": 11273,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.2240830000082497,
+          "finished_ms": 5960.077750000026,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 257,
+            "total_tokens": 5653,
+            "prompt_tokens": 5396,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 48
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 5963.043000000005,
+          "finished_ms": 7533.357833000016,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 5620,
+            "prompt_tokens": 5616,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-18",
+      "group": "none",
+      "arm": "B",
+      "expected_role": "none",
+      "routes": [],
+      "route_correct": true,
+      "first_reply_ms": 5411.884707999998,
+      "final_reply_ms": 5411.884707999998,
+      "first_model_response_ms": 5410.549915999989,
+      "settled_ms": 8092.33129099998,
+      "child_completed_ms": null,
+      "main_tokens": {
+        "input": 9142,
+        "output": 233,
+        "cached": 4352,
+        "reasoning": 20,
+        "total": 9375
+      },
+      "jev_tokens": 842,
+      "total_tokens": 10217,
+      "main_calls": 2,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.9234579999756534,
+          "finished_ms": 5410.549915999989,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 229,
+            "total_tokens": 4690,
+            "prompt_tokens": 4461,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 20
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 5414.601832999993,
+          "finished_ms": 8090.15174999999,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4685,
+            "prompt_tokens": 4681,
+            "prompt_tokens_details": {
+              "cached_tokens": 4352,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.8582079999905545,
+        "finished_ms": 848.2489159999823,
+        "status": 200,
+        "route": "none",
+        "usage": {
+          "input_tokens": 752,
+          "output_tokens": 90,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 752,
+              "output": 90,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    },
+    {
+      "case_id": "DG-19",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "browser-cat",
+      "routes": [
+        "browser-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 13872.366582999995,
+      "final_reply_ms": 13872.366582999995,
+      "first_model_response_ms": 3661.987374999997,
+      "settled_ms": 15421.782917000004,
+      "child_completed_ms": 4183.125916999998,
+      "main_tokens": {
+        "input": 23668,
+        "output": 475,
+        "cached": 16896,
+        "reasoning": 199,
+        "total": 24143
+      },
+      "jev_tokens": 0,
+      "total_tokens": 24143,
+      "main_calls": 4,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.8455419999954756,
+          "finished_ms": 3661.987374999997,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 115,
+            "total_tokens": 5472,
+            "prompt_tokens": 5357,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 14
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3680.3318750000035,
+          "finished_ms": 7393.923167000001,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 131,
+            "total_tokens": 5905,
+            "prompt_tokens": 5774,
+            "prompt_tokens_details": {
+              "cached_tokens": 5248,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 78
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 7398.977375000017,
+          "finished_ms": 13870.657500000001,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 225,
+            "total_tokens": 6429,
+            "prompt_tokens": 6204,
+            "prompt_tokens_details": {
+              "cached_tokens": 5632,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 107
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 13874.96325,
+          "finished_ms": 15419.384749999997,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6337,
+            "prompt_tokens": 6333,
+            "prompt_tokens_details": {
+              "cached_tokens": 6016,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "声称已核实许可证及文件开头内容，但只有明确标注未联网的 mock 结果。"
+      ]
+    },
+    {
+      "case_id": "DG-19",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "browser-cat",
+      "routes": [
+        "browser-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 13106.27687500001,
+      "final_reply_ms": 13106.27687500001,
+      "first_model_response_ms": 6946.148000000016,
+      "settled_ms": 15906.581957999995,
+      "child_completed_ms": 1341.4185419999994,
+      "main_tokens": {
+        "input": 14779,
+        "output": 511,
+        "cached": 4992,
+        "reasoning": 214,
+        "total": 15290
+      },
+      "jev_tokens": 823,
+      "total_tokens": 16113,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 3.7364999999990687,
+          "finished_ms": 6946.148000000016,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 296,
+            "total_tokens": 4718,
+            "prompt_tokens": 4422,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 137
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 6950.879083000007,
+          "finished_ms": 13104.379291999998,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 211,
+            "total_tokens": 5317,
+            "prompt_tokens": 5106,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 77
+            }
+          }
+        },
+        {
+          "phase": "feedback",
+          "started_ms": 13108.955791999993,
+          "finished_ms": 15905.16408300001,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 5255,
+            "prompt_tokens": 5251,
+            "prompt_tokens_details": {
+              "cached_tokens": 4992,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.9488330000021961,
+        "finished_ms": 820.3383749999921,
+        "status": 200,
+        "route": "browser-cat",
+        "usage": {
+          "input_tokens": 732,
+          "output_tokens": 91,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 732,
+              "output": 91,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": [
+        "声明模拟和未真实联网，但同时断言许可证文件内容，并更正未曾可见交付的前文，来源表述不一致。"
+      ]
+    },
+    {
+      "case_id": "DG-20",
+      "group": "delegate",
+      "arm": "A",
+      "expected_role": "engineer-cat",
+      "routes": [
+        "engineer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 15499.957500000019,
+      "final_reply_ms": 15499.957500000019,
+      "first_model_response_ms": 3569.231208000012,
+      "settled_ms": 16965.70845800001,
+      "child_completed_ms": 4078.196042000025,
+      "main_tokens": {
+        "input": 30390,
+        "output": 530,
+        "cached": 18048,
+        "reasoning": 177,
+        "total": 30920
+      },
+      "jev_tokens": 0,
+      "total_tokens": 30920,
+      "main_calls": 5,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.4137920000066515,
+          "finished_ms": 3569.231208000012,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 112,
+            "total_tokens": 5483,
+            "prompt_tokens": 5371,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 16
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3575.6841249999998,
+          "finished_ms": 6371.999292000022,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 91,
+            "total_tokens": 5885,
+            "prompt_tokens": 5794,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 35
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 6373.581583000021,
+          "finished_ms": 10387.157542,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 139,
+            "total_tokens": 6378,
+            "prompt_tokens": 6239,
+            "prompt_tokens_details": {
+              "cached_tokens": 5632,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 75
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 10999.837875000027,
+          "finished_ms": 15498.619208000018,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 184,
+            "total_tokens": 6605,
+            "prompt_tokens": 6421,
+            "prompt_tokens_details": {
+              "cached_tokens": 6144,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 51
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 15503.038083000021,
+          "finished_ms": 16961.75437500002,
+          "tools": [
+            "read_file",
+            "send_text",
+            "send_file",
+            "spawn_subagent",
+            "schedule_reminder",
+            "check_subagent",
+            "stop_subagent",
+            "resume_subagent",
+            "steer_subagent"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 6569,
+            "prompt_tokens": 6565,
+            "prompt_tokens_details": {
+              "cached_tokens": 6272,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": null,
+      "reply_review_notes": [
+        "Main 额外尝试读取不存在的测试文件；正确说明无法验证，影响 token 和时延。"
+      ]
+    },
+    {
+      "case_id": "DG-20",
+      "group": "delegate",
+      "arm": "B",
+      "expected_role": "engineer-cat",
+      "routes": [
+        "engineer-cat"
+      ],
+      "route_correct": true,
+      "first_reply_ms": 3708.2496249999967,
+      "final_reply_ms": 8689.662291999994,
+      "first_model_response_ms": 3707.1518329999817,
+      "settled_ms": 10359.336167000001,
+      "child_completed_ms": 1276.8421669999952,
+      "main_tokens": {
+        "input": 14134,
+        "output": 348,
+        "cached": 8960,
+        "reasoning": 131,
+        "total": 14482
+      },
+      "jev_tokens": 842,
+      "total_tokens": 15324,
+      "main_calls": 3,
+      "required_facts_present": true,
+      "visible_reply": true,
+      "exact_duplicate_delivery": false,
+      "errors": [],
+      "calls": [
+        {
+          "phase": "initial",
+          "started_ms": 2.3853329999838024,
+          "finished_ms": 3707.1518329999817,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 138,
+            "total_tokens": 4574,
+            "prompt_tokens": 4436,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 80
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 3710.475791999983,
+          "finished_ms": 8688.699457999988,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 206,
+            "total_tokens": 4972,
+            "prompt_tokens": 4766,
+            "prompt_tokens_details": {
+              "cached_tokens": 4352,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 51
+            }
+          }
+        },
+        {
+          "phase": "initial",
+          "started_ms": 8691.495082999987,
+          "finished_ms": 10356.300916999986,
+          "tools": [
+            "send_text",
+            "send_file"
+          ],
+          "usage": {
+            "completion_tokens": 4,
+            "total_tokens": 4936,
+            "prompt_tokens": 4932,
+            "prompt_tokens_details": {
+              "cached_tokens": 4608,
+              "cache_write_tokens": 0,
+              "cached_creation_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        }
+      ],
+      "jev": {
+        "started_ms": 0.49512499998672865,
+        "finished_ms": 767.4301669999841,
+        "status": 200,
+        "route": "engineer-cat",
+        "usage": {
+          "input_tokens": 749,
+          "output_tokens": 93,
+          "cost": 0,
+          "opencode": {
+            "billing_source": "free",
+            "list_cost": 0,
+            "tokens": {
+              "input": 749,
+              "output": 93,
+              "reasoning": 0,
+              "cache_read": 0,
+              "cache_write_5m": 0,
+              "cache_write_1h": 0
+            }
+          }
+        }
+      },
+      "reply_review_notes": []
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Evaluation SPEC
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-11-02
 适用范围：Test、Case Replay、Agent Eval、Verifier、ReviewerCat Judge。
 
 本文是 XiaoBa-CLI `Evaluation` 模块的唯一架构真相源。
@@ -38,6 +38,12 @@ Out of scope:
 
 ## Current Architecture
 
+`scripts/run-jev-parallel.ts` 是隔离的真实模型 A/B 实验：A 复用当前 Main 的 `AgentSession / ConversationRunner / ToolManager`；B 仅在实验实例将 Main 工具限制为 `send_text/send_file`，与真实 Jev 并行且交付不等待路由，由 Runtime 通过现有 Spawn 工具派发。通过已有 service factory 模拟 child 模型返回，完成通知和 Main 回注仍走真实 Runtime；已有后台任务的 fixture 同时进入 list/ID 查询。它不接入生产、不评测 Jev 降级、不证明真实任务完成率，也不产生共享 Eval 的 Outcome。
+
+题集位于 `eval/benchmarks/jev-parallel/suite.json`，每题每组一次有效运行，计划交替 AB/BA；本轮 fixture 修复与恢复打断了部分交错顺序。公开观测位于同目录 `2026-11-02.json`，只保留逐题时延、路由、交付情况、原始 provider usage 数值、回复复核备注及排除原因；完整 prompt、回复、Runtime 日志、无效原始记录和凭据留在忽略的 `output/test/jev-parallel/`，不提交。
+
+计量边界：未交付记 null，延迟样本数与交付率一起报告；`final_reply_ms` 是历史字段名，表示最后可见交付，不自动等于正确完成；硬检查配对不代表语义通过。缓存 token 属于输入、推理 token 属于输出，不能重复相加；token 减少不等于费用同比减少。基础角色与 Surface 提示相同，但 B 额外加入 Runtime 路由职责说明，且保留原有路由提示，完整 prompt 并不一致。普通聊天两组交付率和后续模型调用数不同，不能将全程 token 差异仅归因于 schema 或 Jev。原始观测使用了基于 `49bad62` 且带未提交 Runtime 修改的工作树，未冻结完整补丁；公开脚本可重新运行，干净检出不等于当时的精确 Runtime 快照。
+
 Source Candidate 从既有 docs/scripts/skills 目录复制归位后的说明、依赖清单与索引资源，根文件清单不再包含已迁移资源和废弃 .gitmodules。
 
 `src/eval/` 是验证代码的物理归属：根目录保留 shared Agent Eval，`replay/` 驱动真实执行，`arena/` 做场景探索，`harbor/session.ts` 是外部 Harbor Node 桥接，`testing/` 明确隔离确定性工程验证与 Candidate Test 支持。`testing/` 不从 Agent Eval 公共入口导出，预写模型响应仍不属于 Agent 能力证据。根目录 `eval/` 保存 CaseSets 和外部评测适配资产；`test/` 保存工程测试和 scripted fixtures。
@@ -60,6 +66,8 @@ flowchart LR
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Fixture["Scripted fixture"] --> Test["Scripted Runtime Test"]
     Test --> TestResult["test-result.json"]
+    Comparison["Live Main vs parallel Main + Jev"] --> MockChild["Existing Runtime / mock child AI"]
+    MockChild --> Measurements["Raw usage / delivery times / routing facts"]
 
     Case["Case + Oracle"] --> Replay["Case Replay<br/>eval/replay"]
     Replay --> Trace["fresh Trace"]
@@ -71,6 +79,8 @@ flowchart LR
 ```
 
 ## Target Architecture
+
+上述受控对照保持实验隔离；是否升级生产 Main 以测量与回复复核结果为依据，本轮不改变生产路由目标。
 
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
@@ -173,6 +183,9 @@ output/eval/                         generated Eval evidence
 Scripted Runtime Test engine 隔离在 `src/eval/testing/**`。其内部仍保留少量 `Eval*` 兼容类型名，不从 `src/eval/index.ts` 的 Agent Eval 公共 API 导出，也不写入默认 `output/eval/**`。
 
 ## Commands
+
+- Jev 并行实验：先启动已有 CLIProxyAPI 并配置项目支持的 `XIAOBA_LLM_API_BASE` / `XIAOBA_LLM_API_KEY`，本实验要求本地 `127.0.0.1:8317`。通过环境注入 `XIAOBA_JEV_API_KEY`，在仓库根目录运行 `node --import tsx scripts/run-jev-parallel.ts`；固定使用 `gpt-5.6-luna(low)` 和 `jev-1.13-free`，会产生真实模型请求。可传入已有输出目录补跑缺失样本，已记录样本不重复执行。密钥和本地配置不提交。
+- Jev 离线检查：`node --import tsx --test test/jev-parallel.test.ts`，不调用模型；验证路由边界、交付工具限制、已有任务 fixture 和公开数据的 40 条观测及 token 对账。
 
 - `npm test`：先通过 `pretest` 执行 `npm run build`，再运行工程测试，支持没有 `dist/` 的干净检出。直接使用 `tsx --test` 时须先构建；Source Candidate 在调用内部 `scripts/run-tests.mjs` 前已有独立构建步骤。
 - `npm run test:base-runtime`：预写模型动作的 Scripted Runtime Test。
