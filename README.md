@@ -1,136 +1,63 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/xiaoba-logo-dark.png">
-    <img src="assets/xiaoba-logo.png" alt="XiaoBa" width="180" height="180">
+    <img src="assets/xiaoba-logo.png" alt="XiaoBa" width="144" height="144">
   </picture>
 
 # XiaoBa
 
-**有记忆、会跟进、能做事的开源 Personal Agent。**
+**有记忆，会做事，能跟进。**
 
-持续和它对话，让它记住你的偏好，接手任务，并按约定提醒和跟进。通过 CLI、飞书、微信或桌面使用，结果、文件和提醒回到发起工作的对话中。
+一个本地优先的开源个人 Agent。和它持续对话，让专业角色接手代码、网页、桌面和飞书工作，把结果、文件与提醒带回原对话。
 
 [![Release](https://img.shields.io/github/v/release/fightheyyy/XIAOBA?include_prereleases&label=preview&color=61746d)](https://github.com/fightheyyy/XIAOBA/releases) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.12-61746d)](package.json) [![License](https://img.shields.io/badge/License-Apache%202.0-61746d)](LICENSE)
 
-[角色协作](#一只小猫一支团队) · [Connector](#应用连接connector) · [受控进化](#受控进化) · [快速开始](#快速开始) · [English](docs/README.en.md)
+[快速开始](#快速开始) · [工作方式](#对话与执行各司其职) · [实验结果](#用实验检验架构) · [English](docs/README.en.md)
 
 </div>
 
-## 你的 Personal Agent
+## 从对话到执行
 
-**记住上下文和偏好。** 会话可以恢复，稳定偏好可保存为本地 Markdown，并在后续请求中读取；记忆文件可以查看和修改。
-
-**按约定回来跟进。** 设置稍后提醒或定时检查，让 XiaoBa 在原对话里提醒你、检查进展并返回结果。
-
-**接手实际工作。** 代码、浏览器、macOS 桌面与飞书工具由专业角色执行，XiaoBa 负责沟通和派工，把结果与文件带回来。猫形的眼神和动作会随运行状态变化。
-
-**由你选择模型和能力。** 会话、记忆与运行证据默认保存在本地；可接入 OpenAI-compatible、Anthropic 或本地 Ollama。外部模型仍会按配置接收请求内容。角色依赖和独立 Skill 按需安装，见 [Roles](roles/README.md) 与 [Skills](skills/README.md)。
-
-### 可以交给它的工作
-
-| 你想做的事 | 怎么完成 | 你会拿到什么 |
-| --- | --- | --- |
-| 修改代码、修复问题、跑构建 | 修改文件并运行验证 | 代码改动、验证结果与生成的文件 |
-| 浏览网页、收集资料、核验页面 | 操作浏览器并检查页面 | 整理后的结果、来源与页面证据 |
-| 操作 macOS 桌面应用 | 通过桌面 Driver 执行操作 | 操作结果与界面证据 |
-| 处理飞书消息、日历、任务与文档 | 调用已授权的飞书 CLI | 飞书侧结果、文件与交付回执 |
-
-## 一只小猫，一支团队
-
-![Base Main Agent 与八个专业角色，使用同一猫形和各自的角色配色](assets/readme-roles.png)
-
-你只需和 XiaoBa 对话，它会按任务调动专业角色。**Base** 负责沟通、派工与结果汇总；八个专业 Role 复用同一套 XiaoBa Agent loop，分别承担执行、评测和改进。
-
-| 角色 | 分工 |
+| 你交代的事 | XiaoBa 如何承接 |
 | --- | --- |
-| **EngineerCat** | 代码实现与修复；可通过 `codex_run` 调用官方 Codex SDK |
-| **BrowserCat** | 浏览器操作与页面验证 |
-| **GuiCat** | macOS 桌面 GUI 操作 |
-| **SecretaryCat** | 通过官方 `lark-cli` 执行飞书工作流；`FeishuCat` 是别名 |
-| **UserCat** | 在 Arena 中模拟用户、探索场景 |
-| **InspectorCat** | 从 Trace 中提取有证据的问题和可执行 Case |
-| **ReviewerCat** | 在硬检查之后，根据 Case 和证据做语义判断 |
-| **EvolutionCat** | 维护长期记忆，改进 Role / Skill / Memory |
+| “看看这个项目为什么构建失败，修好后跑一遍验证。” | EngineerCat 检查代码、修改文件并运行验证，Main 汇总改动与结果。 |
+| “帮我查资料。你先查，我继续说说需求。” | BrowserCat 在后台工作；你可以继续聊天、追加约束、查询进度或停止任务。 |
+| “明天下午提醒我；以后这个项目按这个偏好处理。” | 提醒按会话保存；写入成功的偏好保存在可查看、可编辑的本地 Markdown 中。 |
 
-前四个角色负责执行任务，后四个参与内部评测与改进；它们不会在每次任务中全部顺序执行。角色权限、工具与安装方法见 [Roles Guide](roles/README.md)。
+从 **CLI、飞书、微信或桌面**进入，各入口复用同一套会话管理、工具执行和交付机制。模型可选 OpenAI-compatible、Anthropic 或本地 Ollama；角色依赖与 Skill 按需安装。
 
-## 应用连接：Connector
+## 对话与执行，各司其职
 
-连接应用后，XiaoBa 可以读取获授权的信息，并通过工具完成操作。当前原生 Connector 使用 Gmail、Notion 和 GitHub 的官方 API。
-
-| 应用 | 已实现的能力 |
-| --- | --- |
-| **Gmail** | 搜索邮件、读取正文与线程、管理标签、创建草稿与发送邮件 |
-| **Notion** | 搜索和读取已分享页面、查询数据源、创建或更新页面、追加区块 |
-| **GitHub** | 读取仓库、Issue、PR、文件与 Actions 状态；创建或更新 Issue、发表评论、从已有分支创建 PR |
-
-在 Dashboard 的「应用连接」中配置 GitHub / Notion Token 或 Gmail OAuth。连接由 Base 主会话使用；发送邮件、创建内容等写入操作先展示参数提案，确认后执行。凭据通过本地配置管理，不需要发进聊天。
-
-飞书工作流由 SecretaryCat 通过官方 `lark-cli` 接入，继续使用独立的 CLI 登录。配置与权限说明见 [应用连接指南](roles/README.md#agent-自有应用连接)。
-
-## 受控进化
-
-真实使用中的问题可以转成可重放的 Case，再生成候选改动。候选能力先经过测试与评测，通过后才激活；失败或 blocked 保留当前版本。
+XiaoBa 把用户交流、任务选择和实际执行拆开。启用 **Jev V2** 后，Main 与 Jev 同时处理用户消息：Main 负责对话与交付，Jev 选择动作和目标，Runtime 校验后执行。
 
 ```mermaid
 flowchart LR
-    Input["Trace / Case"] --> Candidate["候选改动"]
-    Candidate --> Test["Test 工程测试"]
-    Test -->|pass| Eval["Eval 行为评测"]
-    Eval -->|pass| Activate["新 Session / 下一进程生效"]
-    Test -->|fail / blocked| Keep["保留当前版本"]
-    Eval -->|fail / blocked| Keep
+    User["用户消息"] --> Main["Main<br/>对话与交付"]
+    User --> Jev["Jev<br/>动作与目标"]
+    Jev --> Runtime["Runtime<br/>校验与执行"]
+    Runtime --> Roles["SubAgents<br/>专业任务"]
+    Roles -->|结果 / 问题| Main
+    Jev -. 技术故障 .-> Main
 ```
 
-- **交付可查。** Trace 记录模型调用、工具结果、文件、交付与失败；用户可见的聊天另存为 Conversation Journal。
-- **结果可重放。** Replay 用 Case 驱动当前 Agent，Verifier 做硬检查，ReviewerCat 做语义判断；一次执行只有一个 `pass / fail / blocked` 结果。
-- **改进先验收。** Evolution 从 Trace / Case 生成 Candidate，复用 Test + Eval；通过后，能力更新在新 Session 生效，代码更新在下一进程生效。失败或 blocked 保持当前版本。
+Main 可以先回应，无需等路由完成；派发、查询、停止、调整和恢复由 Runtime 统一执行，操作结果以真实执行事实为准。子任务完成或提出问题后，直接回到 Main。
 
-Arena 负责从 Scenario 出发探索问题，再把 Case 交给共享 Eval。具体合同和当前进度见 [Evaluation](docs/evaluation/SPEC.md)、[Arena](docs/arena/SPEC.md) 与 [Project PLAN](docs/PLAN.md)。
-
-<details>
-<summary>开发者：测试、评测与可观测性</summary>
-
-```bash
-npm test
-npm run test:base-runtime
-npm run test:check-scripted-runtime
-
-# 真实 Agent CaseSet，默认只读 Replay
-npm run dev -- eval run --case-set eval/case-sets/xiaoba-core-readonly.json
-
-# 场景探索与受控改进
-npm run dev -- arena evaluate --role engineer-cat --scenario "帮我修好这个项目"
-npm run dev -- evolution sleep
-```
-
-本地 `traces.jsonl` 是运行证据来源。可选 OTLP/HTTP 导出通过 `XIAOBA_OBSERVABILITY_ENABLED=true` 和 `OTEL_EXPORTER_OTLP_ENDPOINT` 启用；不会导出 prompt、工具参数或文件内容。可见聊天可在同时配置 `CATENA_BASE_URL` 和 `CATENA_API_KEY` 后同步到 Catena。
-
-静态 Logo 和角色图直接调用产品的共享 Canvas renderer 生成：
-
-```bash
-npx playwright install chromium
-npm run assets:readme
-```
-
-已安装系统 Chromium 时，可用 `XIAOBA_CHROMIUM_PATH` 指定路径。生成器输出透明背景的静态 PNG Logo 与角色配色图；深色主题使用带浅色细描边的 Logo。
-
-</details>
+**Jev 是可选能力。** 未配置或遇到技术故障时，同一 Session 恢复原 Main 的调度方式。所有 Role 继续复用同一套 XiaoBa Agent loop；提醒、Connector 与显式 Base Skill 保留原有入口。
 
 ## 快速开始
 
 ### 从源码运行
 
-需要 **Node.js ≥ 22.12**。以下命令适用于 macOS / Linux shell；Windows 可手动复制 `.env.example` 为 `.env`。
+需要 **Node.js ≥ 22.12**。以下命令适用于 macOS / Linux shell；Windows 可手动复制配置文件。
 
 ```bash
 git clone https://github.com/fightheyyy/XIAOBA.git
 cd XIAOBA
-npm install
+npm ci
 cp .env.example .env
 ```
 
-在 `.env` 中配置模型，例如：
+在 `.env` 中填写你的模型配置：
 
 ```env
 XIAOBA_LLM_PROVIDER=openai
@@ -139,49 +66,141 @@ XIAOBA_LLM_API_KEY=your_api_key
 XIAOBA_LLM_MODEL=your_model
 ```
 
-选择一个入口：
+检查环境，开始对话：
 
 ```bash
-# 先检查模型、角色、Driver 和平台配置
 npm run dev -- doctor
-
-# CLI 对话
 npm run dev -- chat -i
+```
 
+要启用 Jev，在同一文件中加入：
+
+```env
+XIAOBA_JEV_API_KEY=your_jev_key
+```
+
+当前默认通过 OpenCode 调用 `jev-1.13-free`。模型、地址、总时限和重试配置见 [`.env.example`](.env.example)；留空密钥即使用原 Main。
+
+<details>
+<summary>桌面、飞书、微信与安装包</summary>
+
+```bash
 # 桌宠与对话窗口
 npm run dev -- pet
 
 # Electron Dashboard
 npm run electron:dev
+
+# 飞书 / 微信入口
+npm run dev -- feishu
+npm run dev -- weixin
 ```
 
-BrowserCat、GuiCat、SecretaryCat 的外部依赖与权限见 [Driver 安装说明](docs/requirements.txt)。EngineerCat 的 Codex 执行器需要单独登录，见 [角色使用指南](roles/README.md)。
+各入口仍需相应账号、登录与权限。BrowserCat、GuiCat、SecretaryCat 的依赖见 [Driver 安装说明](docs/requirements.txt)；EngineerCat 的 `codex_run` 需要单独登录，见 [角色指南](roles/README.md)。
 
-### 下载桌面预览版
+桌面预览包见 [Releases](https://github.com/fightheyyy/XIAOBA/releases)，平台安装方式与签名状态以对应发布说明为准。安装包与当前源码可能不同步，Jev V2 以源码为准。桌面运行若找不到系统 Node，可用 `XIAOBA_NODE_EXE` 指定绝对路径。
 
-[**v0.2.2 Preview**](https://github.com/fightheyyy/XIAOBA/releases/tag/v0.2.2) 提供 [macOS Apple Silicon DMG](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-mac-arm64.dmg) 和 [Windows x64 安装包](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-win.exe)。Logo 展示的是当前源码中的新造型，已有安装包不会随源码自动更新。
+![XiaoBa Dashboard 预览](assets/dashboard.png)
 
-macOS 包采用 ad-hoc 签名、未 notarize；Windows 包未签名。预览包的桌面子服务仍依赖系统 Node.js，当前源码要求 Node.js ≥ 22.12。若桌面无法找到 Node，可通过 `XIAOBA_NODE_EXE` 指定可执行文件的绝对路径。
-
-<details>
-<summary>展开查看 Dashboard 预览</summary>
-
-![XiaoBa Dashboard：服务、角色、技能、配置、商店与 Chat](assets/dashboard.png)
-
-现有 Dashboard 截图供布局参考；猫形与角色配色以当前 Logo 和上方角色图为准。
+截图供布局参考，当前猫形与配色见角色图。
 
 </details>
 
-## 当前支持范围
+## 专业分工，共享一个 Runtime
 
-- 记忆按会话和角色范围隔离，跨入口的用户身份尚未统一。提醒与主动检查依赖对应服务运行；CLI 重新打开时会处理到期提醒。
-- GuiCat 桌面接管仅支持 macOS；BrowserCat 和飞书工作流需要相应 Driver、登录与权限。
-- 当前源码的统一文件 / Shell 沙箱接入 macOS 和 Linux；Windows 的受限执行会返回 blocked。写入型 Case 需要显式声明 `workspace_write` 并在隔离 Runtime 中运行。
-- Dashboard、Pet 和 Bridge 主要面向本机使用；不可信网络下的完整认证与 Owner 授权尚未完成。
-- Preview 自动更新默认关闭，新桌面版本通过 [Releases](https://github.com/fightheyyy/XIAOBA/releases) 手动安装。
+你始终和一个 XiaoBa 对话。**Base Main** 负责沟通、理解返回材料并交付；专业 Role 各自执行职责内的工作。
 
-## 继续了解
+| 角色 | 职责 |
+| --- | --- |
+| **EngineerCat** | 实现、修复和验证代码；可通过 `codex_run` 使用官方 Codex SDK。 |
+| **BrowserCat** | 浏览器操作、资料获取与页面验证。 |
+| **GuiCat** | macOS 桌面 GUI 操作。 |
+| **SecretaryCat** | 通过官方 `lark-cli` 处理飞书工作流；`FeishuCat` 是别名。 |
+| **UserCat** | 在 Arena 中模拟用户，探索使用场景。 |
+| **InspectorCat** | 从 Trace 中提取有证据的问题与可执行 Case。 |
+| **ReviewerCat** | 依据 Case、Oracle 与执行证据，在硬检查之后做语义判断。 |
+| **EvolutionCat** | 维护长期记忆，改进 Role / Skill / Memory。 |
 
-[架构](docs/SPEC.md) · [进度与验证](docs/PLAN.md) · [角色](roles/README.md) · [技能](skills/README.md) · [配置示例](.env.example) · [Issues](https://github.com/fightheyyy/XIAOBA/issues) · [Discussions](https://github.com/fightheyyy/XIAOBA/discussions)
+前四个角色接手实际工作，后四个支持评测与改进，按需参与。Base 默认没有预装 Skill；可以显式安装独立 Skill。权限和使用方法见 [Roles](roles/README.md) 与 [Skills](skills/README.md)。
+
+<details>
+<summary>看看这支小猫团队</summary>
+
+![Base Main 与八个专业角色](assets/readme-roles.png)
+
+</details>
+
+## 连接你使用的应用
+
+原生 Connector 通过官方 API 接入 **Gmail、Notion 和 GitHub**，由 Base 主会话使用：读取邮件与页面、处理文档、查看仓库和 PR，或执行已确认的写入。
+
+在 Dashboard 的「应用连接」中配置 Token 或 Gmail OAuth。发送邮件、创建内容等写入先展示完整参数提案，等待用户确认；凭据通过本地配置管理。飞书由 SecretaryCat 使用独立登录的 `lark-cli` 接入。详见 [应用连接指南](roles/README.md#agent-自有应用连接)。
+
+## 用实验检验架构
+
+Jev V2 的对照包含 **30 个场景 × A/B × 3 次重复，共 180 次真实场景运行**。Main、Jev 和 SubAgent 均真实调用模型；文件与工具执行也真实发生。
+
+| 观测指标 | 原 Main | Main + Jev |
+| --- | ---: | ---: |
+| 平均 Main token¹ | 22,557 | 15,090（−33.1%） |
+| 平均 Main + Jev token¹ | 22,557 | 25,090（+11.2%） |
+| 首条可见回复 P50² | 12.98s | 5.07s |
+| Jev 预期动作 / 目标匹配 | — | 90/90 |
+
+¹ 使用 89 对完整用量记录，child token 另计。总 token 与费用分别核算，成本按模型定价情景估算。
+
+² 两组可见交付为 80/90、86/90，分母不同；首条回复可能是确认或错误拒绝，不等于正确答复或任务完成时间。尚未证明独立语义质量或生产性能提升。
+
+[完整结果与限制](docs/evaluation/PLAN.md) · [脱敏观测](eval/benchmarks/jev-v2/2026-11-02.json) · [题集](eval/benchmarks/jev-v2/suite.json) · [实验脚本](scripts/run-jev-v2-live.ts)
+
+安装依赖后，可在本地复算统计与价格情景，**不调用模型**：
+
+```bash
+node --import tsx scripts/run-jev-v2-live.ts --summarize eval/benchmarks/jev-v2/2026-11-02.json
+```
+
+## 执行可查，改进先验收
+
+模型调用、工具结果、文件、交付与失败进入 Trace；用户实际看到的消息另存为 Conversation Journal。会话、记忆与执行证据默认保存在本地；使用外部模型时，请求内容仍会发给配置的服务。
+
+真实问题可以转成可重放的 Case，再生成候选改动。**工程测试检查代码，行为评测检查目标是否完成。** 候选复用 Test + Eval，通过后在新 Session 或下一进程生效；失败或 blocked 保留当前版本。
+
+```text
+Trace / Case → 候选改动 → Test + Eval → 验收后激活
+```
+
+<details>
+<summary>开发者：测试、评测与观测配置</summary>
+
+```bash
+npm test
+npm run test:base-runtime
+npm run test:check-scripted-runtime
+
+# 真实 Agent CaseSet；默认只读 Replay
+npm run dev -- eval run --case-set eval/case-sets/xiaoba-core-readonly.json
+
+# 场景探索与受控改进
+npm run dev -- arena evaluate --role engineer-cat --scenario "帮我修好这个项目"
+npm run dev -- evolution sleep
+```
+
+Verifier 做硬检查，ReviewerCat 做语义判断，一次执行只有一个 `pass / fail / blocked`。工程测试通过不代表所有真实任务已验收。模块合同与当前进度见 [Evaluation](docs/evaluation/SPEC.md)、[Arena](docs/arena/SPEC.md) 与 [Project PLAN](docs/PLAN.md)。
+
+可选 OTLP/HTTP 导出通过 `XIAOBA_OBSERVABILITY_ENABLED=true` 和 `OTEL_EXPORTER_OTLP_ENDPOINT` 启用，不导出 prompt、工具参数或文件内容。可见聊天可在配置 `CATENA_BASE_URL` 和 `CATENA_API_KEY` 后同步到 Catena。
+
+Logo 与角色图由产品共享 Canvas renderer 生成，更新命令为 `npm run assets:readme`；需要可用 Chromium，见 [生成脚本](scripts/generate-readme-assets.mjs)。
+
+</details>
+
+## 当前边界
+
+- 仍处于 Preview。Jev V2 已接入代码，真实任务、对话质量与生产容量尚未全部验收；已知问题与回归状态见 [验证记录](docs/evaluation/PLAN.md)。
+- 记忆按会话和角色隔离，跨入口用户身份尚未统一；提醒与主动检查依赖对应服务在线，CLI 重新打开时处理到期提醒。
+- GuiCat 仅支持 macOS；BrowserCat 和飞书工作流需要各自的 Driver、登录和权限。
+- 统一文件 / Shell 沙箱接入 macOS 和 Linux；Windows 受限执行返回 blocked。写入型 Case 需要显式声明 `workspace_write` 并在隔离 Runtime 中运行。
+- Dashboard、Pet 和 Bridge 面向本机使用，不可信网络下的完整认证与 Owner 授权尚未完成。
+
+[架构](docs/SPEC.md) · [项目进度](docs/PLAN.md) · [配置示例](.env.example) · [Issues](https://github.com/fightheyyy/XIAOBA/issues) · [Discussions](https://github.com/fightheyyy/XIAOBA/discussions)
 
 [Apache-2.0](LICENSE)

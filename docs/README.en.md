@@ -1,92 +1,173 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="../assets/xiaoba-logo-dark.png">
-    <img src="../assets/xiaoba-logo.png" alt="XiaoBa" width="180" height="180">
+    <img src="../assets/xiaoba-logo.png" alt="XiaoBa" width="144" height="144">
   </picture>
 
 # XiaoBa
 
-**An open-source personal agent with memory, tools, and follow-up.**
+**Memory, action, and follow-through.**
 
-Keep a conversation going, save your preferences, delegate tasks, and agree on reminders and follow-ups. Use the CLI, Feishu, Weixin or desktop; results, files and reminders return to the conversation where the work began.
+An open-source personal agent that runs locally. Keep a conversation going, delegate code, browser, desktop and Feishu work, and receive results, files and reminders in the conversation where the work began.
 
 [![Release](https://img.shields.io/github/v/release/fightheyyy/XIAOBA?include_prereleases&label=preview&color=61746d)](https://github.com/fightheyyy/XIAOBA/releases) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.12-61746d)](../package.json) [![License](https://img.shields.io/badge/License-Apache%202.0-61746d)](../LICENSE)
 
-[Role collaboration](#a-little-cat-a-whole-team) · [Connectors](#app-connections-connectors) · [Governed evolution](#governed-evolution) · [Quick start](#quick-start) · [简体中文](../README.md)
+[Quick start](#quick-start) · [How it works](#conversation-and-execution-with-clear-ownership) · [Measurements](#test-the-architecture) · [简体中文](../README.md)
 
 </div>
 
-## Your personal agent
+## From conversation to execution
 
-**Remember context and preferences.** Sessions can be restored. Stable preferences can be saved as local Markdown and loaded into later requests; you can inspect and edit the memory files.
-
-**Come back when agreed.** Set reminders or scheduled checks so XiaoBa can return to the original conversation, check progress and bring back results.
-
-**Take on real work.** Specialist Roles execute code, browser, macOS desktop and Feishu tasks. XiaoBa handles conversation and dispatch and brings back results and files. Its cat's eyes and movements reflect runtime state.
-
-**Choose your model and capabilities.** Sessions, memory and execution evidence stay local by default. Connect OpenAI-compatible, Anthropic or local Ollama models; external models still receive request content according to your configuration. Install Role dependencies and standalone Skills as needed; see [Roles](../roles/README.md) and [Skills](../skills/README.md).
-
-### Work you can delegate
-
-| What you need | How it gets done | What comes back |
-| --- | --- | --- |
-| Change code, fix a bug, run a build | Edit files and run verification | Code changes, verification results and generated files |
-| Browse sites, collect research, verify pages | Operate the browser and check pages | Organized results, sources and page evidence |
-| Operate macOS desktop applications | Execute actions through the desktop Driver | Action results and interface evidence |
-| Handle Feishu messages, calendars, tasks and docs | Use the authorized Feishu CLI | Results in Feishu, files and delivery receipts |
-
-## A little cat, a whole team
-
-![Base Main Agent and eight specialist Roles share one cat design, each with its own color](../assets/readme-roles.png)
-
-Talk to XiaoBa and it dispatches specialist Roles as needed. **Base** owns conversation, dispatch and bringing results together. Eight specialist Roles share the XiaoBa Agent loop and handle execution, evaluation and improvement.
-
-| Role | Responsibility |
+| What you ask | How XiaoBa handles it |
 | --- | --- |
-| **EngineerCat** | Implement and repair code; call the official Codex SDK through `codex_run` |
-| **BrowserCat** | Operate and verify browser pages |
-| **GuiCat** | Operate macOS desktop interfaces |
-| **SecretaryCat** | Run Feishu workflows through the official `lark-cli`; `FeishuCat` is an alias |
-| **UserCat** | Simulate users and explore scenarios in Arena |
-| **InspectorCat** | Extract evidenced problems and executable Cases from traces |
-| **ReviewerCat** | Judge Case results against evidence after hard checks |
-| **EvolutionCat** | Maintain long-term memory and improve Roles, Skills and Memory |
+| “Find out why this project fails to build. Fix it and verify the change.” | EngineerCat inspects and edits the code, runs verification, and returns findings to Main. |
+| “Research this while I explain the rest of the requirements.” | BrowserCat works in the background. You can keep talking, add constraints, check progress or stop the task. |
+| “Remind me tomorrow afternoon, and use this preference for the project.” | Reminders are stored per session. Preferences successfully saved to memory live in local Markdown that you can inspect and edit. |
 
-The first four Roles execute tasks; the other four support internal evaluation and improvement. They do not all run sequentially on every request. See the [Roles Guide](../roles/README.md) for permissions, tools and setup.
+Use the **CLI, Feishu, Weixin or desktop**. Each entry point reuses the same session-management, tool-execution and delivery mechanisms. Choose OpenAI-compatible, Anthropic or local Ollama models; install Role dependencies and Skills as needed.
 
-## App connections: Connectors
+## Conversation and execution, with clear ownership
 
-Connect apps so XiaoBa can read authorized information and act through tools. Native Connectors currently use the official Gmail, Notion and GitHub APIs.
-
-| App | Implemented capabilities |
-| --- | --- |
-| **Gmail** | Search mail, read messages and threads, manage labels, create drafts and send mail |
-| **Notion** | Search and read shared pages, query data sources, create or update pages and append blocks |
-| **GitHub** | Read repositories, Issues, PRs, files and Actions status; create or update Issues, post comments and open PRs from existing branches |
-
-Configure GitHub / Notion tokens or Gmail OAuth in the Dashboard's **Connectors** page. Base main sessions use these connections. Writes such as sending mail or creating content show a parameter proposal and execute after confirmation. Credentials are managed through local configuration rather than chat.
-
-SecretaryCat accesses Feishu through the official `lark-cli`, with its own CLI login. See the [app connection guide](../roles/README.md#agent-自有应用连接) for setup and permissions.
-
-## Governed evolution
-
-Problems from real use can become replayable Cases and candidate changes. Candidates pass tests and evaluation before activation; failure or blocked evaluation preserves the current version.
+XiaoBa separates user interaction, task selection and execution. With **Jev V2** enabled, Main and Jev start in parallel: Main handles conversation and delivery, Jev selects an action and target, and Runtime validates and executes it.
 
 ```mermaid
 flowchart LR
-    Input["Trace / Case"] --> Candidate["Candidate change"]
-    Candidate --> Test["Test engineering checks"]
-    Test -->|pass| Eval["Eval behavior checks"]
-    Eval -->|pass| Activate["New Session / next process"]
-    Test -->|fail / blocked| Keep["Keep current version"]
-    Eval -->|fail / blocked| Keep
+    User["User message"] --> Main["Main<br/>Conversation and delivery"]
+    User --> Jev["Jev<br/>Action and target"]
+    Jev --> Runtime["Runtime<br/>Validate and execute"]
+    Runtime --> Roles["SubAgents<br/>Specialist work"]
+    Roles -->|Results / questions| Main
+    Jev -. Technical failure .-> Main
 ```
 
-- **Inspectable delivery.** Traces record model calls, tool results, files, deliveries and failures. User-visible messages are stored separately in a Conversation Journal.
-- **Replayable results.** Replay runs a Case against the current Agent. Verifier performs hard checks, then ReviewerCat judges meaning; each execution has one `pass / fail / blocked` outcome.
-- **Verified improvements.** Evolution produces Candidates from traces or Cases and reuses Test + Eval. Passing capability updates take effect in new Sessions; code updates take effect in the next process. Failure or blocked evaluation preserves the current version.
+Main can respond before routing finishes. Runtime owns spawn, check, stop, steer and resume; action reports must reflect actual execution facts. Child results and questions return directly to Main.
 
-Arena explores Scenarios and sends Cases to the shared Eval. Contracts and current progress live in [Evaluation](evaluation/SPEC.md), [Arena](arena/SPEC.md) and the [Project PLAN](PLAN.md).
+**Jev is optional.** Missing configuration or a technical failure restores Legacy Main dispatch within the same Session. All Roles reuse the XiaoBa Agent loop. Reminders, Connectors and explicitly installed Base Skills keep their existing entry points.
+
+## Quick start
+
+### Run from source
+
+Requires **Node.js ≥ 22.12**. These commands use a macOS / Linux shell; on Windows, copy the configuration file manually.
+
+```bash
+git clone https://github.com/fightheyyy/XIAOBA.git
+cd XIAOBA
+npm ci
+cp .env.example .env
+```
+
+Configure your model in `.env`:
+
+```env
+XIAOBA_LLM_PROVIDER=openai
+XIAOBA_LLM_API_BASE=https://api.openai.com/v1
+XIAOBA_LLM_API_KEY=your_api_key
+XIAOBA_LLM_MODEL=your_model
+```
+
+Check the environment and start a conversation:
+
+```bash
+npm run dev -- doctor
+npm run dev -- chat -i
+```
+
+To enable Jev, add a key to the same file:
+
+```env
+XIAOBA_JEV_API_KEY=your_jev_key
+```
+
+The current default calls `jev-1.13-free` through OpenCode. See [`.env.example`](../.env.example) for model, endpoint, total deadline and retry settings. Leave the key empty to use Legacy Main.
+
+<details>
+<summary>Desktop, Feishu, Weixin and installers</summary>
+
+```bash
+# Desktop pet and conversation window
+npm run dev -- pet
+
+# Electron Dashboard
+npm run electron:dev
+
+# Feishu / Weixin entry points
+npm run dev -- feishu
+npm run dev -- weixin
+```
+
+Each entry point needs its accounts, login and permissions. See [Driver setup](requirements.txt) for BrowserCat, GuiCat and SecretaryCat dependencies. EngineerCat's `codex_run` requires a separate login; see the [Roles Guide](../roles/README.md).
+
+Desktop previews are available under [Releases](https://github.com/fightheyyy/XIAOBA/releases). Refer to each release for platform installation and signing status. Installers may lag behind source; use source for Jev V2. If the desktop cannot locate system Node, set `XIAOBA_NODE_EXE` to its absolute executable path.
+
+![XiaoBa Dashboard preview](../assets/dashboard.png)
+
+The screenshot illustrates the layout. The Role illustration shows the current cat design and colors.
+
+</details>
+
+## Specialist work, one shared Runtime
+
+You talk to one XiaoBa. **Base Main** handles conversation, interprets returned evidence and delivers results; specialist Roles work within their own responsibilities.
+
+| Role | Responsibility |
+| --- | --- |
+| **EngineerCat** | Implement, repair and verify code; access the official Codex SDK through `codex_run`. |
+| **BrowserCat** | Operate the browser, gather information and verify pages. |
+| **GuiCat** | Operate macOS desktop interfaces. |
+| **SecretaryCat** | Run Feishu workflows through the official `lark-cli`; `FeishuCat` is an alias. |
+| **UserCat** | Simulate users and explore scenarios in Arena. |
+| **InspectorCat** | Extract evidenced problems and executable Cases from traces. |
+| **ReviewerCat** | Judge Case outcomes against the Oracle and execution evidence after hard checks. |
+| **EvolutionCat** | Maintain long-term memory and improve Roles, Skills and Memory. |
+
+The first four Roles execute work; the other four support evaluation and improvement as needed. Base ships with no default Skills; standalone Skills can be explicitly installed. See [Roles](../roles/README.md) and [Skills](../skills/README.md) for permissions and usage.
+
+<details>
+<summary>Meet the cats</summary>
+
+![Base Main and eight specialist Roles](../assets/readme-roles.png)
+
+</details>
+
+## Connect your apps
+
+Native Connectors use official **Gmail, Notion and GitHub** APIs from Base main sessions: read messages and pages, work with documents, inspect repositories and PRs, and execute confirmed writes.
+
+Configure tokens or Gmail OAuth in the Dashboard's **Connectors** page. Writes such as sending mail or creating content show the full parameter proposal and wait for user confirmation. Credentials are managed through local configuration. SecretaryCat uses `lark-cli` with a separate login for Feishu. See the [app connection guide](../roles/README.md#agent-自有应用连接).
+
+## Test the architecture
+
+The Jev V2 comparison covers **30 scenarios × A/B × 3 repeats: 180 real scenario executions**. Main, Jev and SubAgents use real model calls; file operations and tool execution are real too.
+
+| Observed metric | Legacy Main | Main + Jev |
+| --- | ---: | ---: |
+| Mean Main tokens¹ | 22,557 | 15,090 (−33.1%) |
+| Mean Main + Jev tokens¹ | 22,557 | 25,090 (+11.2%) |
+| First visible reply P50² | 12.98s | 5.07s |
+| Jev expected action / target matches | — | 90/90 |
+
+¹ Uses 89 pairs with complete usage; child tokens are reported separately. Token counts and monetary cost are separate measures; cost is estimated under explicit pricing scenarios.
+
+² Visible delivery counts differ: A 80/90, B 86/90. A first reply can be an acknowledgment or an incorrect refusal, not a correct answer or task completion. Independent semantic quality and production performance improvements remain unproven.
+
+[Results and limitations](evaluation/PLAN.md) · [Sanitized observations](../eval/benchmarks/jev-v2/2026-11-02.json) · [Suite](../eval/benchmarks/jev-v2/suite.json) · [Harness](../scripts/run-jev-v2-live.ts)
+
+After installing dependencies, recompute the statistics and pricing scenarios locally, **without model calls**:
+
+```bash
+node --import tsx scripts/run-jev-v2-live.ts --summarize eval/benchmarks/jev-v2/2026-11-02.json
+```
+
+## Inspect execution. Verify improvements.
+
+Traces record model calls, tool results, files, deliveries and failures. User-visible messages live separately in a Conversation Journal. Sessions, memory and execution evidence stay local by default; requests still go to external model services when configured.
+
+Problems from real use can become replayable Cases and candidate changes. **Engineering tests check code; behavior evaluation checks whether a goal was met.** Candidates reuse Test + Eval and activate in a new Session or the next process after passing. Failure or blocked evaluation preserves the current version.
+
+```text
+Trace / Case → Candidate change → Test + Eval → Activation after acceptance
+```
 
 <details>
 <summary>Developers: tests, evaluation and observability</summary>
@@ -96,7 +177,7 @@ npm test
 npm run test:base-runtime
 npm run test:check-scripted-runtime
 
-# Real Agent CaseSet; Replay is read-only by default
+# Real Agent CaseSet; read-only Replay by default
 npm run dev -- eval run --case-set eval/case-sets/xiaoba-core-readonly.json
 
 # Scenario exploration and governed improvement
@@ -104,84 +185,22 @@ npm run dev -- arena evaluate --role engineer-cat --scenario "Fix this project"
 npm run dev -- evolution sleep
 ```
 
-Local `traces.jsonl` remains the source of execution evidence. Optional OTLP/HTTP export uses `XIAOBA_OBSERVABILITY_ENABLED=true` and `OTEL_EXPORTER_OTLP_ENDPOINT`; prompt text, tool arguments and file contents are excluded. Visible conversations can sync to Catena when both `CATENA_BASE_URL` and `CATENA_API_KEY` are configured.
+Verifier performs hard checks, then ReviewerCat judges meaning; each execution has one `pass / fail / blocked` outcome. Passing engineering tests does not establish acceptance for every real task. Contracts and current progress live in [Evaluation](evaluation/SPEC.md), [Arena](arena/SPEC.md) and the [Project PLAN](PLAN.md).
 
-The static logo and Role illustration render the product's shared Canvas player directly:
+Optional OTLP/HTTP export uses `XIAOBA_OBSERVABILITY_ENABLED=true` and `OTEL_EXPORTER_OTLP_ENDPOINT`; prompt text, tool arguments and file contents are excluded. Visible conversations can sync to Catena when `CATENA_BASE_URL` and `CATENA_API_KEY` are configured.
 
-```bash
-npx playwright install chromium
-npm run assets:readme
-```
-
-For an existing system Chromium installation, set `XIAOBA_CHROMIUM_PATH` to its executable. The generator outputs transparent static PNG logos and the Role illustration. Dark themes use a logo with a thin light outline.
+The logo and Role illustration use the product's shared Canvas renderer. Run `npm run assets:readme` to update them; it requires a working Chromium installation. See the [generator](../scripts/generate-readme-assets.mjs).
 
 </details>
 
-## Quick start
+## Current boundaries
 
-### Run from source
+- This is a Preview. Jev V2 is implemented, but real tasks, conversation quality and production capacity are not fully accepted. See the [verification record](evaluation/PLAN.md) for known issues and regression status.
+- Memory is scoped to sessions and Roles; cross-surface user identity is not unified. Reminders and proactive checks need the corresponding service online; reopening the CLI processes due reminders.
+- GuiCat is macOS-only. BrowserCat and Feishu workflows need their Drivers, login and permissions.
+- The shared file / Shell sandbox integrates with macOS and Linux. Restricted execution on Windows returns blocked. Write-enabled Cases must explicitly declare `workspace_write` and run in an isolated Runtime.
+- Dashboard, Pet and Bridge target local use; complete authentication and Owner authorization for untrusted networks are pending.
 
-Requires **Node.js ≥ 22.12**. These commands use a macOS / Linux shell; on Windows, copy `.env.example` to `.env` manually.
-
-```bash
-git clone https://github.com/fightheyyy/XIAOBA.git
-cd XIAOBA
-npm install
-cp .env.example .env
-```
-
-Configure a model in `.env`, for example:
-
-```env
-XIAOBA_LLM_PROVIDER=openai
-XIAOBA_LLM_API_BASE=https://api.openai.com/v1
-XIAOBA_LLM_API_KEY=your_api_key
-XIAOBA_LLM_MODEL=your_model
-```
-
-Choose an entry point:
-
-```bash
-# Check the model, Roles, Drivers and platform configuration
-npm run dev -- doctor
-
-# CLI conversation
-npm run dev -- chat -i
-
-# Desktop pet and conversation window
-npm run dev -- pet
-
-# Electron Dashboard
-npm run electron:dev
-```
-
-BrowserCat, GuiCat and SecretaryCat require external dependencies and permissions: see [Driver setup](requirements.txt). EngineerCat's Codex executor requires a separate login; see the [Roles Guide](../roles/README.md).
-
-### Download the desktop preview
-
-[**v0.2.2 Preview**](https://github.com/fightheyyy/XIAOBA/releases/tag/v0.2.2) provides a [macOS Apple Silicon DMG](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-mac-arm64.dmg) and a [Windows x64 installer](https://github.com/fightheyyy/XIAOBA/releases/download/v0.2.2/XiaoBa-0.2.2-win.exe). The logo shows the updated design in the current source; existing installers do not update when source changes.
-
-The macOS build is ad-hoc signed and not notarized; the Windows build is unsigned. Preview desktop child services require system Node.js; current source requires Node.js ≥ 22.12. If the desktop cannot locate Node, set `XIAOBA_NODE_EXE` to its absolute executable path.
-
-<details>
-<summary>Show the Dashboard preview</summary>
-
-![XiaoBa Dashboard: services, Roles, Skills, configuration, store and Chat](../assets/dashboard.png)
-
-This existing screenshot shows the Dashboard layout. The logo and Role illustration above show the current cat design and colors.
-
-</details>
-
-## Current support
-
-- Memory is scoped to sessions and Roles; cross-surface user identity is not unified. Reminders and proactive checks depend on the corresponding service running; reopening the CLI processes due reminders.
-- GuiCat desktop takeover is macOS-only. BrowserCat and Feishu workflows require their respective Drivers, login and permissions.
-- The current source integrates the shared file / Shell sandbox on macOS and Linux. Restricted execution on Windows returns blocked. Write-enabled Cases must explicitly declare `workspace_write` and run in an isolated Runtime.
-- Dashboard, Pet and Bridge primarily target local use; complete authentication and Owner authorization for untrusted networks are pending.
-- Preview auto-update is disabled by default. Install desktop updates manually from [Releases](https://github.com/fightheyyy/XIAOBA/releases).
-
-## Keep exploring
-
-[Architecture](SPEC.md) · [Progress and verification](PLAN.md) · [Roles](../roles/README.md) · [Skills](../skills/README.md) · [Configuration](../.env.example) · [Issues](https://github.com/fightheyyy/XIAOBA/issues) · [Discussions](https://github.com/fightheyyy/XIAOBA/discussions)
+[Architecture](SPEC.md) · [Project progress](PLAN.md) · [Configuration](../.env.example) · [Issues](https://github.com/fightheyyy/XIAOBA/issues) · [Discussions](https://github.com/fightheyyy/XIAOBA/discussions)
 
 [Apache-2.0](../LICENSE)
