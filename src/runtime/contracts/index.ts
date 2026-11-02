@@ -21,7 +21,16 @@ export interface Message {
   __subagentState?: boolean;
 }
 
+export interface JevConfig {
+  apiKey?: string;
+  apiUrl?: string;
+  model?: string;
+  timeoutMs?: number;
+  retries?: number;
+}
+
 export interface ChatConfig {
+  jev?: JevConfig;
   apiKey?: string;
   apiUrl?: string;
   model?: string;

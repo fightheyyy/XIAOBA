@@ -1,10 +1,14 @@
 # Observability & Evidence PLAN
 
 状态：Active
-最后更新：2026-10-30
+最后更新：2026-11-02
 Owner：Runtime / evidence maintainers
 
 ## Current Status
+
+Jev Router V2（2026-11-02，Owner: Evidence，已实现）：路由尝试/决定/操作/回退复用 runtime_event，Jev 用量与 Main/child 分列，缺失 provider usage 显式标识。180 次脱敏真实观测、源码哈希及限制发布在 eval/benchmarks/jev-v2/2026-11-02.json；完整源码快照与原始日志保留在本地分析 ZIP。早期诊断和本地代理冷却异常样本保留且标记无效；真实账号仍有额度，重启代理后原模型恢复。验收与量化结论仅由 Evaluation PLAN 持有，不把 trace 或 child completed 当任务成功。
+
+执行计数隔离（2026-11-02，Owner: Evidence / Runtime，已实现）：Metrics 不再共享进程全局状态；记录 usage 快照，无 usage 的成功响应只增加调用次数，工具名称不继承 Object.prototype。Main/Sub 本地计数从各自 Trace 投影一次，子任务失败/停止保留已消费用量和工具事实。新增 5 项回归覆盖并发隔离、Trace/summary 一致性、压缩归属、失败与取消用量；构建及包含本模块的 119/119 定向回归通过，详见 Agent Runtime PLAN 的本轮验证。下一步为真实多会话观察；provider 未报告的 token 仍不可推断。
 
 Subagent 结果交接（2026-10-30，Owner: Runtime / Evidence）：现有 Journal 增加可选通知 ID/处理时间；未处理结果保留，重开路由可重试。原子确认保留执行 owner；不宣称跨进程事务或外部副作用 exactly-once。新增 11 项验证通过；整仓 725/734，9 项与原提交隔离复测一致。证据在 output/test/main-sub-collaboration，下一步为真实使用观察。
 

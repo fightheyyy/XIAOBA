@@ -38,6 +38,14 @@ Out of scope:
 
 ## Current Architecture
 
+scripts/run-jev-v2-live.ts 与 eval/benchmarks/jev-v2/suite.json 提供 30 题×两组×三次真实验收；Main 和 child 均为 gpt-5.6-luna(low)，B 使用真实 jev-1.13-free，A 显式禁用路由。文件读写和 child 执行真实发生；消息由测试 channel 收集，不向外部用户发送。控制类用真实等待问题/运行 child 建立 fixture，运行 child 的首个模型响应暂存到被测请求结束；这项受控设置写入 manifest。技术故障、取消、防重及越权由独立工程测试注入，不当作自然故障率。
+
+公开观测为 `eval/benchmarks/jev-v2/2026-11-02.json`：180 条主实验和 6 条后续复验分开存储，保留逐次输入/缓存输入/输出 usage、调用归属、Jev 尝试、Runtime 动作状态、任务时间及原硬检查标识；不公开完整对话、工具参数、绝对路径或凭据。数据含模型/价格快照、源码哈希、已知漏判与排除原因。它不是新的 Outcome 权威，汇总状态由配套 PLAN 持有。
+
+离线复算：`node --import tsx scripts/run-jev-v2-live.ts --summarize eval/benchmarks/jev-v2/2026-11-02.json`，不需要模型密钥、不发模型请求。只在 A/B 同一 case/repeat 都有完整用量且无超时/技术错误时进入配对 token/费用统计；全体 180 条仍保留。成本扣除已包含在输入中的缓存 token 再分别计价，child 包括用户恢复/调整后发生的 `setup-child` 继续调用，仅排除 phase=setup。Jev 免费、官方付费及未验证折扣分别估算，不是 CLIProxyAPI 订阅或免费型号的真实账单。
+
+脚本保存源码哈希及忽略目录内源码快照，只在哈希一致时补跑未记录样本；遇 Main 429 暂停新样本。provider 失败、无效 setup、未报告用量分别标识，不从主结果静默剔除。task_completed 是实际工具/产物/回复片段的硬检查，不等于独立语义裁决；首次/最后可见交付不等于任务正确完成。Main/Jev/child token 分列，故障样本不能用于证明 token 节省。回复中错误拒绝能力等问题仍需人工复核。
+
 `scripts/run-jev-parallel.ts` 是隔离的真实模型 A/B 实验：A 复用当前 Main 的 `AgentSession / ConversationRunner / ToolManager`；B 仅在实验实例将 Main 工具限制为 `send_text/send_file`，与真实 Jev 并行且交付不等待路由，由 Runtime 通过现有 Spawn 工具派发。通过已有 service factory 模拟 child 模型返回，完成通知和 Main 回注仍走真实 Runtime；已有后台任务的 fixture 同时进入 list/ID 查询。它不接入生产、不评测 Jev 降级、不证明真实任务完成率，也不产生共享 Eval 的 Outcome。
 
 题集位于 `eval/benchmarks/jev-parallel/suite.json`，每题每组一次有效运行，计划交替 AB/BA；本轮 fixture 修复与恢复打断了部分交错顺序。公开观测位于同目录 `2026-11-02.json`，只保留逐题时延、路由、交付情况、原始 provider usage 数值、回复复核备注及排除原因；完整 prompt、回复、Runtime 日志、无效原始记录和凭据留在忽略的 `output/test/jev-parallel/`，不提交。
@@ -66,6 +74,7 @@ flowchart LR
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
     Fixture["Scripted fixture"] --> Test["Scripted Runtime Test"]
     Test --> TestResult["test-result.json"]
+    LiveV2["V2: real Main / Jev / child"] --> Measurements
     Comparison["Live Main vs parallel Main + Jev"] --> MockChild["Existing Runtime / mock child AI"]
     MockChild --> Measurements["Raw usage / delivery times / routing facts"]
 
@@ -80,7 +89,9 @@ flowchart LR
 
 ## Target Architecture
 
-上述受控对照保持实验隔离；是否升级生产 Main 以测量与回复复核结果为依据，本轮不改变生产路由目标。
+正式 Jev V2 验收使用原 Main 对比完整 V2，至少 30 Case、每组 3 次真实模型运行，覆盖五操作、会话隔离、歧义、ask_parent、并行/顺序链、回注、故障、取消/迟到/防重和已有能力。真实任务完成与路由正确分别计量；先前两工具 mock 结果不作为 V2 收益。故障注入不冒充自然故障率，脚本响应测试仍只属于工程 Test。
+
+上述受控对照保持实验隔离；V2 已按配置接入生产代码，正式启用范围以功能验收与回复复核结果为依据。
 
 源码职责沿用以上目录边界；保持单一 Runtime、既有权限和证据合同，继续在同一模块内推进下述目标。
 
@@ -88,6 +99,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
+    LiveV2["V2: real Main / Jev / child"] --> FactsV2["Routing / hard completion / separate token usage"]
+    FactsV2 --> ReviewV2["Delivery quality review"]
     Harbor["External Harbor"] --> Runtime["Existing AgentSession"]
     Harbor --> Official["Official task / Verifier / Result"]
     Execution["Shell / bounded worker"] --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
@@ -185,6 +198,7 @@ Scripted Runtime Test engine 隔离在 `src/eval/testing/**`。其内部仍保�
 ## Commands
 
 - Jev 并行实验：先启动已有 CLIProxyAPI 并配置项目支持的 `XIAOBA_LLM_API_BASE` / `XIAOBA_LLM_API_KEY`，本实验要求本地 `127.0.0.1:8317`。通过环境注入 `XIAOBA_JEV_API_KEY`，在仓库根目录运行 `node --import tsx scripts/run-jev-parallel.ts`；固定使用 `gpt-5.6-luna(low)` 和 `jev-1.13-free`，会产生真实模型请求。可传入已有输出目录补跑缺失样本，已记录样本不重复执行。密钥和本地配置不提交。
+- Jev V2：以环境变量注入 XIAOBA_JEV_API_KEY 后运行 `node --import tsx scripts/run-jev-v2-live.ts [输出目录]`；输出到忽略的 output/test/jev-v2/，凭据不提交。离线回归运行 `node --import tsx --test test/jev-router-v2.test.ts`。
 - Jev 离线检查：`node --import tsx --test test/jev-parallel.test.ts`，不调用模型；验证路由边界、交付工具限制、已有任务 fixture 和公开数据的 40 条观测及 token 对账。
 
 - `npm test`：先通过 `pretest` 执行 `npm run build`，再运行工程测试，支持没有 `dist/` 的干净检出。直接使用 `tsx --test` 时须先构建；Source Candidate 在调用内部 `scripts/run-tests.mjs` 前已有独立构建步骤。

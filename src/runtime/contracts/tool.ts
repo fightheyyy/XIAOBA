@@ -193,6 +193,10 @@ export interface SubAgentServiceFactoryResult {
  * 工具执行上下文
  */
 export interface ToolExecutionContext {
+  /** Trusted Session mode; never derived from model tool arguments. */
+  subagentRouting?: 'jev' | 'legacy';
+  expectedChildQuestionId?: string;
+  onSubagentFinished?: (info: import('../subagents/sub-agent-session').SubAgentInfo) => Promise<void>;
   workingDirectory: string;
   /** Runtime-owned SDK execution policy; never populated from model arguments. */
   sandboxPolicy?: import('../sandbox/policy').SandboxPolicy;

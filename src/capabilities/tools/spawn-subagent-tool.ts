@@ -94,6 +94,7 @@ export class SpawnSubagentTool implements Tool {
         observabilityContext: context.observabilityContext,
         parentSessionId: sessionKey,
         parentToolCallId: context.toolCallId,
+        onFinished: context.onSubagentFinished,
       },
     );
 

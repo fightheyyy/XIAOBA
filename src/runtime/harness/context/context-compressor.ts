@@ -380,12 +380,15 @@ export class ContextCompressor {
   private maxContextTokens: number;
   private compactionThreshold: number;
   private aiService: AIService;
+  private readonly metrics: Metrics;
 
   constructor(aiService: AIService, options?: {
     maxContextTokens?: number;
     compactionThreshold?: number;
+    metrics?: Metrics;
   }) {
     this.aiService = aiService;
+    this.metrics = options?.metrics ?? new Metrics();
     this.maxContextTokens = options?.maxContextTokens ?? DEFAULT_MAX_CONTEXT_TOKENS;
     this.compactionThreshold = options?.compactionThreshold ?? resolveCompactionThreshold();
   }
@@ -707,9 +710,7 @@ export class ContextCompressor {
       );
       const rawSummary = fullContent;
 
-      if (resp.usage) {
-        Metrics.recordAICall('stream', resp.usage);
-      }
+      this.metrics.recordAICall('stream', resp.usage);
 
       const summaryText = parseCompactSummary(rawSummary || resp.content || '');
       const normalizedSummary = normalizeSummaryText(summaryText);

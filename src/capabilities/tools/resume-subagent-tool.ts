@@ -40,7 +40,7 @@ export class ResumeSubagentTool implements Tool {
     }
 
     const manager = SubAgentManager.getInstance();
-    const result = manager.resumeForParent(sessionKey, subagent_id, answer);
+    const result = manager.resumeForParent(sessionKey, subagent_id, answer, context.expectedChildQuestionId);
 
     switch (result) {
       case 'resumed':

@@ -123,7 +123,7 @@ export class PromptManager {
   /**
    * 获取基础 system prompt
    */
-  static getBaseSystemPrompt(roleName?: string): string {
+  static getBaseSystemPrompt(roleName?: string, subagentRouting: 'jev' | 'legacy' = 'legacy'): string {
     try {
       const resolvedRoleName = this.resolveRoleName(roleName);
       const roleConfig = resolvedRoleName
@@ -132,7 +132,8 @@ export class PromptManager {
       const promptFile = roleConfig?.promptFile || 'system-prompt.md';
       const resolvedPath = this.resolvePromptFile(promptFile, resolvedRoleName);
       if (resolvedPath) {
-        return this.expandPromptIncludes(fs.readFileSync(resolvedPath, 'utf-8'), path.dirname(resolvedPath));
+        const content = fs.readFileSync(resolvedPath, 'utf-8').replace('{{include:main-subagent-routing.md}}', `{{include:main-subagent-${subagentRouting}.md}}`);
+        return this.expandPromptIncludes(content, path.dirname(resolvedPath));
       }
       if (promptFile !== 'system-prompt.md') {
         const fallbackPath = this.resolvePromptFile('system-prompt.md', resolvedRoleName);
@@ -204,9 +205,9 @@ export class PromptManager {
   /**
    * 构建完整 system prompt（包含运行时信息）
    */
-  static async buildSystemPrompt(options: { roleName?: string } = {}): Promise<string> {
+  static async buildSystemPrompt(options: { roleName?: string; subagentRouting?: 'jev' | 'legacy' } = {}): Promise<string> {
     const resolvedRoleName = this.resolveRoleName(options.roleName);
-    const basePrompt = this.getBaseSystemPrompt(resolvedRoleName).trim();
+    const basePrompt = this.getBaseSystemPrompt(resolvedRoleName, options.subagentRouting).trim();
     const behaviorPrompt = this.getBehaviorPrompt(resolvedRoleName).trim();
     const displayName = (
       process.env.CURRENT_AGENT_DISPLAY_NAME

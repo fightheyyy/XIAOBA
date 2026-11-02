@@ -1,12 +1,14 @@
 # XiaoBa-CLI PLAN
 
 状态：Active
-最后更新：2026-10-23
+最后更新：2026-11-02
 Owner：XiaoBa maintainers
 
 本文只维护仓库级当前状态和收敛顺序。模块细节进入六份模块 PLAN。
 
 ## Current Status
+
+Jev Router V2（2026-11-02，Owner: Runtime / Evaluation）：代码已接入共享 Runtime；未配置保持 Legacy。完整真实对照已记录 180 次，尚未达到全部任务验收通过。实现合同见 Agent Runtime SPEC，测量和限制见 Evaluation PLAN；不沿用旧 mock 收益。
 
 根目录整理完成：英文说明、依赖清单、Skill Hub 初始化材料与技能索引资源已归入 docs/scripts/skills；打包、Dashboard、Arena、Source Candidate 与文档引用已更新，保留必要工程配置和已有运行数据。废弃且无 gitlink 的 .gitmodules 已移除。
 

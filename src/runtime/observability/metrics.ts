@@ -3,7 +3,7 @@ import { TokenUsage } from '../contracts';
 /** 单次 AI 调用记录 */
 interface AICallRecord {
   model: string;
-  usage: TokenUsage;
+  usage?: TokenUsage;
   timestamp: number;
 }
 
@@ -14,7 +14,7 @@ interface ToolCallRecord {
   timestamp: number;
 }
 
-/** Session 级别的汇总 */
+/** 一次执行的汇总 */
 export interface MetricsSummary {
   aiCalls: number;
   totalPromptTokens: number;
@@ -27,34 +27,34 @@ export interface MetricsSummary {
 }
 
 /**
- * Metrics - 轻量 metrics 收集器（静态单例）
+ * Metrics - 由执行方持有的轻量计数器
  *
  * 三层数据：Provider 层（token）→ 工具层（耗时）→ 会话层（汇总）
  */
 export class Metrics {
-  private static aiCalls: AICallRecord[] = [];
-  private static toolCalls: ToolCallRecord[] = [];
+  private aiCalls: AICallRecord[] = [];
+  private toolCalls: ToolCallRecord[] = [];
 
   /** 记录一次 AI 调用 */
-  static recordAICall(model: string, usage: TokenUsage): void {
-    this.aiCalls.push({ model, usage, timestamp: Date.now() });
+  recordAICall(model: string, usage?: TokenUsage): void {
+    this.aiCalls.push({ model, usage: usage && { ...usage }, timestamp: Date.now() });
   }
 
   /** 记录一次工具执行 */
-  static recordToolCall(name: string, durationMs: number): void {
+  recordToolCall(name: string, durationMs: number): void {
     this.toolCalls.push({ name, durationMs, timestamp: Date.now() });
   }
 
-  /** 获取当前 session 汇总 */
-  static getSummary(): MetricsSummary {
+  /** 获取当前执行汇总 */
+  getSummary(): MetricsSummary {
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
     let totalTokens = 0;
 
     for (const call of this.aiCalls) {
-      totalPromptTokens += call.usage.promptTokens;
-      totalCompletionTokens += call.usage.completionTokens;
-      totalTokens += call.usage.totalTokens;
+      totalPromptTokens += (call.usage?.promptTokens ?? 0);
+      totalCompletionTokens += (call.usage?.completionTokens ?? 0);
+      totalTokens += (call.usage?.totalTokens ?? 0);
     }
 
     let toolDurationMs = 0;
@@ -62,8 +62,8 @@ export class Metrics {
 
     for (const call of this.toolCalls) {
       toolDurationMs += call.durationMs;
-      if (!toolBreakdown[call.name]) {
-        toolBreakdown[call.name] = { count: 0, totalMs: 0 };
+      if (!Object.prototype.hasOwnProperty.call(toolBreakdown, call.name)) {
+        Object.defineProperty(toolBreakdown, call.name, { value: { count: 0, totalMs: 0 }, enumerable: true });
       }
       toolBreakdown[call.name].count++;
       toolBreakdown[call.name].totalMs += call.durationMs;
@@ -80,8 +80,8 @@ export class Metrics {
     };
   }
 
-  /** 重置（session 结束时） */
-  static reset(): void {
+  /** 开始下一次请求前重置 */
+  reset(): void {
     this.aiCalls = [];
     this.toolCalls = [];
   }

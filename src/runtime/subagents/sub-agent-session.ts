@@ -17,8 +17,10 @@ import { buildFileMemoryContext } from '../../memory/file-memory-context';
 import { Logger } from '../observability/logger';
 import { buildCanonicalToolResult } from '../contracts/tool-result';
 import { SessionTurnLogger } from '../observability/session-turn-logger';
+import { Metrics } from '../observability/metrics';
 import { isWritePathWithinRoot } from '../sandbox/safety';
 import * as path from 'path';
+import { randomUUID } from 'node:crypto';
 
 // ─── 类型定义 ───────────────────────────────────────────
 
@@ -43,6 +45,9 @@ export interface SubAgentInfo {
   recoveryNote?: string;
   /** 子智能体挂起时的待确认问题 */
   pendingQuestion?: string;
+  pendingQuestionId?: string;
+  requiresUserConfirmation?: boolean;
+  continuationPending?: boolean;
   /** 子智能体执行期间创建的产出文件路径 */
   outputFiles: string[];
   /** Result custody is separate from execution status. A silent parent can acknowledge it. */
@@ -51,6 +56,8 @@ export interface SubAgentInfo {
 }
 
 export interface SubAgentSpawnOptions {
+  /** Bounded sequential-role continuation, owned by the admitted parent request. */
+  onFinished?: (info: SubAgentInfo) => Promise<void>;
   parentToolCallId?: string;
   /** Runtime-owned state journal callback; no new execution authority. */
   onStateChange?: (info: SubAgentInfo) => void;
@@ -274,6 +281,7 @@ export function createSubAgentToolExecutor(
  * 主会话不 await 它，fire-and-forget。
  */
 export class SubAgentSession {
+  continuationPending = false;
   readonly id: string;
   readonly skillName?: string;
   readonly taskDescription: string;
@@ -284,6 +292,8 @@ export class SubAgentSession {
   completedAt?: number;
   resultNotice?: SubAgentInfo['resultNotice'];
 
+  private readonly metrics = new Metrics();
+  private readonly toolResults: RunToolResult[] = [];
   private messages: Message[] = [];
   private readonly pendingSteers: Message[] = [];
   private stopped = false;
@@ -293,6 +303,8 @@ export class SubAgentSession {
   private readonly abortController = new AbortController();
   /** 挂起等待主 agent 回答的问题 */
   private pendingQuestion: string | null = null;
+  private pendingQuestionId?: string;
+  private requiresUserConfirmation = true;
   private pendingResolve: ((answer: string) => void) | null = null;
   private pendingWaitPromise: Promise<string> | null = null;
   private readonly sessionTurnLogger: SessionTurnLogger;
@@ -469,6 +481,8 @@ export class SubAgentSession {
 
     // 创建独立的 ConversationRunner（不注入 channel，子智能体不直接和用户通信）
     const runner = new ConversationRunner(this.aiService, toolExecutor, {
+      metrics: this.metrics,
+      observabilityMetricMode: 'mirror_only',
       maxTurns: this.options.maxTurns ?? skill?.metadata.maxTurns ?? 100,
       initialSkillName: this.selectedSkillName || this.skillName,
       initialSkillToolsets: skill?.metadata.toolsets,
@@ -488,8 +502,14 @@ export class SubAgentSession {
     });
 
     // 7. 用 callbacks 捕获进度
+    const toolCalls = new Map<string, ToolCall>();
     const callbacks: RunnerCallbacks = {
-      onToolEnd: (name, _toolUseId, result) => {
+      onToolStart: (name, id, input) => {
+        toolCalls.set(id, { id, type: 'function', function: { name, arguments: JSON.stringify(input) } });
+      },
+      onToolEnd: (name, id, result, facts) => {
+        const toolCall = toolCalls.get(id);
+        if (toolCall && facts) this.toolResults.push({ toolCall, toolName: name, result: facts });
         this.detectAndReportProgress(name, result);
       },
     };
@@ -513,14 +533,15 @@ export class SubAgentSession {
 
     this.sessionTurnLogger.logRuntimeEvent('session_completed', {
       ...this.lifecycleEvidence(runResult.exhausted ? 'incomplete' : 'success'),
+      model_call_count: this.metrics.getSummary().aiCalls,
       duration_ms: Math.max(0, this.completedAt - this.runStartedAt),
-      tool_call_count: runResult.toolResults.length,
+      tool_call_count: this.toolResults.length,
     });
     this.sessionTurnLogger.logTurn(
       this.options.userMessage,
       runResult.response || '',
-      runResult.toolResults.map(record => this.toSessionToolCallLog(record)),
-      { prompt: 0, completion: 0 },
+      this.toolResults.map(record => this.toSessionToolCallLog(record)),
+      { prompt: this.metrics.getSummary().totalPromptTokens, completion: this.metrics.getSummary().totalCompletionTokens },
       runResult.toolVisibility,
     );
     this.traceRecorded = true;
@@ -570,7 +591,7 @@ export class SubAgentSession {
   /**
    * 挂起当前子智能体，向父会话请求输入。
    */
-  async waitForParentInput(question: string): Promise<string> {
+  async waitForParentInput(question: string, requiresUserConfirmation = true): Promise<string> {
     if (this.stopped) {
       return '（任务已被停止）';
     }
@@ -580,6 +601,8 @@ export class SubAgentSession {
 
     this.status = 'waiting_for_input';
     this.pendingQuestion = question;
+    this.pendingQuestionId = `question:${this.id}:${randomUUID()}`;
+    this.requiresUserConfirmation = requiresUserConfirmation;
     this.reportProgress(`等待主会话输入：${question}`);
 
     const waitPromise = new Promise<string>(resolve => {
@@ -622,6 +645,8 @@ export class SubAgentSession {
       progressLog: [...this.progressLog],
       resultSummary: this.resultSummary,
       pendingQuestion: this.pendingQuestion ?? undefined,
+      ...(this.continuationPending && { continuationPending: true }),
+      ...(this.pendingQuestion && { pendingQuestionId: this.pendingQuestionId, requiresUserConfirmation: this.requiresUserConfirmation }),
       outputFiles: [...this.outputFiles],
       ...(this.resultNotice && { resultNotice: { ...this.resultNotice } }),
       ...(this.pendingSteers.length && { undeliveredMessages: this.pendingSteers.map(message => String(message.content)) }),
@@ -727,14 +752,15 @@ export class SubAgentSession {
     if (this.traceRecorded) return;
     this.sessionTurnLogger.logRuntimeEvent('session_completed', {
       ...this.lifecycleEvidence('stopped'),
+      model_call_count: this.metrics.getSummary().aiCalls,
       duration_ms: Math.max(0, (this.completedAt || Date.now()) - this.runStartedAt),
       error_code: 'SUBAGENT_STOPPED',
     });
     this.sessionTurnLogger.logTurn(
       this.options.userMessage,
       this.resultSummary || 'Subagent stopped before completion.',
-      [],
-      { prompt: 0, completion: 0 },
+      this.toolResults.map(record => this.toSessionToolCallLog(record)),
+      { prompt: this.metrics.getSummary().totalPromptTokens, completion: this.metrics.getSummary().totalCompletionTokens },
     );
     this.traceRecorded = true;
   }
@@ -744,6 +770,7 @@ export class SubAgentSession {
     const message = error instanceof Error ? error.message : String(error || 'Unknown subagent failure');
     this.sessionTurnLogger.logRuntimeEvent('provider_error', {
       ...this.lifecycleEvidence('failure'),
+      model_call_count: this.metrics.getSummary().aiCalls,
       duration_ms: Math.max(0, (this.completedAt || Date.now()) - this.runStartedAt),
       error_code: 'SUBAGENT_RUN_FAILED',
       retryable: false,
@@ -755,8 +782,8 @@ export class SubAgentSession {
     this.sessionTurnLogger.logTurn(
       this.options.userMessage,
       this.resultSummary || `执行失败: ${message}`,
-      [],
-      { prompt: 0, completion: 0 },
+      this.toolResults.map(record => this.toSessionToolCallLog(record)),
+      { prompt: this.metrics.getSummary().totalPromptTokens, completion: this.metrics.getSummary().totalCompletionTokens },
     );
     this.traceRecorded = true;
   }

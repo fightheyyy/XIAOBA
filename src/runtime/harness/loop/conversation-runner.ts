@@ -121,6 +121,7 @@ export type ObservabilityMetricMode = 'local_and_mirror' | 'mirror_only';
 
 /** ConversationRunner 构造选项 */
 export interface RunnerOptions {
+  metrics?: Metrics;
   /** Called at legal transcript boundaries before each provider request, including after compaction. */
   prepareMessages?: (messages: Message[]) => void;
   /** Inbox snapshot; only the running loop may append these messages to its transcript. */
@@ -156,6 +157,7 @@ export interface RunnerOptions {
  * 依赖 ToolExecutor 抽象，同时支持 ToolManager（主会话）和 AgentToolExecutor（子 agent）。
  */
 export class ConversationRunner {
+  private readonly metrics: Metrics;
   private maxTurns: number;
   private runId?: string;
   private compressor: ContextCompressor;
@@ -190,6 +192,7 @@ export class ConversationRunner {
     private toolExecutor: ToolExecutor,
     options?: RunnerOptions,
   ) {
+    this.metrics = options?.metrics ?? new Metrics();
     this.maxTurns = options?.maxTurns ?? 150;
     this.stream = options?.stream ?? true;
     this.shouldContinue = options?.shouldContinue;
@@ -209,6 +212,7 @@ export class ConversationRunner {
       ? `${this.toolExecutionContext.sessionId} `
       : '';
     this.compressor = new ContextCompressor(this.aiService, {
+      metrics: this.metrics,
       maxContextTokens: this.maxPromptTokens,
       compactionThreshold: resolveCompactionThreshold(),
     });
@@ -330,6 +334,7 @@ export class ConversationRunner {
       try {
         throwIfCancelled(this.toolExecutionContext?.abortSignal);
         response = await this.requestModelResponse(requestMessages, activeTools, callbacks);
+        this.metrics.recordAICall(this.stream ? 'stream' : 'chat', response.usage);
         throwIfCancelled(this.toolExecutionContext?.abortSignal);
         const aiDuration = Date.now() - aiStartTime;
         const modelAttrs = {
@@ -393,7 +398,6 @@ export class ConversationRunner {
       }
 
       if (response.usage) {
-        Metrics.recordAICall(this.stream ? 'stream' : 'chat', response.usage);
         Logger.info(`[${this.sessionLabel}Turn ${turns}] AI返回 tokens: ${response.usage.promptTokens}+${response.usage.completionTokens}=${response.usage.totalTokens}`);
       }
 
@@ -578,7 +582,7 @@ export class ConversationRunner {
           result,
         });
         const toolDuration = Date.now() - toolStart;
-        Metrics.recordToolCall(toolName, toolDuration);
+        this.metrics.recordToolCall(toolName, toolDuration);
         const toolResultAttrs = {
           ...this.baseObservabilityAttributes(),
           'xiaoba.turn': turns,

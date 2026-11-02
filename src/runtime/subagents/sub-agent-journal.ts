@@ -23,6 +23,9 @@ export class SubAgentJournal {
         || !['running','waiting_for_input','completed','failed','stopped'].includes(info.status))throw new Error('SUBAGENT_JOURNAL_INVALID');
       if(info.resultNotice && (typeof info.resultNotice.id!=='string' || !info.resultNotice.id
         || info.resultNotice.handledAt!==undefined && !Number.isFinite(info.resultNotice.handledAt)))throw new Error('SUBAGENT_JOURNAL_INVALID');
+      if (info.pendingQuestionId !== undefined && typeof info.pendingQuestionId !== 'string'
+        || info.requiresUserConfirmation !== undefined && typeof info.requiresUserConfirmation !== 'boolean'
+        || info.continuationPending !== undefined && typeof info.continuationPending !== 'boolean') throw new Error('SUBAGENT_JOURNAL_INVALID');
       if(record.parent!==parent)return [];
       return [record];
     });
@@ -32,6 +35,10 @@ export class SubAgentJournal {
       || record.info.resultNotice && !record.info.resultNotice.handledAt);
     return records.flatMap(record => {
       const info = record.info as SubAgentInfo;
+      if (info.continuationPending && record.host === hostname()) {
+        try { process.kill(record.pid, 0); }
+        catch (error: any) { if (error.code === 'ESRCH') return [{ ...info, continuationPending: false, recoveryNote: '原进程已退出，顺序后续阶段未自动恢复；已有阶段结果保留，需核实剩余工作。' }]; }
+      }
       if(['running','waiting_for_input'].includes(info.status)) {
         // Another live process or unknown host retains ownership; never claim its work.
         if(record.host!==hostname())return [];
