@@ -1,0 +1,334 @@
+{
+  "suite_id": "xiaoba-jev-router-v2-live-v1",
+  "runs_per_case": 3,
+  "mock_subagent_execution": false,
+  "main_model": "gpt-5.6-luna(low)",
+  "jev_model": "jev-1.13-free",
+  "notes": "Controlled isolated workspaces and recorded channel callbacks; real Main, Jev and child LLMs/tools. Task fixtures are real running/waiting children. Functional acceptance cases, not a representative production workload.",
+  "cases": [
+    {
+      "case_id": "JV2-01",
+      "group": "chat",
+      "user_message": "你好，今天怎么样？",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-02",
+      "group": "chat",
+      "user_message": "Agent Loop 和 Harness 有什么区别？直接解释，不查资料。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-03",
+      "group": "chat",
+      "user_message": "只根据 A=10、B=14、C=12 总结结论。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-04",
+      "group": "chat",
+      "user_message": "TypeError: Cannot read properties of undefined (reading id) 是什么意思？只解释。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-05",
+      "group": "chat",
+      "user_message": "先讨论论文摘要怎么改，不打开或修改文件。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-06",
+      "group": "chat",
+      "user_message": "把“注册工具、模型调用、读取结果、继续循环”概括成两句话。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-07",
+      "group": "chat",
+      "user_message": "不要执行任务，只说说通常如何排查重复派发。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-08",
+      "group": "chat",
+      "user_message": "解释代码 review 与运行测试的区别，不需要实际执行。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-09",
+      "group": "capability",
+      "user_message": "请列出当前会话已保存的提醒，不新建提醒。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-10",
+      "group": "spawn",
+      "user_message": "请派 EngineerCat 只读检查 {workspace}/input.json 的 count 字段并汇报，使用原生 read_file，不调用外部编码代理。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "37"
+      ]
+    },
+    {
+      "case_id": "JV2-11",
+      "group": "spawn",
+      "user_message": "请派 EngineerCat 读取 {workspace}/sample.ts，指出空值访问问题，只给修复建议不修改文件，使用原生工具。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "id"
+      ]
+    },
+    {
+      "case_id": "JV2-12",
+      "group": "spawn",
+      "user_message": "请派 EngineerCat 用原生工具在 {workspace}/result.txt 写入 DONE42，然后读取确认。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "DONE42"
+      ]
+    },
+    {
+      "case_id": "JV2-13",
+      "group": "spawn",
+      "user_message": "请派 EngineerCat 核对 {workspace}/numbers.txt 三个数字之和，使用原生读取，不运行外部编码代理。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "36"
+      ]
+    },
+    {
+      "case_id": "JV2-14",
+      "group": "spawn",
+      "user_message": "请派 EngineerCat 只读检查 {workspace}/sample.ts 是否存在 getId 函数，使用原生工具。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "getId"
+      ]
+    },
+    {
+      "case_id": "JV2-15",
+      "group": "spawn",
+      "user_message": "请派 ReviewerCat 只读审查 {workspace}/sample.ts 的 getId 空值处理，报告证据和结论，不运行外部工具。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "reviewer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "getId"
+      ]
+    },
+    {
+      "case_id": "JV2-16",
+      "group": "spawn",
+      "user_message": "请派 InspectorCat 只读查看 {workspace}/trace.jsonl 中的失败事件，指出阶段和错误码，不修改代码。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "inspector-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "TOOL_TIMEOUT"
+      ]
+    },
+    {
+      "case_id": "JV2-17",
+      "group": "spawn",
+      "user_message": "请派 BrowserCat 访问 https://example.com ，报告页面标题与来源，只读访问。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "browser-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "Example Domain"
+      ]
+    },
+    {
+      "case_id": "JV2-18",
+      "group": "question",
+      "user_message": "请派 EngineerCat 读取 {workspace}/input.json；执行前必须用 ask_parent 向 Main 询问项目代号，这只是信息问题（requires_user_confirmation=false）。项目代号已明确为 PROJECT42，拿到回答后汇报 count。使用原生工具。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat"
+      ],
+      "setup": null,
+      "required_fragments": [
+        "37"
+      ]
+    },
+    {
+      "case_id": "JV2-19",
+      "group": "control",
+      "user_message": "查询当前会话后台任务的状态和任务 ID，不新建任务。",
+      "expected_action": "check",
+      "expected_roles": [],
+      "setup": "waiting",
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-20",
+      "group": "control",
+      "user_message": "停止当前等待我回答的任务，不要再运行它。",
+      "expected_action": "stop",
+      "expected_roles": [],
+      "setup": "waiting",
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-21",
+      "group": "control",
+      "user_message": "回答当前挂起任务的问题：我确认使用 {workspace}/input.json，请恢复继续执行。",
+      "expected_action": "resume",
+      "expected_roles": [],
+      "setup": "waiting",
+      "required_fragments": [
+        "37"
+      ]
+    },
+    {
+      "case_id": "JV2-22",
+      "group": "control",
+      "user_message": "补充刚才正在运行的任务：最终结果里必须保留 STEER42 标记，其余原要求继续，不新建任务。",
+      "expected_action": "steer",
+      "expected_roles": [],
+      "setup": "running",
+      "required_fragments": [
+        "STEER42"
+      ]
+    },
+    {
+      "case_id": "JV2-23",
+      "group": "ambiguity",
+      "user_message": "停掉那个任务。",
+      "expected_action": "clarify",
+      "expected_roles": [],
+      "setup": "two_waiting",
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-24",
+      "group": "chat",
+      "user_message": "先别停止后台任务，我只是想听你解释一下为什么任务会等待输入，不做任何任务操作。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": "waiting",
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-25",
+      "group": "chat",
+      "user_message": "我现在只是想聊聊天，不回答刚才的问题，也别恢复任务。",
+      "expected_action": "none",
+      "expected_roles": [],
+      "setup": "waiting",
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-26",
+      "group": "parallel",
+      "user_message": "同时派 EngineerCat 读取 {workspace}/input.json 的 count，并派 ReviewerCat 独立审查 {workspace}/sample.ts；分别执行各自部分，最后一起汇报。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat",
+        "reviewer-cat"
+      ],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-27",
+      "group": "parallel",
+      "user_message": "并行让 EngineerCat 核对 {workspace}/input.json、ReviewerCat 审查 {workspace}/sample.ts、InspectorCat 分析 {workspace}/trace.jsonl，各自只读，最后合并结论。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat",
+        "reviewer-cat",
+        "inspector-cat"
+      ],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-28",
+      "group": "sequential",
+      "user_message": "先让 EngineerCat 只读分析 {workspace}/sample.ts；完成后把结果交给 ReviewerCat 复核，必须按此顺序，不并行。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat",
+        "reviewer-cat"
+      ],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-29",
+      "group": "sequential",
+      "user_message": "严格按顺序：EngineerCat 分析 {workspace}/sample.ts，之后 InspectorCat 结合前一步结果查看 {workspace}/trace.jsonl，最后 ReviewerCat 复核前两步结论。不修改文件。",
+      "expected_action": "spawn",
+      "expected_roles": [
+        "engineer-cat",
+        "inspector-cat",
+        "reviewer-cat"
+      ],
+      "setup": null,
+      "required_fragments": []
+    },
+    {
+      "case_id": "JV2-30",
+      "group": "ambiguity",
+      "user_message": "帮我完成那个项目的全部上线流程，你自己决定需求、架构、账户、发布目标与付款，不需要我提供任何资料。",
+      "expected_action": "clarify",
+      "expected_roles": [],
+      "setup": null,
+      "required_fragments": []
+    }
+  ]
+}

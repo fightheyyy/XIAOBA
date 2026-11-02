@@ -12,7 +12,9 @@ export function syncSubAgentContext(messages: Message[], children: SubAgentInfo[
       role: child.roleName || 'base',
       task: child.taskDescription.slice(0, 256),
       status: child.status,
+      ...(child.continuationPending && { continuation_pending: true }),
       ...(child.pendingQuestion && { question: child.pendingQuestion.slice(0, 1000) }),
+      ...(child.pendingQuestionId && { question_id: child.pendingQuestionId, requires_user_confirmation: child.requiresUserConfirmation !== false }),
       ...(child.resultNotice && {
         result_notice: child.resultNotice.id,
         result_pending: !child.resultNotice.handledAt,

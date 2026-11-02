@@ -1,7 +1,7 @@
 # Agent Runtime SPEC
 
 状态：Active
-最后更新：2026-10-31
+最后更新：2026-11-02
 适用范围：XiaoBa 的核心 agent harness runtime，包括 `src/runtime`、`src/runtime/harness/models`、`src/capabilities/tools`、`src/runtime/contracts/tool.ts` 和 runtime-facing harness docs。
 
 本文是顶层架构模块之一的 Agent Runtime spec。它定义 agent loop、provider transcript、tool boundary 和 session lifecycle；入口、角色策略、观测证据、评测和 Arena 分别由各自模块 spec 维护。
@@ -29,6 +29,12 @@ Out of scope:
 - Test、Case Replay、Verifier、Reviewer Judge 和 EvaluationResult 归 [`../evaluation/SPEC.md`](../evaluation/SPEC.md)。
 
 ## Current Architecture
+
+Jev V2 已实现为可选 Base 路径；未配置时保持 Legacy。AgentSession 在同一请求中并行启动 Main/Jev，路由事实经现有 inbox 在推理边界消费；真实用户插话走原 Surface 队列重新 admission，内部完成/失败/问题不路由。ToolManager 隐藏并拒绝正常 Main 的五项控制调用，Runtime 通过共享执行入口复用原工具和 SubAgentManager。信息问题用唯一 question_id 单次消费，确认问题仅真实用户回答。顺序阶段沿用终态回调，continuation_pending 覆盖阶段间合并交付空隙，进程死亡后不自动续跑。
+
+Adapter 单次 HTTP 请求含 action、parallel、stage_1/2/3 五个有限选择题，避免单题 255 选项上限；选择组合在本地候选表再次核对。最多 11 个可路由角色、单独可选最近 64 个终态任务（活动/中断任务保留）；超限技术回退。总时限默认 2000ms，最多三次额外重试共享时限；401/403 或有效 Retry-After 直接回退。迟到/取消决定丢弃，同请求 turnId/actionIndex 防重，不承诺跨崩溃 exactly-once。
+
+请求计数器由 AgentSession 显式传给自身压缩器和 ConversationRunner；SubAgentSession 独立持有计数器并在 provider 重试之间保留累计事实。Standalone Runner/Compressor 默认创建独立实例，不继承其他会话的统计。计数与本地 Trace 投影合同归 Observability & Evidence SPEC；不改变角色、工具权限或共享 Agent loop。文件沙箱预检及 worker 输入共用真实工作目录，避免符号链接别名造成误拦截；源码 worker 禁用 tsx 磁盘缓存，沙箱只额外允许读取应用 package.json 供 Node 模块解析，不放开工作区外写入。
 
 收到并确认的终态结果继续保留在现有任务视图中，result_pending 区分内部待接收状态，不能当成用户交付回执。普通保留期内可重建已收材料；同一父会话还有未完成工作或待接收结果时，过期已收材料延后清理，待全部处理后恢复清理。同一父会话仍有活动子任务时，成功完成只留存结果，不逐项唤醒 Main；最后一项结束（包括停止）刷新待交接结果，由既有串行队列和回执去重。问题与失败仍立即反馈，普通用户消息不受此合并规则影响；Main 继续决定最终内容和交付意图，不新增任务组状态机。
 
@@ -68,9 +74,14 @@ Current addendum：显式配置 `allowedWriteRoot` 的窄 SubAgent workflow 现�
 
 ```mermaid
 flowchart LR
+    UserV2["User admission"] --> MainV2["Main / same Session"]
+    UserV2 --> JevV2["Jev finite choices"]
+    JevV2 --> ActionsV2["Runtime / existing Manager"]
+    JevV2 -->|technical failure| LegacyV2["Legacy Main"]
+    ActionsV2 -->|facts / child feedback| MainV2
     Tools --> UIChannel["Optional Main UI delivery"]
     Subagent --> Activity["Parent tool identity / state callback"]
-    MainTools["Base Main / delivery / child controls / read / timer"] --> ToolManager
+    MainTools["Base Main / delivery / read / timer; Legacy controls"] --> ToolManager
     ChildTools["Role execution / installed active Skill"] --> Execution
     Tools --> Execution["Shell / file tools / bounded workers"]
     Execution --> Sandbox["Shared SandboxExecutor / Anthropic SDK"]
@@ -91,8 +102,8 @@ flowchart LR
     end
 
     subgraph Runtime["Runtime"]
-        Session["AgentSession<br/>runtime/sessions"]
-        Subagent["SubAgentSession"]
+        Session["AgentSession<br/>request-owned metrics"]
+        Subagent["SubAgentSession<br/>independent metrics"]
         PromptManager["PromptManager<br/>prompts + includes"]
         Compressor["ContextCompressor"]
         Runner["ConversationRunner<br/>runtime/harness/loop"]
@@ -171,6 +182,8 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 
 ## Target Architecture
 
+Jev Router V2：真实新用户消息同时启动 Main 与 Jev；Runtime 从会话快照构造 none/clarify、spawn（最多三个 Role，parallel/sequential）、check/stop/steer/resume 的有限候选。Main 不等路由交付，决定与操作事实仅在合法推理边界进入 transcript。执行复用五项 Tool/Manager 校验，执行前复查归属、状态、问题 ID、取消与 turnId/actionIndex；迟到路由无效。简单顺序链在已有 child 终态回调继续，失败/停止不继续，不提供通用 DAG 或跨崩溃恢复。技术错误（含未知候选）以总时限 2000ms、最多三次额外重试收敛到同 Session Legacy；none/clarify 与执行失败不回退。正常 Main 隐藏五项工具，仅在存在 pendingQuestion 时开放 question_id/answer 的受限回答桥；确认型问题必须真实用户回答。
+
 已被 Main 收下的近期终态结果继续进入有界任务视图，包含结果摘要、产物与 result_pending；这样在后续消息或压缩后仍可综合多份材料。普通保留窗口仍为 30 分钟；同一父会话还有未完成或未接收结果时保留先前材料，全部处理后清理过期已收结果。通知确认表示 Main 已处理内部反馈，不表示已向用户交付。Runtime 保持独立 child 并行，合并同一父会话的成功完成唤醒，不阻塞用户交互、问题或失败；交付内容归 Base prompt，不新增任务组/工具/调度器。
 
 Base Main 的默认工具面收敛为读取文件、显式交付、子任务创建/查询/插话/回答/停止和 session 提醒。通用文件修改、搜索与 Shell 由执行 Role 使用；显式安装并激活的 Base Skill 可在原有权限范围内临时使用这些工具。Session 将已加载 Skill 名称快照传入现有 ToolExecutionContext，不在工具筛选时扫描磁盘。ask_parent 属于 child；未配置的 Connector/MCP 不暴露空入口。工具发现与执行共用同一可见性判断，不增加工具路由器或第二套循环。
@@ -187,6 +200,11 @@ Dashboard Intelligent Chat 仍使用 Base 的同一 AgentSession / ConversationR
 
 ```mermaid
 flowchart LR
+    UserInput["Authentic user"] --> MainV2["Main / existing loop"]
+    UserInput --> JevV2["Jev finite choices"]
+    JevV2 --> ExecuteV2["Runtime / existing Manager"]
+    ExecuteV2 --> MainV2
+    JevV2 -->|technical failure| LegacyV2["Legacy Main, same Session"]
     MainTools["Base Main / delivery / child controls / read / timer"] --> ToolManager
     ChildTools["Role execution / installed active Skill"] --> Execution
     Tools --> UIChannel["Optional Main UI delivery"]

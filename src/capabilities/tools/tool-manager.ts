@@ -30,6 +30,7 @@ import { SendFileTool } from './send-file-tool';
 import { SendTextTool } from './send-text-tool';
 import { SendUITool } from './send-ui-tool';
 import { SpawnSubagentTool } from './spawn-subagent-tool';
+import { AnswerChildQuestionTool } from './answer-child-question-tool';
 import { CheckSubagentTool } from './check-subagent-tool';
 import { StopSubagentTool } from './stop-subagent-tool';
 import { ResumeSubagentTool } from './resume-subagent-tool';
@@ -65,12 +66,14 @@ export interface ToolManagerOptions {
 const CHANNEL_SURFACES = new Set(['feishu', 'weixin', 'pet', 'dashboard']);
 const DEFAULT_TOOL_VISIBILITY_MODE = 'all';
 const MAIN_BASE_TOOLS = new Set([
+  'answer_child_question',
   'read_file', 'spawn_subagent', 'check_subagent', 'steer_subagent',
   'resume_subagent', 'stop_subagent', 'schedule_reminder', 'skill',
   'connector_describe', 'gmail_read', 'gmail_write_confirmed',
   'notion_read', 'notion_write_confirmed', 'github_read', 'github_write_confirmed',
 ]);
 const MAIN_SKILL_EXECUTION_TOOLS = new Set(['write_file', 'edit_file', 'glob', 'grep', 'execute_shell']);
+export const SUBAGENT_CONTROL_TOOLS = new Set(['spawn_subagent', 'check_subagent', 'stop_subagent', 'steer_subagent', 'resume_subagent']);
 const CONFIRMATION_PAYLOAD_MISMATCH = 'TOOL_CONFIRMATION_PAYLOAD_MISMATCH';
 const CONFIRMATION_NEGATION_PATTERN = /(^|\b)(no|not|never|cancel|stop|reject|denied|deny|don't|do not|dont|hold off|wait)(\b|$)|(?:不确认|不可以|不同意|不要|不用|别|先别|暂时别|取消|撤回|停止|拒绝)/i;
 const CONFIRMATION_AFFIRMATIVE_PATTERN = /(^|\b)(confirm|confirmed|approve|approved|yes|ok|okay|go ahead|do it|looks good|ship it|send it|delete it|create it|update it)(\b|$)|(?:确认|可以|同意|批准|照做|就这样|没问题|按这个|按这样|发吧|发送吧|删吧|删除吧|创建吧|更新吧|执行吧)/i;
@@ -171,6 +174,7 @@ export class ToolManager implements ToolExecutor {
 
     // 元工具
     this.registerBaseTool(new SpawnSubagentTool());
+    this.registerBaseTool(new AnswerChildQuestionTool());
     this.registerBaseTool(new ScheduleReminderTool());
     for (const tool of createConnectorTools(new AgentConnectorService(this.workingDirectory))) this.registerBaseTool(tool);
 
@@ -244,6 +248,15 @@ export class ToolManager implements ToolExecutor {
   /**
    * 执行工具调用
    */
+  async executeSubagentOperation(call: ToolCall, history: any[], context: Partial<ToolExecutionContext>): Promise<ToolResult> {
+    const resolved = this.resolveVisibilityContext(context);
+    if (!SUBAGENT_CONTROL_TOOLS.has(call.function.name) || resolved.parentSessionId
+      || !['base', 'default', 'none'].includes(resolved.roleName || '') || resolved.sessionId?.startsWith('subagent:')) {
+      return buildCanonicalToolResult({ tool_call_id: call.id, name: call.function.name, content: '需要可信 Main Runtime 操作上下文', status: 'blocked', errorCode: 'TOOL_FORBIDDEN_FOR_CONTEXT' });
+    }
+    return this.executeTool(call, history, { ...context, subagentRouting: 'legacy' });
+  }
+
   async executeTool(
     toolCall: ToolCall,
     conversationHistory?: any[],
@@ -1286,6 +1299,7 @@ export class ToolManager implements ToolExecutor {
     const isMain = ['base', 'default', 'none'].includes(normalizeRoleName(context.roleName))
       && !context.parentSessionId && !context.sessionId?.startsWith('subagent:');
     if (isMain) {
+      if (context.subagentRouting === 'jev' && SUBAGENT_CONTROL_TOOLS.has(toolName)) return false;
       if (toolName === 'skill') return Boolean(context.availableSkillNames?.length);
       if (MAIN_SKILL_EXECUTION_TOOLS.has(toolName)) {
         return Boolean(context.activeSkillName && context.availableSkillNames?.includes(context.activeSkillName));

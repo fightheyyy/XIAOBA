@@ -120,7 +120,7 @@ export class SubAgentManager {
     workingDirectory: string,
     aiService: AIService,
     skillManager: SkillManager,
-    spawnOptions: Pick<SubAgentSpawnOptions, 'roleName' | 'allowSkillSelection' | 'observabilityContext' | 'parentSessionId' | 'parentToolCallId'> = {},
+    spawnOptions: Pick<SubAgentSpawnOptions, 'roleName' | 'allowSkillSelection' | 'observabilityContext' | 'parentSessionId' | 'parentToolCallId' | 'onFinished'> = {},
   ): SubAgentInfo | { error: string } {
     // 并发限制
     const active = this.listByParent(parentSessionKey,workingDirectory).filter(s => SubAgentManager.isActiveStatus(s.status));
@@ -165,7 +165,7 @@ export class SubAgentManager {
         const msg = `[子智能体 ${subAgentId} 反馈]\n任务：${taskDesc}\n需要你的指示：${question}`;
         if(this.platformCallbacks.get(parentSessionKey)!==platform) throw new Error('Parent callback is no longer registered.');
         await platform.injectMessage(msg, {
-          id: `question:${subAgentId}`, subagentId: subAgentId, workingDirectory, question,
+          id: this.getInfo(subAgentId)?.pendingQuestionId || `question:${subAgentId}`, subagentId: subAgentId, workingDirectory, question,
         });
       },
     };
@@ -177,9 +177,16 @@ export class SubAgentManager {
     this.childPlatforms.set(id, platform);
 
     // fire-and-forget
-    session.run().finally(() => {
+    session.run().finally(async () => {
       if (session.status !== 'stopped') session.resultNotice = { id: `result:${id}` };
+      session.continuationPending = session.status === 'completed' && Boolean(spawnOptions.onFinished)
+        && this.platformCallbacks.get(parentSessionKey) === platform;
       recordState(session.getInfo());
+      if (session.continuationPending) {
+        try { await spawnOptions.onFinished?.(session.getInfo()); }
+        catch (error: any) { Logger.warning(`[SubAgentManager] 顺序后续阶段未启动: ${error.message}`); }
+        finally { session.continuationPending = false; recordState(session.getInfo()); }
+      }
       // Coalesce successful completion wakeups while this parent's other work is
       // still executing. Questions/failures remain immediate; chat never waits.
       // Even a stopped final child must release previously collected results.
@@ -220,7 +227,8 @@ export class SubAgentManager {
   shouldHandleFeedback(parent: string, notice: SubAgentFeedbackNotice): boolean {
     if (notice.question === undefined) return this.isResultPending(parent, notice);
     const info = this.getInfoForParent(parent, notice.subagentId, notice.workingDirectory);
-    return info?.status === 'waiting_for_input' && info.pendingQuestion === notice.question;
+    return info?.status === 'waiting_for_input' && info.pendingQuestion === notice.question
+      && (!info.pendingQuestionId || info.pendingQuestionId === notice.id);
   }
 
   acknowledgeResult(parent: string, notice: SubAgentFeedbackNotice): void {
@@ -249,9 +257,9 @@ export class SubAgentManager {
 
   private async deliverResult(parent: string, info: SubAgentInfo, root: string, platform: PlatformCallbacks): Promise<void> {
     if (!info.resultNotice || info.resultNotice.handledAt) return;
-    if (info.status === 'completed' && this.listByParent(parent, root).some(other => other.id !== info.id
+    if (info.status === 'completed' && (info.continuationPending || this.listByParent(parent, root).some(other => other.continuationPending || other.id !== info.id
       && (SubAgentManager.isActiveStatus(other.status)
-        || ['completed', 'failed'].includes(other.status) && !other.resultNotice))) return;
+        || ['completed', 'failed'].includes(other.status) && !other.resultNotice)))) return;
     const key = `${root}:${info.resultNotice.id}`;
     if (this.deliveringResults.has(key)) return;
     this.deliveringResults.add(key);
@@ -311,13 +319,14 @@ export class SubAgentManager {
   /**
    * 恢复挂起的子智能体（主 agent 提供答案）
    */
-  resumeForParent(parentSessionKey: string, subAgentId: string, answer: string): 'resumed' | 'not_found' | 'forbidden' | 'not_waiting' {
+  resumeForParent(parentSessionKey: string, subAgentId: string, answer: string, questionId?: string): 'resumed' | 'not_found' | 'forbidden' | 'not_waiting' {
     const owner = this.parentMap.get(subAgentId);
     if (!owner) return 'not_found';
     if (owner !== parentSessionKey) return 'forbidden';
 
     const session = this.subAgents.get(subAgentId);
     if (!session) return 'not_found';
+    if (questionId && session.getInfo().pendingQuestionId !== questionId) return 'not_waiting';
     if (!session.resume(answer)) return 'not_waiting';
 
     Logger.info(`[SubAgentManager] 已恢复 ${subAgentId} (父会话: ${parentSessionKey})`);
@@ -334,12 +343,24 @@ export class SubAgentManager {
   /**
    * 子智能体请求父会话输入。
    */
-  async requestParentInput(subAgentId: string, question: string): Promise<string> {
+  async requestParentInput(subAgentId: string, question: string, requiresUserConfirmation = true): Promise<string> {
     const session = this.subAgents.get(subAgentId);
     if (!session) {
       throw new Error(`未找到子智能体 ${subAgentId}`);
     }
-    return session.waitForParentInput(question);
+    return session.waitForParentInput(question, requiresUserConfirmation);
+  }
+
+  answerQuestionForParent(parent: string, questionId: string, answer: string, root: string): string {
+    const child = this.listByParent(parent, root).find(info => info.status === 'waiting_for_input' && info.pendingQuestionId === questionId);
+    if (!child) return 'not_waiting';
+    if (child.requiresUserConfirmation !== false) return 'user_confirmation_required';
+    return this.resumeForParent(parent, child.id, answer, questionId);
+  }
+
+  async reportToParent(parent: string, message: string): Promise<void> {
+    const platform = this.platformCallbacks.get(parent);
+    if (platform) await platform.injectMessage(message);
   }
 
   /**

@@ -40,6 +40,8 @@ Out of scope:
 
 ## Current Architecture
 
+Base prompt 的公共内容仍在 system-prompt.md，调度片段按模式展开 main-subagent-jev.md 或 main-subagent-legacy.md。正常模式由 Jev 选择 Role/控制目标、Runtime 执行；Base 保留交流、交付、读取、提醒、Connector 和显式 Base Skill。技术故障才在原 Session 恢复旧调度提示及工具；八个角色均复用原 Agent loop。
+
 Base 的公开表达策略位于 `prompts/system-prompt.md`：一个 XiaoBa 承接用户的目标、判断与结果，用有上下文的日常语言交流。每次输入、操作完成和内部反馈都允许由 Main 决定是否开口，静默不局限于固定消息类型；未答问题、待交付结果和关键阻碍仍须跟进。闲聊不自动变成建议或报告，不要求每句话提供判断、原因和下一步。`prompts/surface.md` 只规定选择交付后的方式，不强制回应。内部 Role/Subagent 调度、结果转交和消息同步默认不进入对话或 UI 文案；用户明确询问架构/调试时如实说明。不伪装真人、现实同事或个人经历，不编造进展、记忆和完成情况。角色路由与权限仍沿用既有 Runtime 合同。
 
 Base 依据 Runtime 最新子任务视图决定继续交流、回答问题、交付结果或追加工作；无需每轮查询状态。运行中补充要求使用 Main-only steer_subagent，挂起问题继续使用 resume_subagent，停止使用 stop_subagent。八个 Role 及零默认 Base Skill 保持不变；执行与结果交接合同归 Agent Runtime。
@@ -76,7 +78,7 @@ flowchart LR
     Directory["skills.sh directory / snapshots"] --> Distribution["Shared Skill distribution adapter"]
     Distribution --> Packages["Explicit installed Skill packages"]
     Packages --> Runtime["one XiaoBa Agent loop"]
-    Base --> MainTools["Delivery / read / timer / child controls"]
+    Base --> MainTools["Delivery / read / timer; Legacy controls"]
     Runtime --> Material["Internal research results"]
     Material --> Base
     Base --> Report["Context-aware combined delivery"]
@@ -89,8 +91,9 @@ flowchart LR
     ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
     Base["Base Main Agent"] --> Timers["schedule_reminder / own session"]
     Timers --> ScheduledEvents
-    Base --> Execute["Engineer / Browser / Gui / Secretary"]
-    Base --> Improve["User / Inspector / Reviewer / Evolution"]
+    Routing["Jev or Legacy Main"] --> Dispatch["Existing Runtime execution"]
+    Dispatch --> Execute["Engineer / Browser / Gui / Secretary"]
+    Dispatch --> Improve["User / Inspector / Reviewer / Evolution"]
     Execute --> Runtime["one XiaoBa Agent loop"]
     Improve --> Runtime
     Improve -->|EvolutionCat| Remember["remember / replace / forget"]
@@ -107,7 +110,9 @@ flowchart LR
 
 ## Target Architecture
 
-连续交办的多项调研由 Base 理解交付意图并综合汇报：独立任务并行执行，收到部分结果先消化、允许静默；资料齐备后结合用户最新要求给统一判断。新增任务与修改已有任务由 Main 区分，普通聊天继续处理，是否开口结合上下文判断，不要求逐条回应。具体何时交付属于 Base 策略，不通过全局 wait-all、任务组框架或按回调强制发送实现。自然度按真实对话复核，不以回复字数或静默次数替代判断。
+Jev V2 正常 Main 专注交互、交付及既有提醒/Connector/显式 Base Skill，不选择或控制 SubAgent。Jev 选择离散动作及已知 Role/任务；Runtime 执行。正常提示去除旧调度职责，Legacy 提示与五项工具在技术故障时恢复。SubAgent 沿用原 Harness；ask_parent 必须区分信息问题与真实用户确认，Main 回答不是用户授权。
+
+连续交办的多项调研由 Base 理解交付意图并综合汇报：独立任务并行执行，收到部分结果先消化、允许静默；资料齐备后结合用户最新要求给统一判断。新增任务与修改已有任务由 Jev（Legacy 时为 Main）区分，普通聊天继续处理，是否开口结合上下文判断，不要求逐条回应。具体何时交付属于 Base 策略，不通过全局 wait-all、任务组框架或按回调强制发送实现。自然度按真实对话复核，不以回复字数或静默次数替代判断。
 
 Base 默认负责交流、判断、交付与后台协作，通用修改/搜索/Shell 归执行角色；显式安装并激活的 Base Skill 保留现有执行能力。无已安装可调用 Skill 时隐藏 skill，ask_parent 只供 child；工具面执行合同由 Agent Runtime 持有，八个角色和零默认 Skill 不变。
 
@@ -119,6 +124,8 @@ Role 只拥有策略与工件生成；控制 DAG 只编排已经存在的 Test�
 
 ```mermaid
 flowchart LR
+    JevV2["Jev action / Role selection"] --> RuntimeV2["Existing Runtime execution"]
+    RuntimeV2 --> RoleV2["Existing eight Roles / shared loop"]
     Directory["skills.sh directory / snapshots"] --> Distribution["Shared Skill distribution adapter"]
     Distribution --> Packages["Explicit installed Skill packages"]
     Packages --> Runtime["one XiaoBa Agent loop"]
@@ -162,7 +169,7 @@ flowchart LR
 
 ### User-facing and execution roles
 
-- Base Main Agent：唯一用户界面与 dispatcher。
+- Base Main Agent：唯一用户界面；Jev 模式由 Runtime 派发，Legacy 模式由 Main 选择控制操作。
 - EngineerCat：代码实现和修复；原生 coding tools 处理小修改和降级，实质性任务可委托给 role-scoped `codex_run`。
 - BrowserCat：浏览器接管。
 - GuiCat：本地桌面 GUI 接管。

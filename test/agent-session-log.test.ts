@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { AgentSession, ERROR_MESSAGE } from '../src/runtime/sessions/agent-session';
+import { PromptManager } from '../src/runtime/harness/context/prompt-manager';
 import { ContextCompressor } from '../src/runtime/harness/context/context-compressor';
 import { ToolManager } from '../src/capabilities/tools/tool-manager';
 import { Logger } from '../src/runtime/observability/logger';
@@ -239,9 +240,7 @@ describe('AgentSession session log alignment', () => {
       .filter(message => message.role === 'system')
       .map(message => String(message.content));
     assert.ok(systemTexts.some(text => text.includes('[surface:weixin]')));
-    assert.ok(systemTexts.some(text => text.includes('消息交付规则（强制）')));
-    assert.ok(systemTexts.some(text => text.includes('只有 send_text 和 send_file 会产生用户可见输出')));
-    assert.ok(systemTexts.some(text => text.includes('最终直接文本回复默认不会发送给用户')));
+    assert.ok(systemTexts.some(text => text.includes(PromptManager.getSurfacePrompt())));
     assert.ok(!systemTexts.some(text => text.includes('当前是飞书')));
 
     const savedPath = path.join(testRoot, 'data', 'sessions', 'weixin', 'user_wx-user.jsonl');

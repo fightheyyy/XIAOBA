@@ -23,6 +23,7 @@ export class ConfigManager {
     return {
       ...base,
       ...override,
+      jev: { ...base.jev, ...override.jev },
       feishu: {
         ...(base.feishu || {}),
         ...(override.feishu || {}),
@@ -91,6 +92,14 @@ export class ConfigManager {
 
     return {
       apiUrl,
+      jev: {
+        apiKey: process.env.XIAOBA_JEV_API_KEY,
+        apiUrl: process.env.XIAOBA_JEV_API_URL,
+        model: process.env.XIAOBA_JEV_MODEL || 'jev-1.13-free',
+        timeoutMs: this.parsePositiveInt(process.env.XIAOBA_JEV_TIMEOUT_MS) ?? 2000,
+        retries: Number.isInteger(Number(process.env.XIAOBA_JEV_RETRIES)) && Number(process.env.XIAOBA_JEV_RETRIES) >= 0
+          ? Number(process.env.XIAOBA_JEV_RETRIES) : 3,
+      },
       apiKey: process.env.XIAOBA_LLM_API_KEY,
       model,
       temperature: 0.7,

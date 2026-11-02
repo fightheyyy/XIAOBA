@@ -59,6 +59,8 @@ Harness is the runtime.
 
 ## Current Architecture
 
+Jev Router V2 已接入共享 Runtime：配置密钥后，真实用户消息并行进入 Main 与离散 Jev 路由，五项子任务操作由既有 Runtime 执行；未配置或技术故障恢复原 Main。功能代码与真实模型验收分开标记，验收进度见各模块 PLAN。
+
 项目级 spec 的最外层图只表达当前已经存在的 durable module 和职责边界。细节放到对应模块 spec；顶层 Mermaid 节点优先使用模块名，避免把项目级地图画成实现细节图。
 
 仓库根目录按用途归位：
@@ -119,6 +121,8 @@ flowchart LR
 
 ## Target Architecture
 
+Base Main 是唯一用户交互入口。用户批准的 Jev Router V2 将五项 SubAgent 决策迁至 Jev、执行留在既有 Runtime；正常 Main 隐藏五项工具，技术不可用恢复 Legacy Main。共享 Agent loop、Manager、Journal 和任务队列不重写。
+
 仓库目录沿用 Current Architecture 中的用途分组；构建、打包与隔离候选副本使用归位后的资源路径，现有工作区的旧技能索引保留只读兼容。
 
 源码按执行职责组织：`src/runtime/` 收敛 harness、sessions、subagents、delivery、sandbox、observability 和 contracts；`src/events/` 拥有事件接入、定时和主动唤醒；`src/memory/` 拥有长期记忆；`src/surfaces/` 拥有 CLI、IM、Pet、Dashboard 和 Bridge；`src/connectors/` 拥有外部 App 访问；`src/capabilities/` 拥有 Tools、Skills 和 Roles；`src/eval/` 收敛 Replay、Arena、Harbor 和明确隔离的工程验证支持。根目录 `eval/`、`roles/`、`skills/` 仍保存资产。代码目录不新增文档模块，继续沿用固定 14 份 SPEC/PLAN。
@@ -132,6 +136,10 @@ Case 把问题变成可执行实验，Outcome 是一次真实执行的唯一裁�
 
 ```mermaid
 flowchart LR
+    UserV2["Real user input"] --> MainV2["Main conversation"]
+    UserV2 --> JevV2["Jev finite routing"]
+    JevV2 --> RuntimeV2["Existing Runtime / SubAgentManager"]
+    JevV2 -->|technical failure| LegacyV2["Legacy Main"]
     Surface["surfaces"] --> Event["events<br/>shared trigger admission"]
     Event --> Runtime["runtime<br/>one shared Agent loop"]
     Surface --> Runtime

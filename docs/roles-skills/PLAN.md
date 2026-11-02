@@ -6,6 +6,8 @@ Owner：Policy maintainers
 
 ## Current Status
 
+Jev Router V2（2026-11-02，Owner: Roles / Runtime，已实现、回复质量待收敛）：正常与 Legacy 调度提示已拆分，共享交付、提醒、Connector、Base Skill 不变；八个 Role 沿用原 loop。真实验收发现 Main 会因缺少控制 Schema 过早拒绝派工，已补本轮 Runtime 接收状态上下文，独立真实复验 3 个 B 场景均未再错误拒绝能力（另有 3 个 A 对照），记录在 eval/benchmarks/jev-v2/2026-11-02.json 的 followup；其中 Reviewer blocked 仍不算语义成功。Reviewer 缺少 Case/Oracle/Trace 时的 blocked 仍是合法结果，不改角色边界来提高分数。下一步复核自然回复与角色输入契合度，不宣称全场景稳定。
+
 对话自主性（2026-10-31，Owner: Policy，已调整，待用户体验验收）：用户复核指出回应仍像报告，且 Surface 对静默的限制与 Base 冲突。已精简 Base 说话策略，明确每次输入均由 Main 判断是否值得开口，保留问题/结果/阻碍的跟进责任；删除固定“判断、原因、下一步”结构与模板示例，普通聊天默认一条短消息，不追加建议或总结。Surface 只规定交付方式，缺失资产时的 fallback 保持一致。不增加工具或状态。构建及相关交付/异步/工具检查 29/29 通过；真实模型五轮复验，明确不接话及自然离开话题两轮均静默，另外三轮实际交付回答且无派工。复验早期仍出现长篇说教与追加消息，最终版本收敛为单条回复；证据在 output/test/main-turn-taking。Dashboard 已在空闲时重启加载新版本，保留原对话。下一步：按真实用户交流判断自然度，不以脚本通过或消息长度代替体验验收。
 
 多任务综合交付（2026-10-31，Owner: Policy，已实现）：Base prompt 区分新增任务、原需求补充、内部材料接收和公开交付；连续交办的相关调研默认消化完再一次综合汇报，普通聊天继续，失败/取消不无限等待。策略位于 prompts/system-prompt.md，Surface 交付提示与 spawn 返回提示仅保持语义一致，不把人格策略塞进 schema。真实模型同时调研 RSI 原文与 personal agent GitHub 项目，项目先完成保持静默；临时 AG-UI/A2UI 问题正常回答，两项齐后主动给出一份含取舍与来源的综合结论。运行证据及工程测试计数由 Agent Runtime PLAN 持有。下一步：继续观察泛化和表达简洁度；提示词不保证每种模型都始终遵守，不将本次通过当作论文事实准确率评分。

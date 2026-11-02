@@ -2,6 +2,9 @@ import { isCancellation } from './cancellation';
 import * as crypto from 'crypto';
 import { Message } from '../contracts';
 import { AIService } from '../harness/models/ai-service';
+import { JevAdapter, JevRouter, buildRouteCandidates, JevRoutingInput, TaskAction } from '../harness/models/jev-router';
+import { ConfigManager } from '../config';
+import { executeJevAction } from '../subagents/jev-actions';
 import { ToolManager } from '../../capabilities/tools/tool-manager';
 import { SkillManager } from '../../capabilities/skills/skill-manager';
 import { SkillActivationSignal, SkillInvocationContext } from '../contracts/skill';
@@ -41,6 +44,7 @@ export interface AgentServices {
   toolManager: ToolManager;
   skillManager: SkillManager;
   roleName?: string;
+  jevRouter?: JevRouter | false;
 
 }
 
@@ -142,6 +146,7 @@ interface ProviderTranscriptDegradationInput {
  */
 export class AgentSession {
   private static readonly PROVIDER_RETRY_BUDGET = 1;
+  private readonly metrics = new Metrics();
   private messages: Message[] = [];
   private initialized = false;
   private busy = false;
@@ -161,6 +166,9 @@ export class AgentSession {
   private sessionTurnLogger: SessionTurnLogger;
   private compressor: ContextCompressor;
   private providerFailureCounts = new Map<string, number>();
+  private routingEpoch = 0;
+  private routedTurns = new Set<string>();
+  private committedChildActions = new Set<string>();
 
   constructor(
     public readonly key: string,
@@ -170,7 +178,7 @@ export class AgentSession {
     const type = sessionType || this.extractSessionType(key);
     this.sessionType = type;
     this.sessionTurnLogger = new SessionTurnLogger(type, key);
-    this.compressor = new ContextCompressor(services.aiService);
+    this.compressor = new ContextCompressor(services.aiService, { metrics: this.metrics });
   }
 
   private extractSessionType(key: string): string {
@@ -342,6 +350,12 @@ export class AgentSession {
       const transientContext = callbacksOrOptions && this.isHandleMessageOptions(callbacksOrOptions)
         ? callbacksOrOptions.transientContext : undefined;
       const surface = this.resolveSurface(explicitSurface);
+      const jevConfig = ConfigManager.getConfig().jev;
+      const isBase = !this.services.roleName || ['base', 'default', 'none'].includes(this.services.roleName);
+      const router = isBase && this.services.jevRouter !== false ? this.services.jevRouter || (jevConfig?.apiKey ? new JevAdapter(jevConfig) : undefined) : undefined;
+      if (router && !internal && explicitTraceId && this.routedTurns.has(explicitTraceId)) {
+        return { text: '', visibleToUser: false, finalResponseVisible: false };
+      }
 
       if (this.busy) {
         return { text: BUSY_MESSAGE, visibleToUser: true, finalResponseVisible: true };
@@ -383,12 +397,19 @@ export class AgentSession {
       observability.recordLog('xiaoba.session.started', baseObservabilityAttrs, 'INFO', sessionSpan.context);
 
       // 按"单次消息"统计 metrics，避免跨轮次累积导致定位困难
-      Metrics.reset();
+      this.metrics.reset();
 
       this.busy = true;
       this.interruptRequested = false;
       this.requestAbortController = new AbortController();
       this.lastActiveAt = Date.now();
+      const routingSignal = this.requestAbortController.signal;
+      const routingEpoch = this.routingEpoch;
+      const turnId = explicitTraceId || crypto.randomUUID();
+      if (router && !internal) {
+        this.routedTurns.add(turnId);
+        if (this.routedTurns.size > 100) this.routedTurns.delete(this.routedTurns.values().next().value!);
+      }
       const observedResults = new Map<string, SubAgentFeedbackNotice>();
       let processedSuccessfully = false;
 
@@ -451,23 +472,35 @@ export class AgentSession {
         }
 
         const effectiveMaxTurns = this.activeSkillMaxTurns ?? this.detectSkillMaxTurns();
+        const routeFeedback: Message[] = [];
+        const runtimeActions: RunToolResult[] = [];
+        const executionContext: import('../contracts/tool').ToolExecutionContext = {
+          workingDirectory: this.getWorkingDirectory(), conversationHistory: contextMessages,
+          sessionId: this.key, availableSkillNames: skills.map(skill => skill.metadata.name),
+          surface, permissionProfile: 'strict', abortSignal: routingSignal, channel,
+          observabilityContext: sessionSpan.context,
+          ...(this.services.roleName ? { roleName: this.services.roleName } : router ? { roleName: 'base' } : {}),
+          subagentRouting: router ? 'jev' : 'legacy',
+        };
+        const legacyPrompt = isBase ? await PromptManager.buildSystemPrompt({ roleName: 'base' }) : '';
+        const jevPrompt = router ? await PromptManager.buildSystemPrompt({ roleName: 'base', subagentRouting: 'jev' }) : '';
+        let committedRoute = false;
+        const routeAbort = new AbortController();
+        const routeSignal = AbortSignal.any([routingSignal, routeAbort.signal]);
+        const isCurrent = () => !routingSignal.aborted && this.routingEpoch === routingEpoch
+          && (committedRoute || !this.pendingSteers.some(item => item.consumed && !item.message.__injected));
+        const enqueueRouteFact = (content: string) => routeFeedback.push({ role: 'system', content: `[transient_jev]\n${content}`, __injected: true });
+        if (router && !internal) enqueueRouteFact('本轮用户输入已由 Runtime 接收，Jev 正在并行选择动作。五项控制工具故意不出现在你的工具表中；这不表示系统无法派工，不要据此拒绝任务或要求用户改用其他入口。你无需调用派工工具；可以静默或回应处理意图，只有收到实际操作事实后才确认结果。');
         const runner = new ConversationRunner(
           this.services.aiService,
           this.services.toolManager,
           {
+            metrics: this.metrics,
             ...(effectiveMaxTurns ? { maxTurns: effectiveMaxTurns } : {}),
             initialSkillName: this.activeSkillName,
             initialSkillToolsets: this.activeSkillToolsets,
             shouldContinue: () => !this.interruptRequested,
-            toolExecutionContext: {
-              sessionId: this.key,
-              availableSkillNames: skills.map(skill => skill.metadata.name),
-              surface,
-              permissionProfile: 'strict',
-              abortSignal: this.requestAbortController.signal,
-              channel,
-              ...(this.services.roleName ? { roleName: this.services.roleName } : {}),
-            },
+            toolExecutionContext: executionContext,
             observabilityContext: sessionSpan.context,
             observabilityMetricMode: 'mirror_only',
             deliveryFallbackFinalReply,
@@ -475,9 +508,12 @@ export class AgentSession {
             readPendingMessages: () => {
               const pending = this.pendingSteers.filter(item => !item.consumed);
               for (const item of pending) item.consumed = true;
-              return pending.map(item => item.message);
+              return [...routeFeedback.splice(0), ...pending.map(item => item.message)];
             },
             prepareMessages: messages => {
+              if (router && messages[0]?.role === 'system') {
+                messages[0] = { ...messages[0], content: executionContext.subagentRouting === 'jev' ? jevPrompt : legacyPrompt };
+              }
               const children = SubAgentManager.getInstance().listByParent(this.key, this.getWorkingDirectory());
               syncSubAgentContext(messages, children);
               for (const child of children) if (child.resultNotice && !child.resultNotice.handledAt) {
@@ -496,8 +532,72 @@ export class AgentSession {
           onRetry: callbacks?.onRetry,
         };
 
+        const routing = router && !internal ? (async () => {
+          const children = SubAgentManager.getInstance();
+          const input: JevRoutingInput = { message: typeof text === 'string' ? text : text.filter(b => b.type === 'text').map(b => (b as any).text).join('\n'),
+            history: [...contextMessages], tasks: children.listByParent(this.key, this.getWorkingDirectory()),
+            roles: RoleResolver.listAvailableRoles().map(name => ({ name, description: RoleResolver.getRoleConfig(name)?.description || name })),
+          };
+          const candidates = buildRouteCandidates(input);
+          let decision: TaskAction;
+          const started = Date.now();
+          try {
+            decision = await router.route(input, candidates, routeSignal, attempt => {
+              this.sessionTurnLogger.logRuntimeEvent('jev_attempt', { turn_id: turnId, ...attempt });
+            });
+            if (![...candidates.values()].some(candidate => JSON.stringify(candidate.decision) === JSON.stringify(decision))) throw new Error('JEV_INVALID_RESPONSE');
+          } catch (error: any) {
+            if (routeAbort.signal.aborted || !isCurrent()) return;
+            executionContext.subagentRouting = 'legacy';
+            this.sessionTurnLogger.logRuntimeEvent('jev_fallback', { turn_id: turnId, duration_ms: Date.now() - started, error_code: /^JEV_[A-Z_0-9]+$/.test(error.message) ? error.message : 'JEV_UNAVAILABLE' });
+            enqueueRouteFact('Jev 技术不可用，恢复原 Main 调度。当前用户消息已在历史中，已发送的回复仍然有效；继续处理未完成部分，不重复确认或重复加入用户消息。');
+            return;
+          }
+          if (routeAbort.signal.aborted || !isCurrent()) return;
+          committedRoute = true;
+          this.sessionTurnLogger.logRuntimeEvent('jev_decision', { turn_id: turnId, duration_ms: Date.now() - started, decision });
+          if (decision.action === 'clarify') enqueueRouteFact('路由结果为 clarify：意图、目标或简单阶段拆分尚不明确，未执行子任务动作。根据用户原话和任务状态提出必要澄清，不要声称已执行。');
+          try {
+            await executeJevAction({ decision, turnId, message: input.message, history: input.history, manager: this.services.toolManager,
+              context: executionContext, isCurrent, committed: this.committedChildActions,
+              onAction: (call, result) => {
+                runtimeActions.push({ toolCall: call, toolName: call.function.name, result });
+                this.sessionTurnLogger.logRuntimeEvent('jev_action', { turn_id: turnId, action_id: call.id, tool: call.function.name, status: result.status, error_code: result.error_code });
+                enqueueRouteFact(`Runtime 执行事实（不是新用户授权）：${JSON.stringify({ tool: call.function.name, status: result.status, result: result.content })}\n据此决定是否需要回应；不重复已经交付的消息，已接收不等于已落实。`);
+              },
+            });
+          } catch {
+            enqueueRouteFact('Runtime 子任务操作失败，未恢复 Legacy，也不能重复派发；依据当前任务状态向用户说明阻碍。');
+            this.sessionTurnLogger.logRuntimeEvent('jev_action', { turn_id: turnId, status: 'failure', error_code: 'JEV_ACTION_FAILED' });
+          }
+        })().catch((error: any) => {
+          if (routeAbort.signal.aborted || !isCurrent()) return;
+          if (!committedRoute) {
+            executionContext.subagentRouting = 'legacy';
+            enqueueRouteFact('Jev 路由准备不可用，恢复原 Main；继续未完成工作，不重复已交付回复。');
+            this.sessionTurnLogger.logRuntimeEvent('jev_fallback', { turn_id: turnId, error_code: /^JEV_[A-Z_0-9]+$/.test(error?.message) ? error.message : 'JEV_UNAVAILABLE' });
+          }
+        }) : Promise.resolve();
+
         this.acceptingSteers = true;
-        const result = await runner.run(contextMessages, runnerCallbacks).finally(() => {
+        const result = await (async () => {
+          let first;
+          try { first = await runner.run(contextMessages, runnerCallbacks); }
+          catch (error) { if (!committedRoute) routeAbort.abort(); await routing; throw error; }
+          await routing;
+          if (!routingSignal.aborted && routeFeedback.length && !first.cancelled && !first.exhausted) {
+            const continued = await runner.run(contextMessages, runnerCallbacks);
+            first.response = continued.response;
+            first.finalResponseVisible = continued.finalResponseVisible;
+            first.cancelled = continued.cancelled;
+            first.exhausted = continued.exhausted;
+            first.newMessages.push(...continued.newMessages);
+            first.toolResults.push(...continued.toolResults);
+            first.toolVisibility.push(...continued.toolVisibility);
+          }
+          first.toolResults.push(...runtimeActions);
+          return first;
+        })().finally(() => {
           this.acceptingSteers = false;
           // Preserve inputs already read, including when a later provider request fails.
           this.messages = this.removeTransientMessages(contextMessages);
@@ -507,7 +607,7 @@ export class AgentSession {
         this.messages = [...persistedMessages];
         if (result.cancelled) {
           this.sessionTurnLogger.logRuntimeEvent('session_cancelled', { surface, status:'cancelled', error_code:'CANCELLED' });
-          this.sessionTurnLogger.logTurn(logInput ?? text, '', result.toolResults.map(record => this.toSessionToolCallLog(record)), {prompt:Metrics.getSummary().totalPromptTokens,completion:Metrics.getSummary().totalCompletionTokens},result.toolVisibility,this.buildStateBoundary(surface),explicitTraceId);
+          this.sessionTurnLogger.logTurn(logInput ?? text, '', result.toolResults.map(record => this.toSessionToolCallLog(record)), {prompt:this.metrics.getSummary().totalPromptTokens,completion:this.metrics.getSummary().totalCompletionTokens},result.toolVisibility,this.buildStateBoundary(surface),explicitTraceId);
           finishSessionSpan('ok', { ...baseObservabilityAttrs, 'xiaoba.session.status':'cancelled' });
           return {text:'',visibleToUser:this.hasDeliveredOutput(result.toolResults),finalResponseVisible:false,newMessages:result.newMessages,failed:true};
         }
@@ -521,7 +621,7 @@ export class AgentSession {
         }
 
         // 输出本次请求的 metrics 摘要
-        const metrics = Metrics.getSummary();
+        const metrics = this.metrics.getSummary();
         if (metrics.aiCalls > 0 || metrics.toolCalls > 0) {
           Logger.info(
             `[Metrics] AI调用: ${metrics.aiCalls}次, ` +
@@ -615,6 +715,10 @@ export class AgentSession {
       } catch (err: any) {
         if (isCancellation(err) || this.requestAbortController?.signal.aborted) {
           this.sessionTurnLogger.logRuntimeEvent('session_cancelled', { surface, status: 'cancelled', error_code: 'CANCELLED' });
+          const cancelledMetrics = this.metrics.getSummary();
+          this.sessionTurnLogger.logTurn(logInput ?? text, '', [], {
+            prompt: cancelledMetrics.totalPromptTokens, completion: cancelledMetrics.totalCompletionTokens,
+          }, undefined, this.buildStateBoundary(surface), explicitTraceId);
           finishSessionSpan('ok', { ...baseObservabilityAttrs, 'xiaoba.session.status': 'cancelled' });
           return { text: '', visibleToUser: false, finalResponseVisible: false, failed: true };
         }
@@ -643,7 +747,7 @@ export class AgentSession {
           role: 'assistant',
           content: `[处理失败: ${providerErrorCode}${providerStatus}${providerBudgetStatus}]`
         });
-        const metrics = Metrics.getSummary();
+        const metrics = this.metrics.getSummary();
         const providerAttrs = {
           ...baseObservabilityAttrs,
           'xiaoba.session.status': providerFailureBudget.status,
@@ -996,6 +1100,8 @@ export class AgentSession {
 
   /** 重置会话状态（仅清内存，保留历史文件） */
   reset(): void {
+    this.requestInterrupt();
+    this.routingEpoch++;
     this.messages = [];
     this.initialized = false;
     this.activeSkillName = undefined;
@@ -1192,6 +1298,9 @@ ${conversationText}`;
 
   /** Returns undefined if idle/closing; callers then use ordinary serialized admission. */
   steer(text: string | import('../contracts').ContentBlock[], internal = false): Promise<boolean> | undefined {
+    // Authentic V2 messages must pass normal admission/Jev rather than disappear into a tool-less Main inbox.
+    const isBase = !this.services.roleName || ['base', 'default', 'none'].includes(this.services.roleName);
+    if (!internal && isBase && this.services.jevRouter !== false && (this.services.jevRouter || ConfigManager.getConfig().jev?.apiKey)) return undefined;
     if (!this.busy || !this.acceptingSteers || this.interruptRequested || this.pendingSteers.length >= 20) return undefined;
     this.lastActiveAt = Date.now();
     return new Promise(resolve => {
@@ -1501,6 +1610,7 @@ ${conversationText}`;
       if (msg.content.startsWith(TRANSIENT_SOFT_CHECK_PREFIX)) return false;
       if (msg.content.startsWith(TRANSIENT_SKILLS_LIST_PREFIX)) return false;
       if (msg.content.startsWith(TRANSIENT_CLOCK_PREFIX)) return false;
+      if (msg.content.startsWith('[transient_jev]')) return false;
       if (msg.content.startsWith(FILE_MEMORY_PREFIX)) return false;
       return true;
     });

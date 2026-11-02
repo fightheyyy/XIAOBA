@@ -82,7 +82,7 @@ After substantial code changes:
 
 ## Stable Role Architecture
 
-- Base Main Agent is the only user-facing main agent and dispatcher.
+- Base Main Agent is the only user-facing main agent. With Jev enabled, Jev selects SubAgent actions and Runtime executes them; technical failure or missing configuration restores Legacy Main dispatch in the same Session.
 - The eight default Role Subagents are UserCat, InspectorCat, ReviewerCat, EngineerCat, BrowserCat, GuiCat, SecretaryCat, and EvolutionCat.
 - UserCat, InspectorCat, and ReviewerCat form the self-evolution review side.
 - EngineerCat, BrowserCat, GuiCat, and SecretaryCat form the execution-takeover side.

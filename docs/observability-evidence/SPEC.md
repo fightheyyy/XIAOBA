@@ -1,7 +1,7 @@
 # Observability & Evidence SPEC
 
 状态：Active
-最后更新：2026-10-30
+最后更新：2026-11-02
 
 本文是顶层架构模块中的 **Observability & Evidence / 观测证据层** spec。它以本地 trace JSONL、durable state 和 artifact evidence 为事实源；当前实现可显式启用一个脱敏 OTLP trace 投影，但不会在本地 trace/log 写入前做清洗。
 
@@ -38,6 +38,10 @@ Out of scope:
 
 ## Current Architecture
 
+Jev V2 已通过现有 runtime_event 写入 jev_attempt、jev_decision、jev_action、jev_fallback。每次尝试独立保存耗时、HTTP/错误码、provider 报告的输入/输出 token 和 usage_reported，未报告用量不当作已知零；不保存凭据或原始错误响应。Runtime 操作保留 canonical ToolResult，Main/child 的 Metrics 归属不变。
+
+`Metrics` 为执行方持有的实例，不再使用进程全局数组。主会话每次请求重置自己的计数器，并显式共享给请求前压缩、Runner 和循环内压缩；子任务独立持有计数器，跨 provider 重试保留已消费用量。成功响应即使没有 usage 也计入调用次数，但不虚构 token。子任务成功、失败和停止 Trace 写入已消费 token 及已完成工具事实；有 SessionTurnLogger 的 Main/Sub Runner 使用 mirror_only，本地 token/tool 汇总只从 Trace 投影，避免重复计数。
+
 现有 `data/subagents` Journal 的子任务信息可包含 `resultNotice={id,handledAt?}` 和未送达补充要求；执行状态与父会话结果交接分开。未确认结果不被普通终态 TTL 隐藏，确认采用原子文件替换并保留原执行 owner；仍不提供跨进程并发写入或自动执行游标恢复。模型上下文视图属于 Runtime 投影，不进入用户可见 Conversation。
 
 Intelligent Chat 已扩展 `DeliveryEvidence.delivery_type=ui` 和 Conversation 的 `{type:ui,format:a2ui|mcp,ref,title?}` 引用内容。完整 UI 消息和可见工具状态使用既有 `data/chat/sessions` 事件存储按 chat session 恢复；Journal 只记录成功交付的 UI 引用和用户提交动作，不记录 App HTML 或私有凭据。刷新不重放原 action/tool，未完成 Main run 标记中断。
@@ -57,8 +61,8 @@ flowchart LR
     ScheduledEvents --> EvolutionConsumer["Evolution workflow / supervised worker"]
     ScheduledEvents --> MemoryConsumer["Scoped memory maintenance"]
     subgraph Runtime["Runtime：事实来源"]
-        Session["AgentSession<br/>runtime/sessions"]
-        Subagent["SubAgentSession"]
+        Session["AgentSession<br/>request-owned metrics"]
+        Subagent["SubAgentSession<br/>independent metrics"]
         Runner["ConversationRunner<br/>runtime/harness/loop"]
         Tools["Tool calls/results"]
         Provider["Provider fallback/error"]
@@ -92,6 +96,7 @@ flowchart LR
     MemoryFiles["Markdown indexes / records"] --> Recall["Bounded request memory context"]
     Recall --> Session
     Recall --> Subagent
+    JevV2["Jev attempt / decision / action / fallback"] --> Logger
     Session --> Logger
     Subagent --> Logger
     Tools --> Logger
@@ -140,6 +145,8 @@ EvolutionCat 保持 remember 的写入所有权，支持按 record ID 替换与�
 
 ## Target Architecture
 
+Jev V2 将路由耗时、尝试次数、合法候选选择、fallback 原因、Main/Jev 独立 token 与 Runtime 操作结果写入现有 trace runtime_event；不记录密钥，不把 Jev token 混入 Main 模型计数。一次请求沿用现有 trace identity，turnId 是动作防重键，不改变 trace/turn 术语。
+
 Main/Sub 沿用上述已实现边界；消息消费、任务视图及结果回执的统一合同由 Agent Runtime SPEC 持有。
 
 Dashboard Intelligent Chat 扩展可见交付的 `ui` 内容项，记录用户看到的 A2UI 或 MCP App 的交付引用；UI action 作为可见用户输入记录，工具内部数据仍只在 Trace。既有 Chat 事件存储保留协议事件供按 sessionKey 恢复界面；恢复不执行 action、不调用 MCP 写工具，也不把 App 的 HTML 或私有凭据写入 Conversation。Subagent 的状态属于可见工具活动，最终结论由 Main Agent 交付。
@@ -148,6 +155,7 @@ Dashboard Intelligent Chat 扩展可见交付的 `ui` 内容项，记录用户�
 
 ```mermaid
 flowchart LR
+    JevV2["Jev attempts / decisions / action results"] --> TraceV2["Existing runtime_event / same trace"]
     UIDelivery["UI delivery / user action"] --> Conversation
     UIDelivery --> ChatHistory["Session-scoped visible UI events"]
     CredentialStore["Private Agent credential file / write-only API"] --> AppCalls

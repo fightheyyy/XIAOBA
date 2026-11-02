@@ -20,6 +20,10 @@ export class AskParentTool implements Tool {
     parameters: {
       type: 'object',
       properties: {
+        requires_user_confirmation: {
+          type: 'boolean',
+          description: '默认 true。外部写入、删除、付款、发布等授权问题必须 true；只有普通资料/解释问题可明确 false，允许 Main 自行回答。Main 回答不是用户授权。',
+        },
         question: {
           type: 'string',
           description: '需要主会话或用户确认的问题，需包含推荐选项、默认建议和风险说明',
@@ -45,7 +49,8 @@ export class AskParentTool implements Tool {
     }
 
     const subAgentId = sessionId.slice('subagent:'.length);
-    const answer = await SubAgentManager.getInstance().requestParentInput(subAgentId, question);
+    if (args.requires_user_confirmation !== undefined && typeof args.requires_user_confirmation !== 'boolean') return toolFailure('requires_user_confirmation 必须为 boolean', 'INVALID_TOOL_ARGUMENTS');
+    const answer = await SubAgentManager.getInstance().requestParentInput(subAgentId, question, args.requires_user_confirmation !== false);
     return toolSuccess(`主会话回复：${answer}`);
   }
 }

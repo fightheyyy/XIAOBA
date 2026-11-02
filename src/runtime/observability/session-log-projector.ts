@@ -120,6 +120,11 @@ function projectRuntimeEventEntry(entry: SessionRuntimeEventLogEntry, inheritedA
       ...(stringValue(entry.blocked_reason) && { 'xiaoba.blocked_reason': stringValue(entry.blocked_reason) }),
       ...providerAttributes(entry.provider_error),
     };
+    const modelCalls = numberValue(entry.model_call_count);
+    if (modelCalls !== undefined) {
+      if (modelCalls > 0) observability.recordMetric('xiaoba.model.call', modelCalls, { ...attrs, 'xiaoba.model.status': 'success' });
+      observability.recordMetric('xiaoba.model.call', 1, { ...attrs, 'xiaoba.model.status': 'error' });
+    }
     observability.recordMetric('xiaoba.provider.error', 1, attrs);
     observability.recordMetric('xiaoba.session.result', 1, attrs);
     const durationMs = numberValue(entry.duration_ms);
